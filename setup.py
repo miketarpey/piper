@@ -12,7 +12,7 @@ if sys.version_info < (3, 7, 0):
     exit()
 
 setup(
-    name='piper',
+    name='dpiper',
     version='0.0.1',
     author='Mike Tarpey',
     author_email='miketarpey@gmx.net',
@@ -20,7 +20,7 @@ setup(
     packages=['piper'],
     license='BSD',
     description='A Python module for maintaining pipeline syntax of Pandas statements.',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: BSD License',
