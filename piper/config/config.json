@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "project": "Jupyter notebook"
+    },
+    "folders": ["inputs", "src", "sql", "docs", "outputs", "reports"]
+    ,
+    "variables": {
+        "dummy_variable": "dummy"
+    },
+    "connections": {
+        "location": "connections.json"
+    },
+    "excel": {
+        "meta": "xl_meta.json",
+        "formats":"formats.json"
+    },
+    "mail_config": {
+        "server": "",
+        "port": 25,
+        "sender": ""
+    },
+    "project": "default project"
+}

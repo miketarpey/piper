@@ -1,5 +1,6 @@
 from IPython.core.magic import line_magic, cell_magic, line_cell_magic, Magics, magics_class
 from IPython.core import magic_arguments
+from datetime import datetime
 import logging
 import re
 
@@ -8,7 +9,7 @@ import re
 log_fmt = '%(asctime)s %(name)-10s %(levelname)-4s %(funcName)-14s %(message)s'
 
 # This log format shows 'minimal' information
-log_fmt = '%(asctime)s %(levelname)-4s %(funcName)-14s %(message)s'
+log_fmt = '%(message)s'
 
 # To suppress logging - uncomment line below and comment the one after :)
 # logging.basicConfig(level=logging.ERROR, format=log_fmt, datefmt='%Y-%m-%d %H:%M:%S')
@@ -16,6 +17,10 @@ logging.basicConfig(level=logging.INFO, format=log_fmt, datefmt='%Y-%m-%d %H:%M:
 
 logger = logging.getLogger(__name__)
 
+__version__ = '0.0.1'
+
+runtime = datetime.now().strftime('%A, %d %B %Y %H:%M:%S')
+logger.info(f"piper version {__version__}, last run: {runtime}")
 
 def run_cmd(execute, cell_value, env_variables=None):
     '''

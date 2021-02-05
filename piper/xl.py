@@ -1,12 +1,12 @@
 import logging
 import re
 import pandas as pd
-from os.path import split
+from os.path import split, abspath, dirname, join
 from IPython.display import display, HTML
 from copy import deepcopy
-from piper.setup_utils import get_config
-from piper.file_utils import _get_qual_file
-from piper.file_utils import _file_with_ext
+from piper.configure import get_config
+from piper.io import _get_qual_file
+from piper.io import _file_with_ext
 import xlsxwriter
 from xlsxwriter.utility import xl_col_to_name
 from xlsxwriter.utility import xl_rowcol_to_cell
@@ -608,10 +608,11 @@ class WorkBook():
         ''' Get XL metadata '''
 
         if meta_file is None:
-            config = get_config('../src/config.json')
-            xl_meta = get_config(config['excel']['meta'])
+            config = get_config('config.json', info=False)
         else:
-            xl_meta = get_config(meta_file)
+            xl_meta = get_config(meta_file, info=False)
+
+        xl_meta = get_config(config['excel']['meta'], info=False)
 
         return xl_meta
 
@@ -665,11 +666,11 @@ class WorkBook():
         to styles by name.
         '''
         if file_name is None:
-            config = get_config('../src/config.json')
-            file_name = config['excel']['formats']
-            styles_dict = get_config(file_name)
+            config = get_config('config.json')
         else:
-            styles_dict = get_config(file_name)
+            config = get_config(file_name)
+
+        styles_dict = get_config(config['excel']['formats'])
 
         base_fmt = {'font_name': 'Calibri', 'font_size': 11}
 

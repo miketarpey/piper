@@ -1,0 +1,168 @@
+{
+    "error": {
+        "font_color": "#9C0006",
+        "bg_color": "#FFC7CE"
+    },
+    "good": {
+        "font_color": "#006100",
+        "bg_color": "#C6EFCE"
+    },
+    "yellow": {
+        "font_color": "#000000",
+        "bg_color": "#FFFF00"
+    },
+    "neutral": {
+        "font_color": "#9C6500",
+        "bg_color": "#FFEB9C"
+    },
+    "input": {
+        "font_color": "#3F3F76",
+        "bg_color": "#FFCC99",
+        "border": 1,
+        "border_color": "#7F7F7F"
+    },
+    "explanatory": {
+        "font_color": "#7F7F7F",
+        "italic": true
+    },
+    "note": {
+        "bg_color": "#FFFFCC",
+        "border": 1,
+        "border_color": "#7F7F7F"
+    },
+    "money": {
+        "num_format": "#,##0.00",
+        "bold": false
+    },
+    "price2": {
+        "num_format": "#,##0.00",
+        "bold": false
+    },
+    "price4": {
+        "num_format": "#,##0.0000",
+        "bold": false
+    },
+    "center": {
+        "align": "center"
+    },
+    "center_valign": {
+        "align": "center",
+        "valign": "center"
+    },
+    "center_wrap_valign": {
+        "align": "center",
+        "valign": "vcenter",
+        "text_wrap": true
+    },
+    "center_wrap": {
+        "align": "center",
+        "text_wrap": true
+    },
+    "left_wrap": {
+        "align": "left",
+        "text_wrap": true
+    },
+    "sql": {
+        "font_size": 16,
+        "align": "left",
+        "valign": "top",
+        "bold": true,
+        "text_wrap": true
+    },
+    "accent1": {
+        "font_color": "#ffffff",
+        "bg_color": "#4f81bd",
+        "border": 1,
+        "border_color": "#7F7F7F"
+    },
+    "accent2": {
+        "font_color": "#ffffff",
+        "bg_color": "#c0504d"
+    },
+    "accent3": {
+        "font_color": "#ffffff",
+        "bg_color": "#9bbb59"
+    },
+    "accent4": {
+        "font_color": "#ffffff",
+        "bg_color": "#8064a2"
+    },
+    "accent5": {
+        "font_color": "#ffffff",
+        "bg_color": "#4bacc6"
+    },
+    "accent6": {
+        "font_color": "#ffffff",
+        "bg_color": "#f79646"
+    },
+    "accent1_20": {
+        "bg_color": "#dce6f1"
+    },
+    "accent1_40": {
+        "bg_color": "#b8cce4"
+    },
+    "accent1_60": {
+        "bg_color": "#95b3d7"
+    },
+    "accent2_20": {
+        "bg_color": "#f2dcdb"
+    },
+    "accent2_40": {
+        "bg_color": "#e6b8b7"
+    },
+    "accent2_60": {
+        "bg_color": "#da9694"
+    },
+    "accent3_20": {
+        "bg_color": "#ebf1de"
+    },
+    "accent3_40": {
+        "bg_color": "#d8e4bc"
+    },
+    "accent3_60": {
+        "bg_color": "#c4d79b"
+    },
+    "accent4_20": {
+        "bg_color": "#dce6f1"
+    },
+    "accent4_40": {
+        "bg_color": "#ccc0da"
+    },
+    "accent4_60": {
+        "bg_color": "#b1a0c7"
+    },
+    "accent5_20": {
+        "bg_color": "#daeef3"
+    },
+    "accent5_40": {
+        "bg_color": "#b7dee8"
+    },
+    "accent5_60": {
+        "bg_color": "#92cddc"
+    },
+    "accent6_20": {
+        "bg_color": "#fde9d9"
+    },
+    "accent6_40": {
+        "bg_color": "#fcd5b4"
+    },
+    "accent6_60": {
+        "bg_color": "#fabf8f"
+    },
+
+    "eudc_hdr1": {
+        "font_color": "808080",
+        "font_name": "Arial",
+        "italic": true,
+        "font_size": 9,
+        "text_wrap": true
+    },
+    "eudc_hdr2": {
+        "align": "vcenter",
+        "bg_color": "9999FF",
+        "bold": true,
+        "font_name": "Arial",
+        "font_size": 10,
+        "text_wrap": true
+    }
+}

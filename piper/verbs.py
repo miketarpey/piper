@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import logging
 from functools import wraps
-from piper.file_utils import _file_with_ext
+from piper.io import _file_with_ext
 from pandas.core.common import flatten
 from datetime import datetime
 from piper.xl import WorkBook
@@ -592,7 +592,7 @@ def trim(df, str_columns=None, inplace=False):
         df2 = df.copy(deep=True)
 
     if str_columns is None:
-        str_columns = df2.columns.values.tolist()
+        str_columns = df2.select_dtypes(include='object')
 
     # duplicate names check
     check_list = {}
@@ -605,8 +605,7 @@ def trim(df, str_columns=None, inplace=False):
             df.columns.values[idx] = df.columns.values[idx] + str(check_list[item])
 
     for col in str_columns:
-        if df2[col].dtype == 'object':
-            df2[col] = df2[col].str.strip()
+        df2[col] = df2[col].astype('str').str.strip()
 
     return df2
 

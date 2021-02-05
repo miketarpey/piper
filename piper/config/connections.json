@@ -1,0 +1,13 @@
+{
+ "Connection1": {
+        "title": "Connection title",
+        "url": "",
+        "host": "",
+        "service": "",
+        "port": null,
+        "sid": "",
+        "schema": "",
+        "user": "",
+        "pw": ""
+    },
+}

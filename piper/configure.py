@@ -3,36 +3,81 @@ import logging
 import pandas as pd
 from shutil import copy
 from pathlib import Path
+from os.path import dirname, abspath
 
 
 logger = logging.getLogger(__name__)
 
 
 def get_config(file_name=None, info=False):
-    ''' get default json configuration file
+    ''' Given piper configuration file 'config.json' or
+    odbc user/passwords connections file 'connections.json'
+    retrieve dictionary contents and return
+
+    Search strategy is as follows:
+    # 1. Look in current notebook directory
+    # 2. Look in home/piper
+    # 3. Look in package directory (failsafe)
 
     Parameters
     ----------
-    filename :
-        if None then return {}
+    filename : if None then return {}
 
-    info :
-        True, return and display pd.DataFrame (via notebook)
+    info : True, return and display pd.DataFrame (via notebook)
 
     Returns
     -------
     config as a dictionary
-   '''
+    '''
+    config = None
+    current_dir = Path.cwd()
+    piper_dir = Path.home() / 'piper'
+    package_dir = Path(abspath(dirname(__file__))) / 'config'
+
+    search_list = [current_dir, piper_dir, package_dir]
+
+    for location in search_list:
+
+        qual_file = location / file_name
+        try:
+            with open(qual_file.as_posix(), 'r') as f:
+                config = json.load(f)
+
+            if info:
+                logger.info(f'config file: {qual_file}')
+
+            break
+
+        except (FileNotFoundError, TypeError) as _:
+            if info:
+                logger.info(f'config file: {qual_file} not found')
+            continue
+
+    return config
+
+
+def load_nb_config(config_file: str=None):
+    ''' Load parameter/config file
+
+    Examples
+    --------
+    defaults.py
+    1. Load default variables into current notebook. If no project configuration
+       file, then try to load local project default file called 'config.json'.
+
+    defaults.py "project.json"
+    2. If a project configuration file passed, load that.
+
+    '''
+    if config_file is None:
+        config_file = 'config.json'
+
     try:
-        with open(file_name, 'r') as f:
-            config = json.load(f)
+        logger.info(f'Local config >> {config_file}')
+        config = get_config(config_file)
 
-        if info:
-            logger.info(f'config file: {file_name}')
-            get_dict_df(config)
-
-    except (FileNotFoundError, TypeError) as _:
-        logger.info(f'config file: {file_name} not found')
+    except FileNotFoundError as _:
+        logger.info(_)
         return None
 
     return config
@@ -43,11 +88,9 @@ def get_dict_df(dict, colnames=None):
 
     Parameters
     ----------
-    dict :
-        a dictionary containing values to be converted
+    dict : a dictionary containing values to be converted
 
-    colnames :
-        list of columns to subset the data
+    colnames : list of columns to subset the data
 
     Returns
     -------
