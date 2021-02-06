@@ -70,13 +70,6 @@ df2 = (df[subset_cols][criteria1 & criteria2 & criteria3]
 df2.head()
 ```
 
-
-| Tables        | Are           | Cool  |
-| ------------- |:-------------:| -----:|
-| col 3 is      | right-aligned | $1600 |
-| col 2 is      | centered      |   $12 |
-| zebra stripes | are neat      |    $1 |
-
 Result:
 | dates | order_dates | countries | ids | values_1 | values_2 |
 | ----- | ----------- | --------- | --- | -------- | -------- |
