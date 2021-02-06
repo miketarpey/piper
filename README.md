@@ -1,13 +1,26 @@
 # Piper
-__Piper__ is a python module that tries to speed up data wrangling by wrapping [pandas](https://pandas.pydata.org/) functionality within [Jupyter](https://jupyter.org/) notebooks with a 'magic' an SQL like syntax. 
+__Piper__ is a python module to simplify data wrangling with [pandas](https://pandas.pydata.org/).
 
-Inspired by the amazing R 
-[tidyverse](https://www.tidyverse.org/) and 
+Combined with a [Jupyter](https://jupyter.org/) notebook a 'magic' command (__%%piper__), provides an SQL like syntax - similar to R's [tidyverse](https://www.tidyverse.org/) and 
 [magrittr](https://magrittr.tidyverse.org/) libraries
+
+The main functions are:
+
+- select()
+- where()
+- group_by()
+- summarise()
+- order_by()
+
+___Alternatives___ 
+
+For a comprehensive alternative, please check out __Michael Chow's [siuba package](https://github.com/machow/siuba)__. 
+
+For other _piper_ functionality, please see the [Features](#Features) section.
 
 ## Table of contents
 * [Installation](#Installation)
-* [Example](#Example)
+* [Basic use](#Basic-use)
 * [Documentation](#Documentation)
 * [Features](#Features)
 * [Status](#Status)
@@ -17,11 +30,13 @@ Inspired by the amazing R
 ## Installation 
 To install the package, enter the following:
 
-```pip install dpiper```
-
-## Example
-Within a Jupyter notebook, suppose we need a function to returned trimmed string based column data for a dataframe.
 ```
+pip install dpiper
+```
+
+## Basic use
+Within a Jupyter notebook, suppose we need a function to returned trimmed string based column data for a dataframe.
+```python
 def trim_columns(df):
     ''' Trim blanks for given dataframe '''
     
@@ -34,7 +49,8 @@ def trim_columns(df):
 ```
 
 In standard pandas, we can combine the new function in a pipeline, along with filtering the input data as follows:
-```
+
+```python
 import pandas as pd
 from piper.factory import get_sample_data
 
@@ -56,14 +72,14 @@ df2.head()
 
 Now, the same result using piper's %%piper magic command and using piper 'verbs'. Let's import the necessary functions: 
 
-```
+```python
 from piper import piper
 from piper.verbs import head, select, where, group_by, summarise, order_by
 ```
 
 Now, create a separate cell with functions 'piped' together using the linking symbol '>>'
 
-```
+```python
 %%piper
 get_sample_data()
 >> trim_columns()
@@ -75,12 +91,6 @@ get_sample_data()
 >> head(5)
 ```
 
-## Documentation
-Further examples are available in these jupyter notebooks:
-- TBD
-- TBD
-- TBD
-
 ## Features
 - Simplifies working with data pipelines by implementing wrapper functions.
 - Wrappers for working with Excel files (using [xlsxwriter](https://xlsxwriter.readthedocs.io/))
@@ -88,6 +98,12 @@ Further examples are available in these jupyter notebooks:
 
 To-do list:
 * TBD 
+
+## Documentation
+Further examples are available in these jupyter notebooks:
+- TBD
+- TBD
+- TBD
 
 ## Status
 Project has just started. I welcome any and all help to improve etc.
