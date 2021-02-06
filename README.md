@@ -1,10 +1,5 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
-# piper
-__piper__ is a python module that tries to speed up data wrangling by wrapping [pandas](https://pandas.pydata.org/) functionality within [Jupyter](https://jupyter.org/) notebooks with a 'magic' an SQL like syntax. 
+# Piper
+__Piper__ is a python module that tries to speed up data wrangling by wrapping [pandas](https://pandas.pydata.org/) functionality within [Jupyter](https://jupyter.org/) notebooks with a 'magic' an SQL like syntax. 
 
 Inspired by the amazing R 
 [tidyverse](https://www.tidyverse.org/) and 
