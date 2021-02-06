@@ -12,15 +12,19 @@ if sys.version_info < (3, 7, 0):
     exit()
 
 setup(
-    name='dpiper',
+    name='mt-piper',
     version='0.0.1',
     author='Mike Tarpey',
     author_email='miketarpey@gmx.net',
     url='https://github.com/miketarpey/piper',
     packages=['piper'],
+    install_requires=['pytest',
+       'pandas', 'seaborn', 'ipython', 'xlsxwriter', 'cx_oracle', 'pypyodbc',
+       'psycopg2-binary'],
     license='BSD',
     description='A Python module for maintaining pipeline syntax of Pandas statements.',
     long_description=open('README.md').read(),
+    long_description_content_type="text/markdown",
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: BSD License',
