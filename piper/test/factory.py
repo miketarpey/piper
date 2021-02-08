@@ -131,7 +131,7 @@ def get_sample_orders_02():
 
 
 @pytest.fixture
-def get_sample_df1(start='2021', end='2022', freq='D', seed=30):
+def get_sample_df1(start='2020', end='2021', freq='D', seed=30):
     ''' Generate and return sample time series data
     '''
 

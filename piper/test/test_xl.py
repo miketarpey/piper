@@ -2,8 +2,8 @@ import pytest
 import json
 import pandas as pd
 from piper.xl import WorkBook
-from piper.test.data_factory import get_sample_orders_01
-from piper.test.data_factory import get_sample_orders_02
+from piper.test.factory import get_sample_orders_01
+from piper.test.factory import get_sample_orders_02
 from pathlib import Path
 
 

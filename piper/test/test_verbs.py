@@ -21,14 +21,14 @@ from piper.verbs import tail
 from piper.verbs import trim
 from piper.verbs import add_jde_batch
 from piper.verbs import has_special_chars
-from piper.test.data_factory import get_sample_orders_01
-from data_factory import get_sample_df1
-from data_factory import get_sample_df2
-from data_factory import get_sample_df3
-from data_factory import get_sample_df4
-from data_factory import get_sample_df5
-from data_factory import get_sample_df6
-from data_factory import get_sample_df7
+from piper.test.factory import get_sample_orders_01
+from piper.test.factory import get_sample_df1
+from piper.test.factory import get_sample_df2
+from piper.test.factory import get_sample_df3
+from piper.test.factory import get_sample_df4
+from piper.test.factory import get_sample_df5
+from piper.test.factory import get_sample_df6
+from piper.test.factory import get_sample_df7
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
 import random

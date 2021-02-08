@@ -4,8 +4,8 @@ from piper.pandas import read_csv
 from piper.pandas import read_sql
 from piper.verbs import count
 from piper.verbs import trim
-from piper.test.data_factory import get_sample_orders_01
-from piper.test.data_factory import get_sample_df4
+from piper.test.factory import get_sample_orders_01
+from piper.test.factory import get_sample_df4
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
 import random

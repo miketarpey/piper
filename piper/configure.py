@@ -56,33 +56,6 @@ def get_config(file_name=None, info=False):
     return config
 
 
-def load_nb_config(config_file: str=None):
-    ''' Load parameter/config file
-
-    Examples
-    --------
-    defaults.py
-    1. Load default variables into current notebook. If no project configuration
-       file, then try to load local project default file called 'config.json'.
-
-    defaults.py "project.json"
-    2. If a project configuration file passed, load that.
-
-    '''
-    if config_file is None:
-        config_file = 'config.json'
-
-    try:
-        logger.info(f'Local config >> {config_file}')
-        config = get_config(config_file)
-
-    except FileNotFoundError as _:
-        logger.info(_)
-        return None
-
-    return config
-
-
 def get_dict_df(dict, colnames=None):
     ''' get dataframe from a dictionary
 
@@ -105,66 +78,3 @@ def get_dict_df(dict, colnames=None):
         logger.debug(df)
 
     return df
-
-
-def create_nb_project(project='project', description='project description'):
-    '''
-    Create notebook project.
-
-    Parameters:
-    -----------
-
-    project: str project folder name. This folder will be built
-                under the main project folder (usually 'notebooks')
-
-    description: str project description. Used to setup default project name
-        when building reports (accessible in notebooks as 'project' variable)
-
-    Returns:
-    --------
-    None
-
-    '''
-
-    # Assumptions: source directory and notebooks setup as below
-    setup = {'root': Path.home() / 'Documents/notebooks',
-             'src': Path.home() / 'Documents/notebooks/src'}
-
-    # Retrieve root directory...
-    project_root = setup.get('root') / project
-    logger.info(project_root)
-
-    # Get default sub-directory configuration, from config.json
-    # to build the folders.
-    config_file = 'config.json'
-    default_config = setup.get('src') / config_file
-    project_config = get_config(default_config)
-    logger.debug(project_config)
-
-    # Build main project directory
-    try:
-        project_root.mkdir(parents=True, exist_ok=False)
-    except FileExistsError as e:
-        logger.info(e)
-
-    for folder in project_config['folders']:
-        try:
-            qual_folder = project_root / folder
-            qual_folder.mkdir(parents=True, exist_ok=False)
-            logger.info(f'Created subfolder: {folder}')
-        except FileExistsError as e:
-            logger.info(e)
-
-    # Build a project specific config.json
-    project_config_json = project_root / config_file
-    logger.debug(project_config_json)
-
-    project_config['project'] = description
-    project_config['meta']['project'] = description
-    project_config['mail_config']['sender'] = 'someone@acme.com'
-
-    # Write to the project default folder
-    with open(project_config_json, "w") as outfile:
-        json.dump(project_config, outfile)
-
-    logger.info(f'{project_root} folder completed.')
