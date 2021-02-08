@@ -110,10 +110,7 @@ To-do list:
 
 ## Documentation
 Further examples are available in these jupyter notebooks:
-- TBD
-- TBD
-- TBD
-- TBD
+- [piper demo jupyter notebooks](https://github.com/miketarpey/piper_demo)
 
 ## Status
 Project has just started. I welcome any and all help to improve etc.
