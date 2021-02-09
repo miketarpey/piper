@@ -32,7 +32,8 @@ def get_config(file_name=None, info=False):
     config = None
     current_dir = Path.cwd()
     piper_dir = Path.home() / 'piper'
-    package_dir = Path(abspath(dirname(__file__))) / 'config'
+    # package_dir = Path(abspath(dirname(__file__))) / 'config'
+    package_dir = Path(abspath(dirname(__file__)))
 
     search_list = [current_dir, piper_dir, package_dir]
 
