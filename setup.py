@@ -15,7 +15,7 @@ if sys.version_info < (3, 7, 0):
 
 setup(
     name='dpiper',
-    version='0.0.6',
+    version='0.0.7',
     author='Mike Tarpey',
     author_email='miketarpey@gmx.net',
     url='https://github.com/miketarpey/piper',
@@ -30,6 +30,7 @@ setup(
         "psycopg2",
         "pypyodbc"],
     tests_require=['pytest'],
+    include_package_data=True,
     license='BSD',
     description='A Python module for maintaining pipeline syntax of Pandas statements.',
     long_description=open('README.md').read(),

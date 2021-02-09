@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO, format=log_fmt, datefmt='%Y-%m-%d %H:%M:
 
 logger = logging.getLogger(__name__)
 
-__version__ = '0.0.6'
+__version__ = '0.0.7'
 
 runtime = datetime.now().strftime('%A, %d %B %Y %H:%M:%S')
 logger.info(f"piper version {__version__}, last run: {runtime}")
