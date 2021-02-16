@@ -1,6 +1,5 @@
 from piper.pandas import generate_summary_df
 from piper.pandas import is_type
-from piper.pandas import read_csv
 from piper.pandas import read_sql
 from piper.verbs import count
 from piper.verbs import trim
@@ -102,18 +101,3 @@ def test_generate_summary_df(get_sample_df4):
     actual = summary_df.loc['Grand total', 'Total records']
 
     assert expected == actual
-
-# test_read_csv_with_data {{{1
-def test_read_csv_with_data(get_sample_orders_01):
-    """
-    """
-    file_name = 'piper/temp/to_tsv_with_data.tsv'
-    df_json = pd.DataFrame(get_sample_orders_01)
-
-    df = read_csv(file_name, sep='\t')
-
-    expected = df_json.shape
-    actual = df.shape
-
-    assert expected == actual
-

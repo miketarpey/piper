@@ -49,7 +49,7 @@ def test_zip_data(write_text_file):
     filename = 'piper/temp/test_zip_file'
 
     test_zip = zip_data(source='piper/temp', target=filename,
-                        filter='*.txt', ts_prefix='date',
+                        filter='*.txt', ts_prefix=False,
                         test_mode=False, mode='w', info=False)
 
     expected = 1
@@ -63,7 +63,7 @@ def test_zip_data_nofiles(write_text_file):
     filename = 'piper/temp/test_zip_file'
 
     test_zip = zip_data(source='temp', target=filename,
-                        filter='*.nofiles', ts_prefix='date',
+                        filter='*.nofiles', ts_prefix=False,
                         test_mode=False, mode='w', info=False)
 
     expected = None
@@ -77,7 +77,7 @@ def test_zip_data_test_mode(write_text_file):
     filename = 'piper/temp/test_zip_file'
 
     test_zip = zip_data(source='temp', target=filename,
-                        filter='*.sql', ts_prefix='date',
+                        filter='*.sql', ts_prefix=False,
                         test_mode=True, mode='w', info=False)
 
     expected = None

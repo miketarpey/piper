@@ -1,4 +1,5 @@
 from piper.verbs import to_tsv
+from piper.pandas import read_csv
 from piper.verbs import left_join
 from piper.verbs import duplicated
 from piper.verbs import resample_groupby
@@ -1061,3 +1062,17 @@ def test_to_tsv_with_data(get_sample_orders_01):
 
     assert expected == actual
 
+
+# test_read_csv_with_data {{{1
+def test_read_csv_with_data(get_sample_orders_01):
+    """
+    """
+    file_name = 'piper/temp/to_tsv_with_data.tsv'
+    df_json = pd.DataFrame(get_sample_orders_01)
+
+    df = read_csv(file_name, sep='\t')
+
+    expected = df_json.shape
+    actual = df.shape
+
+    assert expected == actual

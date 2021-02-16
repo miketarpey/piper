@@ -235,7 +235,7 @@ def test_WorkBook_Sheet_list_None_(get_sample_orders_01):
     file_name = relative_folder / 'WorkBook None sheet.xlsx'
 
     expected = WorkBook
-    actual = type(WorkBook(file_name, sheets=None))
+    actual = type(WorkBook(file_name, sheets=None, ts_prefix=False))
 
     assert expected == actual
 
@@ -244,7 +244,7 @@ def test_WorkBook_Sheet_list_single_dataframe(get_sample_orders_01):
 
     df = pd.DataFrame(get_sample_orders_01)
     file_name = relative_folder / 'WorkBook Single dataframe.xlsx'
-    WorkBook(file_name, sheets=df)
+    WorkBook(file_name, sheets=df, ts_prefix=False)
 
     rows, columns = 12, 9
     actual = df.shape
@@ -256,7 +256,7 @@ def test_WorkBook_Sheet_list_list_of_dataframes(get_sample_orders_01, get_sample
     df = pd.DataFrame(get_sample_orders_01)
     df2 = pd.DataFrame(get_sample_orders_02)
     file_name = relative_folder / 'WorkBook list of dataframes.xlsx'
-    WorkBook(file_name, sheets=[df, df2])
+    WorkBook(file_name, sheets=[df, df2], ts_prefix=False)
 
     rows, columns = 12, 9
     actual = df2.shape
@@ -269,7 +269,7 @@ def test_WorkBook_Sheet_list_dictionary_of_dataframes(get_sample_orders_01,
     df = pd.DataFrame(get_sample_orders_01)
     df2 = pd.DataFrame(get_sample_orders_02)
     file_name = relative_folder / 'WorkBook list of tuples.xlsx'
-    WorkBook(file_name, sheets={'SheetA': df, 'SheetB': df2})
+    WorkBook(file_name, sheets={'SheetA': df, 'SheetB': df2}, ts_prefix=False)
 
     rows, columns = 12, 9
     actual = df2.shape
@@ -280,7 +280,7 @@ def test_WorkBook_Sheet_list_number_of_rows(get_sample_orders_02):
 
     df = pd.DataFrame(get_sample_orders_02)
     file_name = relative_folder / 'WorkBook single - shape test.xlsx'
-    WorkBook(file_name, sheets=df)
+    WorkBook(file_name, sheets=df, ts_prefix=False)
 
     rows, columns = 12, 9
     actual = df.shape
@@ -293,7 +293,7 @@ def test_WorkBook_Sheet_add_format(get_sample_orders_01):
     df = get_sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_format.xlsx'
-    wb = WorkBook(file_name)
+    wb = WorkBook(file_name, ts_prefix=False)
 
     ws = wb.add_sheet(df, sheet_name='original', tab_color='yellow', zoom=175)
 
@@ -309,7 +309,7 @@ def test_WorkBook_Sheet_add_formats(get_sample_orders_01):
     df = get_sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_formats.xlsx'
-    wb = WorkBook(file_name)
+    wb = WorkBook(file_name, ts_prefix=False)
 
     ws = wb.add_sheet(df, sheet_name='original', tab_color='yellow', zoom=175)
 
@@ -331,7 +331,7 @@ def test_WorkBook_Sheet_add_condition(get_sample_orders_01):
     df = get_sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_condition.xlsx'
-    wb = WorkBook(file_name)
+    wb = WorkBook(file_name, ts_prefix=False)
 
     ws = wb.add_sheet(df, sheet_name='original', tab_color='yellow', zoom=175)
 
@@ -347,7 +347,7 @@ def test_WorkBook_Sheet_add_condition_default_error_format(get_sample_orders_01)
     df = get_sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_condition - default error format.xlsx'
-    wb = WorkBook(file_name)
+    wb = WorkBook(file_name, ts_prefix=False)
 
     ws = wb.add_sheet(df, sheet_name='original', tab_color='yellow', zoom=175)
 
@@ -363,7 +363,7 @@ def test_WorkBook_Sheet_add_conditions(get_sample_orders_01):
     df = get_sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_conditions.xlsx'
-    wb = WorkBook(file_name)
+    wb = WorkBook(file_name, ts_prefix=False)
 
     ws = wb.add_sheet(df, sheet_name='original', tab_color='yellow', zoom=175)
 
@@ -378,7 +378,7 @@ def test_WorkBook_get_themes(get_sample_orders_01):
     '''
     '''
     file_name = relative_folder / 'WorkBook - test themes.xlsx'
-    wb = WorkBook(file_name)
+    wb = WorkBook(file_name, ts_prefix=False)
     assert wb.show_themes() == ', '.join(wb.get_themes())
     wb.close()
 
@@ -387,6 +387,6 @@ def test_WorkBook_show_styles(get_sample_orders_01):
     '''
     '''
     file_name = relative_folder / 'WorkBook - test themes.xlsx'
-    wb = WorkBook(file_name)
+    wb = WorkBook(file_name, ts_prefix=False)
     assert wb.show_styles() == wb.get_styles().keys()
     wb.close()
