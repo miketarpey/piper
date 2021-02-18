@@ -11,7 +11,7 @@ The main functions are:
 - summarise()
 - order_by()
 
-For other _piper_ functionality, please see the [Features](#Features) section.
+For other _piper_ functionality, please see the [Goals and Features](#Goals-and-Features) section.
 
 ___Alternatives___ 
 
@@ -21,7 +21,7 @@ For a comprehensive alternative, please check out __Michael Chow's [siuba packag
 * [Installation](#Installation)
 * [Basic use](#Basic-use)
 * [Documentation](#Documentation)
-* [Features](#Features)
+* [Goals and Features](#Goals-and-Features)
 * [Status](#Status)
 * [Inspiration](#Inspiration)
 * [Contact](#Contact)
@@ -79,7 +79,7 @@ Result:
 2020-02-01 | 2020-02-07 | Norway | D |	344  |21
 2020-05-06 | 2020-05-12 | Norway | B |	135  |21
 
-Using piper's %%piper magic command and using piper 'verbs'. Let's import the necessary functions: 
+Using piper's %%piper magic command and piper 'verbs'. Let's import the required module functions: 
 
 ```python
 from piper import piper
@@ -100,12 +100,14 @@ get_sample_data()
 >> head(5)
 ```
 
-## Features
-- Simplifies working with data pipelines by implementing a set of common wrapper functions.
-- Additional wrappers for exporting data to Excel files (using [xlsxwriter](https://xlsxwriter.readthedocs.io/))
+## Goals and Features
+- Simplify data wrangling/building data pipelines by using a set of easy to remember wrapper functions.
+
+- Enhance working with Excel files through the WorkBook class 
+    - Exporting high quality formatted Excel Workbooks using [xlsxwriter](https://xlsxwriter.readthedocs.io/)
 - Provide access to databases with support for SQL based scripting and connections.
 
-To-do list:
+___To-do list___
 * TBD 
 
 ## Documentation
