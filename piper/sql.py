@@ -1,9 +1,113 @@
 from pathlib import Path
 import re
 import logging
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
+
+
+def create_table(df, tablename=None, data_types=None, not_null=False, info=False):
+    '''
+    For given dataframe, generate 'create table' sql statement(s) to
+    build corresponding sql database table.
+
+
+    Parameters
+    ----------
+    df: dataframe - containing rows to be inserted
+
+    table_name: str - target database table name
+
+    data_types: dict - dictionary containing corresponding data types
+                        between pandas and target database.
+
+                If None, function will apply 'default' from/to data
+                type values.
+
+    not null: boolean - default False. If True, insert 'not null'
+                        in SQL column statement(s)
+
+
+    Returns
+    -------
+    sql: sql text containing insert statement(s)
+
+    '''
+    if tablename is None:
+        tablename = 'table'
+
+    if data_types is None:
+        data_types = {'object': 'text',
+                      'int32': 'integer',
+                      'int64': 'bigint',
+                      'float64': 'decimal',
+                      'datetime64[ns]': 'date'}
+
+    null = ' not_null' if not_null else ''
+
+    columns = []
+    for column_name, _type in df.dtypes.items():
+        sql_data_type = data_types.get(_type.name, "<< unknown >>")
+
+        columns.append(f'\n{column_name} {sql_data_type}{null}')
+
+    sql = f"create table {tablename} ({', '.join(columns)}\n) "
+
+    if info:
+        logger.info(sql)
+
+    return sql
+
+
+def insert(df, tablename=None, info=False):
+    """
+    For given dataframe, generate mass insert sql statement(s).
+
+    Note: lambda 'func' defined to build row values delimitting
+          str values using apostrophes
+
+
+    Parameters
+    ----------
+    df: pandas dataframe containing rows to be inserted
+
+    table_name: target database table name
+
+
+    Returns
+    -------
+    sql: sql text containing insert statement(s)
+
+    """
+    columns = ', '.join(df.columns.tolist())
+
+    def check_valid(value):
+        '''
+        '''
+
+        if isinstance(value, int):
+            return f"'{value}'"
+        if isinstance(value, float):
+            return f"'{value}'"
+        else:
+            if isinstance(value, str):
+                if re.search("[']", value):
+                    value = re.sub("[']", "\\'", value)
+                    return f"E'{value}'"
+
+        return f"'{value}'"
+
+    func = lambda x: f"""'{x}'"""
+    rows = ('('+', '.join(map(check_valid, r)) +')' for r in df.values)
+    values = ', '.join(rows)
+
+    sql = f"insert into {tablename} ({columns}) values {values}"
+
+    if info:
+        logger.info(sql)
+
+    return sql
 
 
 def get_sql_text(file_or_text, variables, debug=False):

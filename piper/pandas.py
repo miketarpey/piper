@@ -116,10 +116,8 @@ def read_sql(sql, con=None, sql_info=False, trim_blanks=True,
     if info:
         note = "<NOTE: get_dataframe(return_sql=True) returns rendered SQL>"
         logger.info(note)
-    else:
-        logger.info(f' {df.shape[0]} rows, {df.shape[1]} columns')
 
-    logger.info('Completed.')
+        logger.info(f'{df.shape[0]} rows, {df.shape[1]} columns')
 
     return df
 
@@ -345,6 +343,18 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
     ''' For given Excel file name, return all or selected (list of) sheets as a
     consolidated pandas DataFrame
 
+    Example
+    -------
+    dataframes = []
+
+    for f in get_files(source='inputs/excel_workbooks/'):
+        df = read_excel_sheets(f.as_posix(), include_sheet=True, column='category')
+        df = df.assign(date = pd.to_datetime(f.stem, format='%m_%Y'))
+        dataframes.append(df)
+
+    df = pd.concat(dataframes)
+
+
     Parameters
     ----------
     filename - Excel Workbook (name) to be interrogated, default None
@@ -366,18 +376,6 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
                         'dataframes' - return dictionary of sheet_name and sheet dataframe
                         'metadata' - return dataframe containing filename, sheet, rows, cols
                         'list' - return list of sheet names
-
-    Example
-    -------
-    dataframes = []
-
-    for f in get_files(source='inputs/excel_workbooks/'):
-        df = read_excel_sheets(f.as_posix(), include_sheet=True, column='category')
-        df = df.assign(date = pd.to_datetime(f.stem, format='%m_%Y'))
-        dataframes.append(df)
-
-    df = pd.concat(dataframes)
-
     '''
     dataframes = []
     dataframe_dict = {}

@@ -35,28 +35,28 @@ def connections(file_name=None, return_type='dataframe'):
     dict_config = connections(return_type='dictionary')
 
     '''
-    try:
-        if file_name == None:
-            default_config = get_config('config.json')
-            file_name = default_config['connections']['location']
+    if file_name == None:
+        default_config = get_config('config.json')
+        file_name = default_config['connections']['location']
 
-        config = get_config(file_name)
+    config = get_config(file_name, info=False)
+    logger.debug(config)
 
-        if return_type == 'dictionary':
-            return config
-
-    except FileNotFoundError as e:
-        raise FileNotFoundError(e)
+    if return_type == 'dictionary':
+        return config
 
     if return_type == 'dataframe':
-        df = (pd.DataFrame(config).T
-                .drop(columns=['pw']).fillna(''))
+        df = (pd.DataFrame(config).T).fillna('')
+
+        if 'pw' in df.columns:
+           df = df.drop(columns=['pw'])
 
         lowercase_cols = ['schema', 'sid', 'user']
         for col in lowercase_cols:
-            df[col] = df[col].str.lower()
+            if col in df.columns:
+                df[col] = df[col].str.lower()
 
-        return df
+    return df
 
 
 def connect(connection=None, connection_type=None, file_name=None):

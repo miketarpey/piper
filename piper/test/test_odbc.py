@@ -2,19 +2,22 @@ import pytest
 import pandas as pd
 from piper.odbc import connections
 
-@pytest.mark.skip(reason="no way of currently testing this")
-def test_connections_file_not_found():
-    """
-    """
-    with pytest.raises(Exception):
-        assert connections('not_found.json') is None
 
-@pytest.mark.skip(reason="no way of currently testing this")
-def test_connections_return_dataframe():
+def test_connections_file_not_found_returns_empty_dataframe():
+    """
+    """
+    expected = True
+    actual = connections('no_file.json')
+
+    assert expected == isinstance(actual, pd.DataFrame)
+
+
+def test_connections_default_returns_dataframe():
     """
     """
     df = connections(return_type='dataframe')
     assert isinstance(df, pd.DataFrame) is True
+
 
 
 @pytest.mark.skip(reason="no way of currently testing this")
