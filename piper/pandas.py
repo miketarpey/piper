@@ -223,8 +223,8 @@ def read_csvs(source='inputs/', filter='*.csv', sep=',', strip_blanks=True,
 
 
 # read_excels() {{{1
-def read_excels(source='inputs/', func=None, include_file=False,
-                reset_index=True, info=False):
+def read_excels(source='inputs/',  filter='*.xls*', func=None,
+                include_file=False, reset_index=True, info=False):
     '''
     Read, concatenate, combine and return a pandas dataframe based on
     workbook(s) data within a given source folder.
@@ -233,6 +233,8 @@ def read_excels(source='inputs/', func=None, include_file=False,
     ----------
     source - (str) source folder containing workbook data
              (that is, files ending with '.xls*')
+
+    filter - file extension filter (str), default - '*.xls*'
 
     func - pass a custom function to read/transform each workbook/sheet.
             default is None (just performs a read_excel())
@@ -309,7 +311,7 @@ def read_excels(source='inputs/', func=None, include_file=False,
     '''
 
     dataframes = []
-    for xl_file in list_files(source, as_posix=False):
+    for xl_file in list_files(source, filter=filter, as_posix=False):
 
         if func is None:
             df = pd.read_excel(xl_file)
@@ -521,8 +523,6 @@ def generate_summary_df(datasets, title='Summary', col_total='Total records',
         summary = summary.append(s1)
 
     return summary
-
-
 
 
 # is_type() {{{1
