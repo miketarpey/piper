@@ -15,7 +15,7 @@ if sys.version_info < (3, 7, 0):
 
 setup(
     name='dpiper',
-    version='0.0.7',
+    version='0.0.8',
     author='Mike Tarpey',
     author_email='miketarpey@gmx.net',
     url='https://github.com/miketarpey/piper',
