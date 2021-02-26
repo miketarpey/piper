@@ -745,15 +745,15 @@ def rename_axis(df, *args, **kwargs):
     return df.rename_axis(*args, **kwargs)
 
 
-# move_column() {{{1
-def move_column(df, column=None, loc='last', ref_column=None):
-    ''' move_column: move column within a dataframe
+# relocate() {{{1
+def relocate(df, column=None, loc='last', ref_column=None):
+    ''' relocate: move column within a dataframe
 
     Example:
     --------
     %%piper
     df
-    >> move_column('FirstName', 'after', 'Department')
+    >> relocate('FirstName', 'after', 'Department')
     >> head()
 
     Parameters
@@ -1262,7 +1262,7 @@ def lookup(df, df2, columns=None, loc='last', ref_column=None, *args, **kwargs):
 
     # If columns specified, move them to requested dataframe column position.
     if columns is not None:
-        merged_df = move_column(merged_df, column=columns, loc=loc, ref_column=ref_column)
+        merged_df = relocate(merged_df, column=columns, loc=loc, ref_column=ref_column)
 
     return merged_df
 
@@ -1701,7 +1701,7 @@ def duplicated(df=None, subset=None, keep=False, sort=True,
         dx[column] = duplicate_rows
 
         if loc is not None:
-           dx = move_column(dx, column=column, loc=loc, ref_column=ref_column)
+           dx = relocate(dx, column=column, loc=loc, ref_column=ref_column)
 
     if unique_only:
         dx = dx[~duplicate_rows]
@@ -1835,8 +1835,6 @@ def has_special_chars(df, col_name):
     df['item_special_chars'] = ~df[col_name].str.match(pattern)
 
     return df
-
-
 
 
 # to_csv() {{{1

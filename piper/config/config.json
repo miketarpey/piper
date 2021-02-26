@@ -1,6 +1,6 @@
 {
     "meta": {
-        "project": "Jupyter notebook"
+        "project": "Jupyter notebook",
         "author": ""
     },
     "folders": ["inputs", "src", "sql", "docs", "outputs", "reports"]

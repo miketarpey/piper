@@ -16,7 +16,7 @@ from piper.verbs import select
 from piper.verbs import where
 from piper.verbs import summarise
 from piper.verbs import info
-from piper.verbs import move_column
+from piper.verbs import relocate
 from piper.verbs import pivot_table
 from piper.verbs import tail
 from piper.verbs import trim
@@ -115,35 +115,35 @@ def test_tail_with_dataframe(get_sample_df2):
 
 
 
-# test_move_column_single_column {{{1
-def test_move_column_single_column(get_sample_df2):
+# test_relocate_single_column {{{1
+def test_relocate_single_column(get_sample_df2):
     """
     """
     df = get_sample_df2
-    df = move_column(df, 'regions', loc='first')
+    df = relocate(df, 'regions', loc='first')
 
     expected = ['regions', 'ids']
     actual = df.columns.values.tolist()
     assert expected == actual
 
-# test_move_column_single_column_last_column {{{1
-def test_move_column_single_column_last_column(get_sample_df2):
+# test_relocate_single_column_last_column {{{1
+def test_relocate_single_column_last_column(get_sample_df2):
     """
     """
     df = get_sample_df2
-    df = move_column(df, 'regions', loc='last')
+    df = relocate(df, 'regions', loc='last')
 
     expected = ['ids', 'regions']
     actual = df.columns.values.tolist()
     assert expected == actual
 
 
-# test_move_column_multi_column_first {{{1
-def test_move_column_multi_column_first(get_sample_df1):
+# test_relocate_multi_column_first {{{1
+def test_relocate_multi_column_first(get_sample_df1):
     """
     """
     df = get_sample_df1
-    df = move_column(df, ['dates', 'regions', 'countries'], loc='first')
+    df = relocate(df, ['dates', 'regions', 'countries'], loc='first')
 
     expected = ['dates', 'regions', 'countries', 'order_dates',
                 'ids', 'values_1', 'values_2']
@@ -151,24 +151,24 @@ def test_move_column_multi_column_first(get_sample_df1):
     actual = df.columns.tolist()
     assert expected == actual
 
-# test_move_column_multi_column_last {{{1
-def test_move_column_multi_column_last(get_sample_df1):
+# test_relocate_multi_column_last {{{1
+def test_relocate_multi_column_last(get_sample_df1):
     """
     """
     df = get_sample_df1
-    df = move_column(df, ['dates', 'regions', 'countries'], loc='last')
+    df = relocate(df, ['dates', 'regions', 'countries'], loc='last')
 
     expected = ['order_dates', 'ids', 'values_1', 'values_2',
                 'dates', 'regions', 'countries' ]
     actual = df.columns.values.tolist()
     assert expected == actual
 
-# test_move_column_multi_column_before {{{1
-def test_move_column_multi_column_before(get_sample_df1):
+# test_relocate_multi_column_before {{{1
+def test_relocate_multi_column_before(get_sample_df1):
     """
     """
     df = get_sample_df1
-    df = move_column(df, ['dates', 'regions', 'countries'], loc='before',
+    df = relocate(df, ['dates', 'regions', 'countries'], loc='before',
                 ref_column='values_1')
 
     expected = ['order_dates', 'ids', 'dates', 'regions',
@@ -176,12 +176,12 @@ def test_move_column_multi_column_before(get_sample_df1):
     actual = df.columns.values.tolist()
     assert expected == actual
 
-# test_move_column_multi_column_after {{{1
-def test_move_column_multi_column_after(get_sample_df1):
+# test_relocate_multi_column_after {{{1
+def test_relocate_multi_column_after(get_sample_df1):
     """
     """
     df = get_sample_df1
-    df = move_column(df, ['dates', 'regions', 'countries'], loc='after',
+    df = relocate(df, ['dates', 'regions', 'countries'], loc='after',
                 ref_column='order_dates')
 
     expected = ['order_dates', 'dates', 'regions', 'countries',
