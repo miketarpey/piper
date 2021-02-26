@@ -988,37 +988,45 @@ def group_by(df, *args, **kwargs):
 @wraps(pd.DataFrame.agg)
 def summarise(df=None, *args, **kwargs):
     '''
-    Example:
+
+    Examples
     ========
-    %%piper
-    df >>
-    group_by([grouper, grouper2, 'ids']) >>
-    summarise(totval1=('values_1', 'sum'),
-              totval2=('values_2', 'sum')) >>
-    head()
+
+    # Syntax 1: column_name = ('existing_column', function)
+    # note: below there are some 'common' functions that can
+    # be quoted like 'sum', 'mean', 'count', 'nunique' or
+    # just state the function name
 
     %%piper
-    df >>
-    group_by([grouper, grouper2, 'ids']) >>
-    summarise(totval1=(pd.NamedAgg('values_1', 'sum')),
-              totval2=(pd.NamedAgg('values_2', 'sum'))) >>
-    head()
+    get_sample_sales() >>
+    group_by('product') >>
+    summarise(totval1=('target_sales', sum),
+              totval2=('actual_sales', 'sum'))
 
-    Conventional (pandas pipe method chaining)
-    (get_sample_data()
-     .pipe(where, "ids == 'A'")
-     .pipe(where, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
-     .pipe(group_by, ['countries', 'regions'])
-     .pipe(summarise, total_values_1=pd.NamedAgg('values_1', 'sum'))
-    )
 
-    Compress values into a list within a column and unpacking(via explode)
+    # Syntax 2: column_name = pd.NamedAgg('existing_column', function)
     %%piper
-    df >>
-    group_by('list') >>
-    summarise({'author': lambda x: x.tolist()}) >>
-    # explode('author') >>
-    head(6)
+    get_sample_sales() >>
+    group_by('product') >>
+    summarise(totval1=(pd.NamedAgg('target_sales', 'sum')),
+              totval2=(pd.NamedAgg('actual_sales', 'sum')))
+
+
+    # Syntax 3: {'existing_column': function}
+                {'existing_column': [function1, function2]}
+    %%piper
+    get_sample_sales()
+    >> group_by('product')
+    >> summarise({'target_sales':['sum', 'mean']})
+
+    # Syntax 4: 'existing_column': lambda x: x+1
+    # Example below identifies unique products sold by location.
+    %%piper
+    get_sample_sales() >>
+    group_by('location') >>
+    summarise({'product': lambda x: set(x.tolist())}) >>
+    # explode('product')
+
     '''
     if kwargs == {} and args == ():
         return df.agg('count')
