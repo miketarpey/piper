@@ -969,25 +969,28 @@ def distinct(df, *args, **kwargs):
 
 
 # group_by() {{{1
-@wraps(pd.DataFrame.groupby)
+# @wraps(pd.DataFrame.groupby)
 def group_by(df, *args, **kwargs):
-    '''
+    ''' wrapper for pd.Dataframe.groupby() function
+
     Example:
     ========
-    (get_sample_data()
-     .pipe(where, "ids == 'A'")
-     .pipe(where, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
-     .pipe(group_by, ['countries', 'regions'])
-     .pipe(summarise, total_values_1=pd.NamedAgg('values_1', 'sum'))
-    )
+    %%piper
+
+    get_sample_data()
+    >> where("ids == 'A'")
+    >> where("values_1 > 300 & countries.isin(['Italy', 'Spain'])")
+    >> group_by(['countries', 'regions'])
+    >> summarise(total_values_1=pd.NamedAgg('values_1', 'sum'))
+
     '''
     return df.groupby(*args, **kwargs)
 
 
 # summarise() {{{1
-@wraps(pd.DataFrame.agg)
+# @wraps(pd.DataFrame.agg)
 def summarise(df=None, *args, **kwargs):
-    '''
+    ''' wrapper for pd.Dataframe.agg() function
 
     Examples
     ========
