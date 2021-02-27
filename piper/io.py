@@ -5,6 +5,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 from glob import glob
+import pandas as pd
 
 from os import walk
 from os.path import split, normpath, join, relpath, basename
@@ -230,7 +231,7 @@ def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
     files = list(Path(source).glob(glob_pattern))
 
     if recurse:
-        files = list(files.rglob(glob_pattern))
+        files = list(Path(source).rglob(glob_pattern))
 
     if as_posix:
         files = [x.as_posix() for x in files]
@@ -243,3 +244,81 @@ def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
             files = list(filter(lambda x: regexp.search(x.as_posix()), files))
 
     return files
+
+
+def duplicate_files(source=None, glob_pattern='*.*', recurse=False, filesize=1,
+                   keep=False, xl_file=None):
+    ''' For given source directory and global pattern (filter), all
+    select files that have the same file size. This files are are assumed
+    to be 'duplicates'.
+
+    Example
+    -------
+    source = '/home/mike/Documents'
+    duplicate_files(source, glob_pattern='*.*', recurse=True,
+                filesize=2000000, keep=False).query("duplicate == True")
+
+    References:
+    -----------
+    https://docs.python.org/3/library/pathlib.html
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
+
+
+    Parameters:
+    -----------
+    source : str - source directory, default None
+
+    glob_pattern : str - filter extension suffix, default '*.*'
+
+    recurse: bool - default False, if True, recurse source directory provided
+
+    filesize : int - file size filter, default 1 (kb)
+
+    keep: str - {‘first’, ‘last’, False}, default ‘first’
+                Determines which duplicates (if any) to mark.
+                    first : Mark duplicates as True except for the first occurrence.
+                    last : Mark duplicates as True except for the last occurrence.
+                    False : Mark all duplicates as True.
+
+    xl_file : str - default None: output results to Excel workbook to xl_file
+
+
+    Return:
+    -------
+    pd.DataFrame
+
+    '''
+    def func(f):
+
+        try:
+            size = os.stat(f.as_posix()).st_size
+        except OSError as e:
+            size = 0
+
+        data = {'parent': f.parents[0].as_posix(),
+                'name': f.name,
+                # 'stem': f.stem, 'suffix': f.suffix,
+                'size': size}
+
+        return data
+
+
+    file_data = list_files(source=source, glob_pattern = glob_pattern,
+                           recurse=recurse, regex=None)
+
+    file_data = [func(x) for x in file_data]
+
+    df = (pd.DataFrame(file_data)
+            .assign(duplicate = lambda x: x['size'].duplicated(keep=keep)))
+
+    if filesize is not None:
+        df = df.query("size >= @filesize")
+
+    df = (df.sort_values(['size', 'name'], ascending=[False, True])
+            .reset_index(drop=True))
+
+    if xl_file is not None:
+        logger.info(f'{xl_file} written, {df.shape[0]} rows')
+        df.to_excel(xl_file, index=False)
+
+    return df
