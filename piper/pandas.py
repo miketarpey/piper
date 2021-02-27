@@ -168,7 +168,7 @@ def read_csv(file_name, sep=',', strip_blanks=True, clean_cols=True,
 
 # read_csvs() {{{1
 @shape(debug=False)
-def read_csvs(source='inputs/', filter='*.csv', sep=',', strip_blanks=True,
+def read_csvs(source='inputs/', glob_pattern='*.csv', sep=',', strip_blanks=True,
               clean_cols=True, encoding='latin-1', include_file=False, info=False):
     ''' pd.read_csv wrapper function
 
@@ -177,7 +177,7 @@ def read_csvs(source='inputs/', filter='*.csv', sep=',', strip_blanks=True,
     source - (str) source folder containing csv text files
              (that is, files ending with '*.csv')
 
-    filter : file suffix filter - default '*.csv'
+    glob_pattern : file suffix filter - default '*.csv'
 
     sep : column separator - default ','
 
@@ -201,7 +201,7 @@ def read_csvs(source='inputs/', filter='*.csv', sep=',', strip_blanks=True,
     '''
     dataframes = []
 
-    for file_ in list_files(source, filter=filter, as_posix=True):
+    for file_ in list_files(source, glob_pattern=glob_pattern, as_posix=True):
         dx = pd.read_csv(file_, sep=sep)
 
         if strip_blanks:
@@ -223,7 +223,7 @@ def read_csvs(source='inputs/', filter='*.csv', sep=',', strip_blanks=True,
 
 
 # read_excels() {{{1
-def read_excels(source='inputs/',  filter='*.xls*', func=None,
+def read_excels(source='inputs/',  glob_pattern='*.xls*', func=None,
                 include_file=False, reset_index=True, info=False):
     '''
     Read, concatenate, combine and return a pandas dataframe based on
@@ -234,7 +234,7 @@ def read_excels(source='inputs/',  filter='*.xls*', func=None,
     source - (str) source folder containing workbook data
              (that is, files ending with '.xls*')
 
-    filter - file extension filter (str), default - '*.xls*'
+    glob_pattern - file extension filter (str), default - '*.xls*'
 
     func - pass a custom function to read/transform each workbook/sheet.
             default is None (just performs a read_excel())
@@ -311,7 +311,7 @@ def read_excels(source='inputs/',  filter='*.xls*', func=None,
     '''
 
     dataframes = []
-    for xl_file in list_files(source, filter=filter, as_posix=False):
+    for xl_file in list_files(source, glob_pattern=glob_pattern, as_posix=False):
 
         if func is None:
             df = pd.read_excel(xl_file)

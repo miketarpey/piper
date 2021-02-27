@@ -199,29 +199,47 @@ def zip_data(source='outputs', filter='*.xls*',
 
 
 # list_files() {{{1
-def list_files(source='inputs/', filter='*.xls*', recurse=False, as_posix=False):
-    ''' For given source folder and filter, return list of files
+def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
+               as_posix=False, regex=''):
+    ''' For a given source folder and file selection criteria, return
+    a list of files. Criteria parameter allows one to focus on one
+    or a group of files.
 
     Parameters
     ----------
 
     source - source folder (str), default - 'inputs/'
 
-    filter - file extension filter (str), default - '*.xls*'
+    glob_pattern - file extension filter (str), default - '*.xls*'
+
+    regex - if specified, allows regular expression to further filter
+            the file selection. Default is ''
+
+            Example::
+            list_files(glob_pattern = '*.tsv', regex='Test', as_posix=True)
+            >['inputs/Test XL WorkBook.tsv']
 
     recurse - recurse directory (boolean), default False
 
-    as_posix - if True, return list of files as string names, default False
+    as_posix - if True, return list of files strings, default False
 
     '''
-    files = Path(source)
+    if glob_pattern in ('', None):
+        raise ValueError(f'criteria {glob_pattern} value is invalid')
+
+    files = list(Path(source).glob(glob_pattern))
 
     if recurse:
-        files = list(files.rglob(filter))
-    else:
-        files = list(files.glob(filter))
+        files = list(files.rglob(glob_pattern))
 
     if as_posix:
-        return [x.as_posix() for x in files]
+        files = [x.as_posix() for x in files]
+
+    if regex not in (False, None):
+        regexp = re.compile(regex)
+        if as_posix:
+            files = list(filter(lambda x: regexp.search(x), files))
+        else:
+            files = list(filter(lambda x: regexp.search(x.as_posix()), files))
 
     return files

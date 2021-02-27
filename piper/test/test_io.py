@@ -4,6 +4,7 @@ from piper.io import _get_qual_file
 from piper.io import write_text
 from piper.io import read_text
 from piper.io import zip_data
+from piper.io import list_files
 
 
 @pytest.fixture
@@ -68,6 +69,43 @@ def test_zip_data_nofiles(write_text_file):
 
     expected = None
     actual = test_zip
+
+    assert expected == actual
+
+
+def test_list_files_no_files():
+
+    source = 'piper/'
+
+    test_files = list_files(source=source, glob_pattern='*.px')
+
+    expected = []
+    actual = test_files
+
+    assert expected == actual
+
+
+def test_list_files_with_data():
+
+    source = 'piper/'
+
+    test_files = list_files(source=source, glob_pattern='*.py')
+
+    expected = 14
+    actual = len(test_files)
+
+    assert expected == actual
+
+
+def test_list_files_with_data_as_posix():
+
+    source = 'piper/'
+
+    test_files = list_files(source=source, glob_pattern='*.py',
+                            as_posix=True)
+
+    expected = True
+    actual = isinstance(test_files[0], str)
 
     assert expected == actual
 
