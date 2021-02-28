@@ -14,6 +14,7 @@ def add_jde_batch(df, col_prefix='ed', userid='userid',
 
     Note: returns a copy of the given dataframe
 
+
     Parameters
     ----------
     df : pandas dataframe
@@ -27,6 +28,7 @@ def add_jde_batch(df, col_prefix='ed', userid='userid',
     start : start number in xxln column
 
     step : step increment in xxln column
+
 
     Returns
     -------

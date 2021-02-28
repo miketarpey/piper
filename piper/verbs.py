@@ -4,6 +4,7 @@ import numpy as np
 import logging
 from functools import wraps
 from piper.io import _file_with_ext
+from piper.decorators import shape
 from pandas.core.common import flatten
 from datetime import datetime
 from piper.xl import WorkBook
@@ -1763,6 +1764,7 @@ def overlaps(df, effective='effective_date', expired='expiry_date', price='price
 
 
 # memory() {{{1
+@shape(debug=False)
 def memory(df):
     '''
     For given data frame, calculate actual consumed memory in Mb
@@ -1770,7 +1772,7 @@ def memory(df):
     memory = df.memory_usage(deep=True).sum()
     memory = round(memory / (1024 * 1024), 2)
 
-    msg = f'Dataframe with (rows, cols) {df.shape} consumes {memory} Mb'
+    msg = f'Dataframe consumes {memory} Mb'
     logger.info(msg)
 
     return df

@@ -8,6 +8,7 @@ from time import strptime
 logger = logging.getLogger(__name__)
 
 
+# to_date {{{1
 def to_date(df, columns=None, format='%d/%m/%Y',
             errors='ignore', function=None):
     ''' Given dataframe and list of columns, convert
@@ -89,6 +90,7 @@ def to_date(df, columns=None, format='%d/%m/%Y',
     return df
 
 
+# apply_date_function {{{1
 def apply_date_function(df, columns=None, function=None, format=None):
     ''' Apply date function to a number of dataframe columns
 
@@ -145,6 +147,7 @@ def apply_date_function(df, columns=None, function=None, format=None):
     return df
 
 
+# from_julian {{{1
 def from_julian(julian):
     ''' Convert jde julian format date (str or int) to datetime type
 
@@ -210,6 +213,7 @@ def from_julian(julian):
         return greg_date
 
 
+# to_julian {{{1
 def to_julian(*args, **kwargs):
     # def to_julian(greg_date, format='%Y-%m-%d', *args, **kwargs):
     ''' Convert gregorian date to jde julian format.
@@ -268,6 +272,7 @@ def to_julian(*args, **kwargs):
         return int(century_prefix+greg_date.strftime('%y%j'))
 
 
+# from_excel_date {{{1
 def from_excel_date(excel_date):
     '''
     converts excel float format to pandas datetime object
@@ -288,6 +293,7 @@ def from_excel_date(excel_date):
     return excel_date
 
 
+# fiscal_year {{{1
 def fiscal_year(date=None,
                 start_month=7,
                 year_only=False):

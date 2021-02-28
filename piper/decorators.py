@@ -39,17 +39,21 @@ def shape(*args2, **kwargs2):
         def shape_deco(*args, **kwargs):
 
             if kwargs2 != {}:
-                if kwargs2['debug'] is True:
+                if kwargs2['debug']:
                     logger.info(f'Arguments for {args}')
                     logger.info(f'Arguments for {kwargs}')
 
             result = func(*args, **kwargs)
 
             if isinstance(result, pd.Series):
-                logger.info(f'{func.__name__} -> {result.shape[0]} rows')
+                if kwargs2['debug']:
+                    logger.info(f'{func.__name__} -> {result.shape[0]} rows')
+                logger.info(f'{result.shape[0]} rows')
 
             if isinstance(result, pd.DataFrame):
-                logger.info(f'{func.__name__} -> {result.shape[0]} rows, {result.shape[1]} columns')
+                if kwargs2['debug']:
+                    logger.info(f'{func.__name__} -> {result.shape[0]} rows, {result.shape[1]} columns')
+                logger.info(f'{result.shape[0]} rows, {result.shape[1]} columns')
 
             return result
 

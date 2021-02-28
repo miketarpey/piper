@@ -7,6 +7,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
+# create_table() {{{1
 def create_table(df, tablename=None, data_types=None, not_null=False, info=False):
     '''
     For given dataframe, generate 'create table' sql statement(s) to
@@ -60,6 +61,7 @@ def create_table(df, tablename=None, data_types=None, not_null=False, info=False
     return sql
 
 
+# insert() {{{1
 def insert(df, tablename=None, info=False):
     """
     For given dataframe, generate mass insert sql statement(s).
@@ -110,6 +112,7 @@ def insert(df, tablename=None, info=False):
     return sql
 
 
+# get_sql_text() {{{1
 def get_sql_text(file_or_text, variables, debug=False):
     ''' Get SQL text file and substitute template
         variables with (dictionary) variables passed.
@@ -160,7 +163,7 @@ def get_sql_text(file_or_text, variables, debug=False):
 
         return sql
 
-
+# _get_sql_text {{{1
 def _get_sql_text(sql, variables, debug=False):
     ''' Get SQL text string and substitute statement
         variables with dictionary variables passed.
@@ -196,6 +199,7 @@ def _get_sql_text(sql, variables, debug=False):
     return sql
 
 
+# set_sql_file {{{1
 def set_sql_file(from_file=None, to_file=None, template_values=True):
     ''' Set SQL file text to 'template' substitutional values
 
@@ -250,6 +254,7 @@ def set_sql_file(from_file=None, to_file=None, template_values=True):
         f.write(sql)
 
 
+# set_sql_text {{{1
 def set_sql_text(sql, template_values=True):
     ''' Set SQL text values to 'template' values
 

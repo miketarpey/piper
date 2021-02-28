@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 runtime = datetime.now().strftime('%A, %d %B %Y %H:%M:%S')
 logger.info(f"piper version {__version__}, last run: {runtime}")
 
+
+# run_cmd {{{1
 def run_cmd(execute, cell_value, env_variables=None):
     '''
 

@@ -5,25 +5,26 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+
+# create_nb_proj {{{1
 def create_nb_proj(project='project', description='notebook project',
                    relative_to='.', ):
     '''
     Create notebook project.
 
+
     Parameters:
     -----------
-
     project: str project folder name.
 
     description: str project description.
 
-    relative_to: str relative path to current folder
-                 (default '.')
+    relative_to: str relative path to current folder (default '.')
+
 
     Returns:
     --------
     None
-
     '''
     project_path = Path(relative_to).absolute().parent / project
 
@@ -54,25 +55,25 @@ def create_nb_proj(project='project', description='notebook project',
     logger.info(f'{project} folder completed.')
 
 
+# create_nb_folders {{{1
 def create_nb_folders(project='project', relative_to='.', ):
     '''
     Create notebook folders based on config.json in
     project folder specified.
 
+
     Parameters:
     -----------
-
     project: str project folder name.
 
     relative_to: str relative path to current folder
                  (default '.')
 
+
     Returns:
     --------
     None
-
     '''
-
     project_path = Path(relative_to).absolute().parent / project
 
     qual_config_file = project_path / 'config.json'
