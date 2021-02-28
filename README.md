@@ -1,11 +1,17 @@
+[![codecov](https://codecov.io/gh/miketarpey/piper/branch/master/graph/badge.svg?token=23VXKNT6PG)](https://codecov.io/gh/miketarpey/piper)
+
 # Piper
-__Piper__ is a python module to simplify data wrangling with [pandas](https://pandas.pydata.org/).
+__Piper__ is a python module to simplify data wrangling with [pandas](https://pandas.pydata.org/) using a set of wrapper functions. These functions or 'verbs' attempt to provide a simpler interface to standard Pandas functions.
 
-Combined with a [Jupyter](https://jupyter.org/) notebook a 'magic' command (__%%piper__), provides an SQL like syntax - similar to R's [tidyverse](https://www.tidyverse.org/) and 
-[magrittr](https://magrittr.tidyverse.org/) libraries.
+When combined within a [Jupyter](https://jupyter.org/) notebook using the  __%%piper__ magic command, a simple data 'pipeline' that looks rather like SQL syntax can be built.
 
-The main functions are:
+The concept is similar to the way R's [tidyverse](https://www.tidyverse.org/) and 
+[magrittr](https://magrittr.tidyverse.org/) libraries are used. 
+
+The main dataframe manipulation functions are:
 - select()
+- assign()
+- relocate()
 - where()
 - group_by()
 - summarise()
@@ -34,7 +40,7 @@ pip install dpiper
 ```
 
 ## Basic use
-Within a Jupyter notebook cell, add the function below to returned for a given dataframe trimmed column text data.
+Suppose you need the following function to trim a given dataframes columnar text data.
 
 ```python
 def trim_columns(df):
@@ -48,7 +54,7 @@ def trim_columns(df):
     return df
 ```
 
-In standard pandas, we can combine the new function in a pipeline, along with filtering the input data as follows:
+Standard [Pandas](https://pandas.pydata.org/) can combine the new function into a pipeline along with other transformation/filtering tasks:
 
 ```python
 import pandas as pd
@@ -79,14 +85,15 @@ Result:
 2020-02-01 | 2020-02-07 | Norway | D |	344  |21
 2020-05-06 | 2020-05-12 | Norway | B |	135  |21
 
-Using piper's %%piper magic command and piper 'verbs'. Let's import the required module functions: 
+### __Using piper__
+Piper tries to improve this pipeline approach. Let's import piper's %%piper magic command and piper 'verbs'. 
 
 ```python
 from piper import piper
 from piper.verbs import head, select, where, group_by, summarise, order_by
 ```
 
-Using __%%piper__ magic function, piper verbs can be 'piped' together along with standard functions like trim_columns() using the linking symbol __'>>'__
+Using the __%%piper__ magic function, piper verbs can be combined with standard python functions like trim_columns() using the linking symbol __'>>'__ to form a data pipeline.
 
 ```python
 %%piper
@@ -101,7 +108,6 @@ get_sample_data()
 ```
 
 ## Goals and Features
-- Simplify data wrangling/building data pipelines by using a set of easy to remember wrapper functions.
 
 - Enhance working with Excel files through the WorkBook class 
     - Exporting high quality formatted Excel Workbooks using [xlsxwriter](https://xlsxwriter.readthedocs.io/)
@@ -118,7 +124,7 @@ Further examples are available in these jupyter notebooks:
 Project has just started. I welcome any and all help to improve etc.
 
 ## Inspiration
-Pandas, numpy are amazing data analysis libraries. That said, I'm disappointed that I do not feel as productive in Python in terms of the ease of use of the R language and tidyverse suite of packages.
+Pandas and numpy are amazing data analysis libraries. My goal is to combine their power with the convenience and ease of use of the R tidyverse package suite.
 
 ## Contact
 This is very much a personal library, in that its highly opinionated, flawed and probably of
