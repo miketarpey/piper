@@ -1,6 +1,7 @@
 from IPython.core.magic import line_magic, cell_magic, line_cell_magic, Magics, magics_class
 from IPython.core import magic_arguments
 from datetime import datetime
+from piper.version import __version__
 import logging
 import re
 
@@ -16,8 +17,6 @@ log_fmt = '%(message)s'
 logging.basicConfig(level=logging.INFO, format=log_fmt, datefmt='%Y-%m-%d %H:%M:%S')
 
 logger = logging.getLogger(__name__)
-
-__version__ = '0.0.8'
 
 runtime = datetime.now().strftime('%A, %d %B %Y %H:%M:%S')
 logger.info(f"piper version {__version__}, last run: {runtime}")

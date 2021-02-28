@@ -1347,7 +1347,7 @@ def resample_groupby(df, index=None, grouper=None, rule='M'):
     g1 = df.groupby(index).sum()
     g1.reset_index(inplace=True)
 
-    logger.info(isinstance(grouper, list))
+    logger.debug(isinstance(grouper, list))
 
     if isinstance(grouper, list):
         for group_col in grouper:

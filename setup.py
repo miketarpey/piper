@@ -13,9 +13,13 @@ if sys.version_info < (3, 7, 0):
     warn("The minimum Python version supported by piper is 3.7.")
     exit()
 
+version = {}
+with open("piper/version.py") as fp:
+    exec(fp.read(), version)
+
 setup(
     name='dpiper',
-    version='0.0.8',
+    version=version["__version__"],
     author='Mike Tarpey',
     author_email='miketarpey@gmx.net',
     url='https://github.com/miketarpey/piper',
