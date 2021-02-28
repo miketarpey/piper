@@ -900,9 +900,7 @@ def drop(df, *args, **kwargs):
     =======
     df <- pd.read_csv('inputs/export.dsv', sep='\t')
     >> clean_columns()
-    >> memory()
     >> trim()
-    >> memory()
     >> assign(adast = lambda x: x.adast.astype('category'),
               adcrcd = lambda x: x.adcrcd.astype('category'),
               aduom = lambda x: x.aduom.astype('category'))
@@ -1764,7 +1762,6 @@ def overlaps(df, effective='effective_date', expired='expiry_date', price='price
 
 
 # memory() {{{1
-@shape(debug=False)
 def memory(df):
     '''
     For given data frame, calculate actual consumed memory in Mb

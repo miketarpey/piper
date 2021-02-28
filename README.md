@@ -1,4 +1,6 @@
-[![codecov](https://codecov.io/gh/miketarpey/piper/branch/master/graph/badge.svg?token=23VXKNT6PG)](https://codecov.io/gh/miketarpey/piper)
+![PyPI version shields.io](https://img.shields.io/pypi/v/dpiper)
+![PyPI version shields.io](https://img.shields.io/pypi/pyversions/dpiper)
+![PyPI version shields.io](https://img.shields.io/pypi/l/dpiper)
 
 # Piper
 __Piper__ is a python module to simplify data wrangling with [pandas](https://pandas.pydata.org/) using a set of wrapper functions. These functions or 'verbs' attempt to provide a simpler interface to standard Pandas functions.
