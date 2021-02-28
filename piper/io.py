@@ -206,6 +206,12 @@ def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
     a list of files. Criteria parameter allows one to focus on one
     or a group of files.
 
+    Example
+    -------
+    List *ALL* files in /inputs directory, returning a list of paths:
+
+    list_files(glob_pattern = '*', regex='Test', as_posix=True)
+
     Parameters
     ----------
 

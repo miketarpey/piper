@@ -91,7 +91,7 @@ def test_list_files_with_data():
 
     test_files = list_files(source=source, glob_pattern='*.py')
 
-    expected = 15
+    expected = 16
     actual = len(test_files)
 
     assert expected == actual

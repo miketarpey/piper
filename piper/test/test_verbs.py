@@ -20,7 +20,6 @@ from piper.verbs import relocate
 from piper.verbs import pivot_table
 from piper.verbs import tail
 from piper.verbs import trim
-from piper.verbs import add_jde_batch
 from piper.verbs import has_special_chars
 from piper.test.factory import get_sample_orders_01
 from piper.test.factory import get_sample_df1
@@ -714,17 +713,6 @@ def test_overlaps_no_price():
 
     assert expected == actual.shape
 
-# test_add_jde_batch {{{1
-def test_add_jde_batch(get_sample_df1):
-    """
-    """
-    dx = get_sample_df1
-    df = add_jde_batch(dx, inplace=False)
-
-    expected = (367, 11)
-    actual = df.shape
-
-    assert expected == actual
 
 # test_join_df {{{1
 def test_join_df(get_sample_df6):
