@@ -991,9 +991,9 @@ def adorn(df, fillna=None, col_row_name='All', columns=None, axis=0, ignore_row_
     '''
     Based on R function, for given dataframe, add row or column totals.
 
+
     Parameters
     ----------
-
     df - Pandas dataframe
 
     fillna - fill NaN values (default None)
@@ -1009,6 +1009,8 @@ def adorn(df, fillna=None, col_row_name='All', columns=None, axis=0, ignore_row_
 
     Example
     -------
+    import pandas as pd
+    from piper.pandas import *
 
     url = 'https://github.com/datagy/pivot_table_pandas/raw/master/sample_pivot.xlsx'
     df = pd.read_excel(url, parse_dates=['Date'])
@@ -1019,18 +1021,18 @@ def adorn(df, fillna=None, col_row_name='All', columns=None, axis=0, ignore_row_
     2020-09-23  North   Children's Clothing 	14.0      448
 
     g1 = df.groupby(['Type', 'Region']).agg(TotalSales=('Sales', 'sum')).unstack()
-    g1 = adorn(g1, axis='both').astype(int)#.reset_index()
+    g1 = adorn(g1, axis='both').astype(int)
+    g1 = flatten_cols(g1, remove_prefix='TotalSales')
     g1
 
- 	TotalSales                                          	Total
-    Region              	East 	North 	South 	West
-    Type
-    Children's Clothing 	45849 	37306 	18570 	20182 	121907
-    Men's Clothing      	51685 	39975 	18542 	19077 	129279
-    Women's Clothing    	70229 	61419 	22203 	22217 	176068
-    Total               	167763 	138700 	59315 	61476 	427254
-    '''
+    |                     |   East |   North |   South |   West |    All |
+    |:--------------------|-------:|--------:|--------:|-------:|-------:|
+    | Children's Clothing |  45849 |   37306 |   18570 |  20182 | 121907 |
+    | Men's Clothing      |  51685 |   39975 |   18542 |  19077 | 129279 |
+    | Women's Clothing    |  70229 |   61419 |   22203 |  22217 | 176068 |
+    | All                 | 167763 |  138700 |   59315 |  61476 | 427254 |
 
+    '''
     # ROW:
     if axis == 0 or axis == 'row' or axis == 'both':
         total_row = ['' for _ in df.index.names]

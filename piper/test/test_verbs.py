@@ -10,6 +10,7 @@ from piper.verbs import resample_pivot
 from piper.verbs import add_group_calc
 from piper.verbs import overlaps
 from piper.verbs import add_formula
+from piper.verbs import adorn
 from piper.verbs import clean_columns
 from piper.verbs import columns
 from piper.verbs import count
@@ -1026,7 +1027,6 @@ def test_pivot_name_error(get_sample_df1):
     Should send log message regarding invalid key/name
     pv object should be None and generate KeyError
     """
-
     df = get_sample_df1
 
     with pytest.raises(KeyError):
@@ -1055,7 +1055,6 @@ def test_pivot_percent_calc(get_sample_df1):
 def test_pivot_cum_percent_calc(get_sample_df1):
     """
     """
-
     df = get_sample_df1
 
     pv = pivot_table(df, index=['countries', 'regions'], values='values_1')
@@ -1068,6 +1067,7 @@ def test_pivot_cum_percent_calc(get_sample_df1):
     actual = pv.loc[('Sweden', 'West'), 'cum %']
 
     assert expected == actual
+
 
 # test_resample_pivot_multi_grouper {{{1
 def test_resample_pivot_multi_grouper(get_sample_df1):
@@ -1125,6 +1125,49 @@ def test_calc_grouped_value(get_sample_df1):
     actual = gx.shape
 
     assert expected == actual
+
+
+# test_adorn_row_total {{{1
+def test_adorn_row_total(get_sample_df1):
+
+    df = get_sample_df1
+    df = group_by(df, ['countries'])
+    df = summarise(df, total=('values_1', 'sum'))
+    df = adorn(df)
+
+    expected = 73604
+    actual = df.loc['All'].values[0]
+
+    assert expected == actual
+
+
+# test_adorn_column_total {{{1
+def test_adorn_column_total(get_sample_df1):
+
+    df = get_sample_df1
+    df = group_by(df, ['countries'])
+    df = summarise(df, total=('values_1', 'sum'))
+    df = adorn(df, axis = 'column')
+
+    expected = 8432
+    actual = df.loc['Sweden', 'All']
+
+    assert expected == actual
+
+
+# test_adorn_column_with_column_specified {{{1
+def test_adorn_column_with_column_specified(get_sample_df1):
+
+    df = get_sample_df1
+    df = group_by(df, ['countries'])
+    df = summarise(df, total=('values_1', 'sum'))
+    df = adorn(df, columns='total', axis = 'column')
+
+    expected = 8432
+    actual = df.loc['Sweden', 'All']
+
+    assert expected == actual
+
 
 # test_has_special_chars {{{1
 def test_has_special_chars(get_sample_df1):
