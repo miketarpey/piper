@@ -3,10 +3,31 @@
 ![PyPI version shields.io](https://img.shields.io/pypi/l/dpiper)
 
 # Piper
-__Piper__ is a python module to simplify data wrangling with [pandas](https://pandas.pydata.org/) using a set of wrapper functions. These functions or 'verbs' attempt to provide a simpler interface to standard Pandas functions.
+__Piper__ is a python package designed to simplify data wrangling tasks with [pandas](https://pandas.pydata.org/). It provides a set of wrapper functions or 'verbs' that provide a simpler interface to standard Pandas functions.
 
-When combined within a [Jupyter](https://jupyter.org/) notebook using the  __%%piper__ magic command, a simple data 'pipeline' that looks rather like SQL syntax can be built.
+For other _piper_ functionality, please see the [Goals and Features](#Goals-and-Features) section.
 
+___Alternatives___ 
+
+For a comprehensive alternative, please check out __Michael Chow's__ [siuba package](https://github.com/machow/siuba). 
+
+<p>
+
+## Table of contents
+* [Installation](#Installation)
+* [Basic use](#Basic-use)
+* [Documentation](#Documentation)
+* [Goals and Features](#Goals-and-Features)
+* [Contact](#Contact)
+
+The functions can be used independently but can be combined to form a data pipeline using an SQL like syntax. This is achieved by linking the functions together in a [Jupyter](https://jupyter.org/) notebook cell using the __%%piper__ magic command.
+
+## Installation 
+To install the package, enter the following:
+
+```unix
+pip install dpiper
+```
 The concept is similar to the way R's [tidyverse](https://www.tidyverse.org/) and 
 [magrittr](https://magrittr.tidyverse.org/) libraries are used. 
 
@@ -19,30 +40,59 @@ The main dataframe manipulation functions are:
 - summarise()
 - order_by()
 
-For other _piper_ functionality, please see the [Goals and Features](#Goals-and-Features) section.
-
-___Alternatives___ 
-
-For a comprehensive alternative, please check out __Michael Chow's [siuba package](https://github.com/machow/siuba)__. 
-
-## Table of contents
-* [Installation](#Installation)
-* [Basic use](#Basic-use)
-* [Documentation](#Documentation)
-* [Goals and Features](#Goals-and-Features)
-* [Status](#Status)
-* [Inspiration](#Inspiration)
-* [Contact](#Contact)
-
-## Installation 
-To install the package, enter the following:
-
-```unix
-pip install dpiper
-```
+<p>
 
 ## Basic use
-Suppose you need the following function to trim a given dataframes columnar text data.
+__Example #1__ - A dataframe consisting of two columns A and B.
+
+```python
+import pandas as pd
+import numpy as np
+
+np.random.seed(42)
+
+df = pd.DataFrame({'A': np.random.randint(10, 1000, 10),
+                   'B': np.random.randint(10, 1000, 10)})
+df.head()
+```
+
+|    |   A |   B |
+|---:|----:|----:|
+|  0 | 112 | 476 |
+|  1 | 445 | 224 |
+|  2 | 870 | 340 |
+|  3 | 280 | 468 |
+|  4 | 116 |  97 |
+
+<p>
+
+Let's create two further calculated columns and filter the 'D' column values.
+
+```python
+df['C'] = df['A'] + df['B']
+df['D'] = df['C'] < 1000
+df[df['D'] == False]
+```
+|    |   A |   B |    C | D     |
+|---:|----:|----:|-----:|:------|
+|  2 | 870 | 340 | 1210 | False |
+|  8 | 624 | 673 | 1297 | False |
+
+<p>
+
+The equivalent in __piper__ would be:
+
+```python
+%%piper
+df 
+>> assign(C = lambda x: x.A + x.B,
+          D = lambda x: x.C < 1000)
+>> where("~D")
+```
+
+<p>
+
+__Example #2__ Suppose you need the following function to trim columnar text data.
 
 ```python
 def trim_columns(df):
@@ -56,7 +106,7 @@ def trim_columns(df):
     return df
 ```
 
-Standard [Pandas](https://pandas.pydata.org/) can combine the new function into a pipeline along with other transformation/filtering tasks:
+Standard [Pandas](https://pandas.pydata.org/) can combine the new function into a pipeline along with other transformation/filtering tasks by using the .pipe method:
 
 ```python
 import pandas as pd
@@ -87,8 +137,9 @@ Result:
 2020-02-01 | 2020-02-07 | Norway | D |	344  |21
 2020-05-06 | 2020-05-12 | Norway | B |	135  |21
 
-### __Using piper__
-Piper tries to improve this pipeline approach. Let's import piper's %%piper magic command and piper 'verbs'. 
+<p>
+
+The equivalent in __piper__ would be to import the piper magic function, and the required 'verbs'.
 
 ```python
 from piper import piper
@@ -101,13 +152,42 @@ Using the __%%piper__ magic function, piper verbs can be combined with standard 
 %%piper
 get_sample_data()
 >> trim_columns()
->> select('-regions')
+>> select('-dates') 
 >> where(""" ~countries.isin(['Italy', 'Portugal']) &
               values_1 > 40 &
               values_2 < 25 """)
 >> order_by('countries', ascending=False)
 >> head(5)
 ```
+
+__--info__ option
+If you specify this option, you see the equivalent pandas 'piped'
+version below the cell.  
+```
+%%piper --info
+get_sample_data()
+>> trim_columns()
+>> select('-dates') 
+>> where(""" ~countries.isin(['Italy', 'Portugal']) &
+              values_1 > 40 &
+              values_2 < 25 """)
+>> order_by('countries', ascending=False)
+>> head(5)
+```
+
+gives:
+```python
+(get_sample_data()
+.pipe(select, '-dates')
+.pipe(where, """ ~countries.isin(['Italy', 'Portugal']) &values_1 > 40 &values_2 < 25 """)
+.pipe(order_by, 'countries', ascending=False)
+.pipe(head, 5))
+```
+
+## Documentation
+Further examples are available in these jupyter notebooks:
+- [piper demo jupyter notebooks](https://github.com/miketarpey/piper_demo)
+
 
 ## Goals and Features
 
@@ -118,15 +198,6 @@ get_sample_data()
 ___To-do list___
 * TBD 
 
-## Documentation
-Further examples are available in these jupyter notebooks:
-- [piper demo jupyter notebooks](https://github.com/miketarpey/piper_demo)
-
-## Status
-Project has just started. I welcome any and all help to improve etc.
-
-## Inspiration
-Pandas and numpy are amazing data analysis libraries. My goal is to combine their power with the convenience and ease of use of the R tidyverse package suite.
 
 ## Contact
 This is very much a personal library, in that its highly opinionated, flawed and probably of
