@@ -452,6 +452,26 @@ def combine_header_rows(df, start=0, end=1, delimitter=' ', apply=None,
     and dataframe data passed. Optionally, infers remaining data column data
     types.
 
+    Example:
+    --------
+    | A     | B      |
+    |:------|:-------|
+    | Order | Order  |
+    | Qty   | Number |
+    | 10    | 12345  |
+    | 40    | 12346  |
+
+    data = {'A': ['Order', 'Qty', 10, 40],
+            'B': ['Order', 'Number', 12345, 12346]}
+    df = pd.DataFrame(data)
+    df = combine_header_rows(df)
+    df
+
+    |   Order Qty |   Order Number |
+    |------------:|---------------:|
+    |          10 |          12345 |
+    |          40 |          12346 |
+
     Parameters
     ----------
     df: dataframe
@@ -512,45 +532,30 @@ def flatten_cols(df, join_char='_', remove_prefix=None):
 
     Example
     -------
-    url = 'https://github.com/datagy/pivot_table_pandas/raw/master/sample_pivot.xlsx'
-    df = pd.read_excel(url, parse_dates=['Date'])
-    head(df)
+    from piper import piper
+    from piper.factory import get_sample_sales
+    from piper.verbs import *
+    %%piper
 
-    Date       Region           	  Type Units   	Sales
-    2020-07-1  East    Children's Clothing 	18.0      306
-    2020-09-2  North   Children's Clothing 	14.0      448
+    get_sample_sales()
+    >> group_by(['location', 'product'])
+    >> summarise(Total=('actual_sales', 'sum'))
+    >> pd.DataFrame.unstack()
+    >> flatten_cols()
+    >> pd.DataFrame.reset_index()
 
-    g1 = df.groupby(['Type', 'Region']).agg(TotalUnits=('Units', 'count')).unstack()
-    g1 = adorn(g1, axis='both').astype(int)
-    head(g1, g1.shape[0])
-
-    TotalUnits 	                                          Total
-    Region 	                East 	North 	South 	West
-    Type
-    Children's Clothing 	113 	85  	45  	42  	285
-    Men's Clothing      	122 	0   	39  	41  	202
-    Women's Clothing    	176 	142 	53  	53  	424
-    Total               	411 	227 	137 	136 	911
-
-    g1 = flatten_cols(g1)
-    g1.columns = [x.replace('TotalUnits_', '') for x in g1.columns]
-    head(g1, g1.shape[0])
-
-                             TotalUnits_East 	 TotalUnits_North 	 TotalUnits_South 	 TotalUnits_West 	 Total
-    Type
-    Children's Clothing 	 113             	 85               	 45               	 42              	 285
-    Men's Clothing      	 122             	 0                	 39               	 41              	 202
-    Women's Clothing    	 176             	 142              	 53               	 53              	 424
-    Total               	 411             	 227              	 137              	 136             	 911
+    | location   |   Beachwear |   Footwear |   Jeans |   Sportswear |   Tops & Blouses |
+    |:-----------|------------:|-----------:|--------:|-------------:|-----------------:|
+    | London     |      391553 |     287458 |  337711 |       344004 |           404097 |
+    | Milan      |      359035 |     322247 |  400239 |       396364 |           275888 |
+    | Paris      |      362087 |     527041 |  490046 |       303360 |           271732 |
     '''
-
     def flatten(column_string, join_char='_', remove_prefix=None):
         ''' Takes a dataframe column string,
         if it's a tuple (from a groupby/stack/pivot df) returns a
         'joined' string otherwise just return the string.
         '''
         if isinstance(column_string, tuple):
-
             return_str = join_char.join([str(x) for x in column_string]).strip(join_char)
 
             if remove_prefix is not None:
@@ -1088,6 +1093,30 @@ def order_by(df, *args, **kwargs):
 @wraps(pd.DataFrame.merge)
 def inner_join(df, *args, **kwargs):
     '''
+
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
+
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
+
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    %%piper
+    orders >> inner_join(types_, suffixes=('_orders', '_types'))
+
+    |   OrderNo | Status   | Type_   | description    | description_2   |
+    |----------:|:---------|:--------|:---------------|:----------------|
+    |      1001 | A        | SO      | Standing Order | another one     |
+    |      1003 | A        | SO      | Standing Order | another one     |
+    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
+
     '''
     kwargs['how'] = 'inner'
     logger.debug(f"{kwargs}")
@@ -1099,6 +1128,32 @@ def inner_join(df, *args, **kwargs):
 @wraps(pd.DataFrame.merge)
 def left_join(df, *args, **kwargs):
     '''
+
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
+
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
+
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    %%piper
+    orders >> left_join(types_, suffixes=('_orders', '_types'))
+
+    |   OrderNo | Status   | Type_   | description    | description_2   |
+    |----------:|:---------|:--------|:---------------|:----------------|
+    |      1001 | A        | SO      | Standing Order | another one     |
+    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
+    |      1003 | A        | SO      | Standing Order | another one     |
+    |      1004 | A        | DA      | nan            | nan             |
+    |      1005 | P        | DD      | nan            | nan             |
+
     '''
     kwargs['how'] = 'left'
     logger.debug(f"{kwargs}")
@@ -1110,6 +1165,30 @@ def left_join(df, *args, **kwargs):
 @wraps(pd.DataFrame.merge)
 def right_join(df, *args, **kwargs):
     '''
+
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
+
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
+
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    %%piper
+    orders >> right_join(types_, suffixes=('_orders', '_types'))
+
+    |   OrderNo | Status   | Type_   | description    | description_2   |
+    |----------:|:---------|:--------|:---------------|:----------------|
+    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
+    |      1001 | A        | SO      | Standing Order | another one     |
+    |      1003 | A        | SO      | Standing Order | another one     |
+
     '''
     kwargs['how'] = 'right'
     logger.debug(f"{kwargs}")
@@ -1121,92 +1200,36 @@ def right_join(df, *args, **kwargs):
 @wraps(pd.DataFrame.merge)
 def outer_join(df, *args, **kwargs):
     '''
+
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
+
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
+
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    %%piper
+    orders >> outer_join(types_, suffixes=('_orders', '_types'))
+
+    |   OrderNo | Status   | Type_   | description    | description_2   |
+    |----------:|:---------|:--------|:---------------|:----------------|
+    |      1001 | A        | SO      | Standing Order | another one     |
+    |      1003 | A        | SO      | Standing Order | another one     |
+    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
+    |      1004 | A        | DA      | nan            | nan             |
+    |      1005 | P        | DD      | nan            | nan             |
     '''
     kwargs['how'] = 'outer'
     logger.debug(f"{kwargs}")
 
     return df.merge(*args, **kwargs)
-
-
-# lookup() {{{1
-def lookup(df, df2, columns=None, loc='last', ref_column=None, *args, **kwargs):
-    '''
-    Given primary and secondary dataframes, merge and return data.
-    NOTE:: If type of join ('how') not passed, defaulted to 'left' join.
-
-    Parameters
-    ----------
-    df : primary pandas dataframe
-
-    df2 : secondary dataframe to be joined/merged with
-
-    columns : (str, list) optionally move column(s) in the returned merged data frame
-                    'before', 'after' a certain 'reference column' to be returned with
-                    primary dataframe.
-
-                    Default is None (return columns in the default sequence
-                    provided by the merge function.
-
-    loc : str, 'first', 'last', 'before', 'after'
-          new location, default='last'
-
-    ref_column = (str) reference column to place moved columns before/after
-                 , default is None
-
-    *args, kwargs : to be passed to pd.DataFrame.merge()
-
-    Returns
-    -------
-    Pandas dataframe
-
-    Example
-    -------
-    order_data = {
-        'OrderNo': [1001, 1002, 1003, 1004, 1005],
-        'Status': ['A', 'C', 'A', 'A', 'P'],
-        'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']
-    }
-
-    orders = pd.DataFrame(order_data)
-
-    status_data = {
-        'Status': ['A', 'C', 'P'],
-        'description': ['Active', 'Closed', 'Pending']
-    }
-
-    statuses = pd.DataFrame(status_data)
-
-    order_types_data = {
-        'Type_': ['SA', 'SO'],
-        'description': ['Sales Order', 'Standing Order'],
-        'description_2': ['Arbitrary desc', 'another one']
-    }
-
-    types_ = pd.DataFrame(order_types_data)
-
-    %%piper
-    orders
-    >> lookup(types_)
-    >> lookup(statuses, on='Status', columns='description_y', loc='after', ref_column='Status')
-
-    OrderNo 	Status 	description_y 	Type_ 	description_x 	description_2
-    1001 	A 	Active 	        SO 	Standing Order 	another one
-    1002 	C 	Closed 	        SA 	Sales Order 	Arbitrary desc
-    1003 	A 	Active 	        SO 	Standing Order 	another one
-    1004 	A 	Active 	        DA 	NaN 	        NaN
-    1005 	P 	Pending 	DD 	NaN 	        NaN
-    '''
-    if kwargs.get('how') is None:
-        kwargs['how'] = 'left'
-        logger.info(f"merge function 'how' parameter defaulted to '{kwargs.get('how')}'")
-
-    merged_df = df.merge(df2, *args, **kwargs)
-
-    # If columns specified, move them to requested dataframe column position.
-    if columns is not None:
-        merged_df = relocate(merged_df, column=columns, loc=loc, ref_column=ref_column)
-
-    return merged_df
 
 
 # explode() {{{1

@@ -1,6 +1,9 @@
 from piper.verbs import to_tsv
 from piper.pandas import read_csv
 from piper.verbs import left_join
+from piper.verbs import right_join
+from piper.verbs import outer_join
+from piper.verbs import inner_join
 from piper.verbs import duplicated
 from piper.verbs import resample_groupby
 from piper.verbs import resample_pivot
@@ -19,6 +22,9 @@ from piper.verbs import info
 from piper.verbs import relocate
 from piper.verbs import sample
 from piper.verbs import pivot_table
+from piper.verbs import group_by
+from piper.verbs import flatten_cols
+from piper.verbs import combine_header_rows
 from piper.verbs import tail
 from piper.verbs import trim
 from piper.verbs import has_special_chars
@@ -196,10 +202,57 @@ def test_relocate_index_column_after(get_sample_df1):
     """
     df = get_sample_df1
     df = df.set_index(['countries', 'regions'])
-    relocate(df, column='countries', loc='after', ref_column='regions')
+    df = relocate(df, column='countries', loc='after', ref_column='regions')
 
     expected = 'regions'
     actual = df.index.names[1]
+
+    assert expected == actual
+
+
+# test_flatten_cols_keep_prefix {{{1
+def test_flatten_cols_keep_prefix(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = group_by(df, ['countries', 'regions'])
+    df = summarise(df, total=('values_2', 'sum'))
+    df = df.unstack()
+    df = flatten_cols(df)
+
+    expected = ['total_East', 'total_North', 'total_South', 'total_West']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_flatten_cols_remove_prefix {{{1
+def test_flatten_cols_remove_prefix(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = group_by(df, ['countries', 'regions'])
+    df = summarise(df, total=('values_2', 'sum'))
+    df = df.unstack()
+    df = flatten_cols(df, remove_prefix='total')
+
+    expected = ['East', 'North', 'South', 'West']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_combine_header_rows {{{1
+def test_flatten_cols_remove_prefix():
+
+    data = {'A': ['Order', 'Qty', 10, 40],
+            'B': ['Order', 'Number', 12345, 12346]}
+
+    df = pd.DataFrame(data)
+    df = combine_header_rows(df)
+
+    expected = ['Order Qty', 'Order Number']
+    actual = df.columns.to_list()
 
     assert expected == actual
 
@@ -740,19 +793,110 @@ def test_overlaps_no_price():
     assert expected == actual.shape
 
 
-# test_join_df {{{1
-def test_join_df(get_sample_df6):
+# test_inner_join {{{1
+def test_inner_join(get_sample_df6):
     """
     """
-    df, df2 = get_sample_df6
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
 
-    df_merge = left_join(df, df2, left_on=['column_A'],
-                                right_on=['column_A'])
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
 
-    expected = (6, 3)
-    actual = df_merge.shape
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    merged_df = inner_join(orders, types_, suffixes=('_orders', '_types'))
+
+    expected = (3, 5)
+    actual = merged_df.shape
 
     assert expected == actual
+
+
+# test_left_join {{{1
+def test_left_join(get_sample_df6):
+    """
+    """
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
+
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
+
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    merged_df = left_join(orders, types_, suffixes=('_orders', '_types'))
+
+    expected = (5, 5)
+    actual = merged_df.shape
+
+    assert expected == actual
+
+
+# test_right_join {{{1
+def test_right_join(get_sample_df6):
+    """
+    """
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
+
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
+
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    merged_df = right_join(orders, types_, suffixes=('_orders', '_types'))
+
+    expected = (3, 5)
+    actual = merged_df.shape
+
+    assert expected == actual
+
+
+# test_outer_join {{{1
+def test_outer_join(get_sample_df6):
+    """
+    """
+    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                  'Status': ['A', 'C', 'A', 'A', 'P'],
+                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+    orders = pd.DataFrame(order_data)
+
+    status_data = {'Status': ['A', 'C', 'P'],
+                   'description': ['Active', 'Closed', 'Pending']}
+    statuses = pd.DataFrame(status_data)
+
+    order_types_data = {'Type_': ['SA', 'SO'],
+                        'description': ['Sales Order', 'Standing Order'],
+                        'description_2': ['Arbitrary desc', 'another one']}
+    types_ = pd.DataFrame(order_types_data)
+
+    merged_df = outer_join(orders, types_, suffixes=('_orders', '_types'))
+
+    expected = (5, 5)
+    actual = merged_df.shape
+
+    assert expected == actual
+
+
 # test_sample_series {{{1
 def test_sample_series(get_sample_s1):
     """
