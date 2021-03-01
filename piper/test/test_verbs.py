@@ -17,6 +17,7 @@ from piper.verbs import where
 from piper.verbs import summarise
 from piper.verbs import info
 from piper.verbs import relocate
+from piper.verbs import sample
 from piper.verbs import pivot_table
 from piper.verbs import tail
 from piper.verbs import trim
@@ -186,6 +187,20 @@ def test_relocate_multi_column_after(get_sample_df1):
     expected = ['order_dates', 'dates', 'regions', 'countries',
                 'ids', 'values_1', 'values_2']
     actual = df.columns.values.tolist()
+    assert expected == actual
+
+
+# test_relocate_multi_column_after {{{1
+def test_relocate_index_column_after(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = df.set_index(['countries', 'regions'])
+    relocate(df, column='countries', loc='after', ref_column='regions')
+
+    expected = 'regions'
+    actual = df.index.names[1]
+
     assert expected == actual
 
 
@@ -473,6 +488,17 @@ def test_count(get_sample_df5):
 
     assert expected == actual
 
+# test_count {{{1
+def test_count_no_column(get_sample_df5):
+
+    df = get_sample_df5
+
+    expected = (2, 2)
+    actual = count(df).shape
+
+    assert expected == actual
+
+
 # test_count_series {{{1
 def test_count_series(get_sample_df5):
 
@@ -725,6 +751,26 @@ def test_join_df(get_sample_df6):
 
     expected = (6, 3)
     actual = df_merge.shape
+
+    assert expected == actual
+# test_sample_series {{{1
+def test_sample_series(get_sample_s1):
+    """
+    """
+    df = get_sample_s1
+
+    expected = (2, 1)
+    actual = sample(df, random_state=42).shape
+
+    assert expected == actual
+# test_sample_dataframe {{{1
+def test_sample_dataframe(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+
+    expected = (2, 7)
+    actual = sample(df, random_state=42).shape
 
     assert expected == actual
 

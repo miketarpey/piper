@@ -745,15 +745,19 @@ def rename_axis(df, *args, **kwargs):
 
 
 # relocate() {{{1
-def relocate(df, column=None, loc='last', ref_column=None):
-    ''' relocate: move column within a dataframe
+def relocate(df, column=None, loc='last', ref_column=None,
+             index=False):
+    ''' relocate: move column(s) or index(es) within a dataframe
 
     Example:
     --------
     %%piper
-    df
-    >> relocate('FirstName', 'after', 'Department')
+    get_sample_sales()
+    >> pd.DataFrame.set_index(['location', 'product'])
+    >> relocate(column='location', loc='after',
+                ref_column='product', index=True)
     >> head()
+
 
     Parameters
     ----------
@@ -766,20 +770,30 @@ def relocate(df, column=None, loc='last', ref_column=None):
 
     ref_column = None
 
+    index : boolean, default is False (column)
+            if True, then the column(s) being moved are
+            considered to be row indexes.
+
     Returns
     -------
     pandas dataframe
 
     '''
-    df_cols = df.columns.tolist().copy()
+    if index:
+        type_ = 'index(es)'
+        df_cols = df.index.names.copy()
+    else:
+        type_ = 'column(s)'
+        df_cols = df.columns.tolist().copy()
 
     if isinstance(column, str):
         column = [column]
 
     if isinstance(column, list):
         errors = [x for x in column if x not in df_cols]
+
         if errors != []:
-            logger.info(f'column(s) {errors} not found!')
+            logger.info(f'{type_} {errors} not found!')
             return df
 
     # Remove columns to move from main list
@@ -808,79 +822,10 @@ def relocate(df, column=None, loc='last', ref_column=None):
 
     new_column_sequence = list(flatten(new_column_sequence))
 
-    return df[new_column_sequence]
-
-
-# move_index() {{{1
-def move_index(df, column=None, loc='last', ref_column=None):
-    ''' move_index: move column within a mult-index dataframe
-
-    Example:
-    --------
-    %%piper
-
-    gx <- df
-    >> where("Date >= '2010-01-01'")
-    >> group_by(['Department', 'Date', 'Job'])
-    >> summarise(AvgSalary=('Salary', 'mean'))
-    >> order_by('AvgSalary', ascending=False).round(0).astype(int)
-    >> move_index('Department', 'after', 'Job')
-    >> adorn(ignore_row_index=False)
-
-    Parameters
-    ----------
-    df : dataframe
-
-    column : str or list: index name(s) to be moved
-
-    loc : int, 'first', 'last', 'before', 'after'
-          new location, default='last'
-
-    ref_column = None
-
-    Returns
-    -------
-    pandas dataframe
-
-    '''
-    df_cols = list(df.index.names).copy()
-
-    if isinstance(column, str):
-        column = [column]
-
-    if isinstance(column, list):
-        errors = [x for x in column if x not in df_cols]
-        if errors != []:
-            logger.info(f'indices {errors} not found!')
-            return df
-
-    # Remove columns to move from main list
-    df_cols = [x for x in df_cols if x not in column]
-
-    if loc == 'first':
-        df_cols = column + df_cols
-        return df[df_cols]
-
-    elif loc == 'last':
-        df_cols = df_cols + column
-        return df[df_cols]
-
-    if loc == 'after':
-        position = 0
-    elif loc == 'before':
-        position = len(column)
-
-    new_column_sequence = []
-    for col in df_cols:
-        if col == ref_column:
-            column.insert(position, col)
-            new_column_sequence.append(column)
-        else:
-            new_column_sequence.append(col)
-
-    new_column_sequence = list(flatten(new_column_sequence))
-
-    return df.reorder_levels(new_column_sequence)
+    if index:
+        return df.reorder_levels(new_column_sequence)
+    else:
+        return df[new_column_sequence]
 
 
 # insert() {{{1
