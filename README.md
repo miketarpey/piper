@@ -5,6 +5,40 @@
 # Piper
 __Piper__ is a python package designed to simplify data wrangling tasks with [pandas](https://pandas.pydata.org/). It provides a set of wrapper functions or 'verbs' that provide a simpler interface to standard Pandas functions.
 
+Piper functions accept and receive pandas dataframe objects. They can be used as standalone functions but are more powerful when used together in a [Jupyter](https://jupyter.org/) notebook cell to form a data pipeline. This is achieved by linking the functions using the __'>>'__ link operator within a cell using __%%piper__ magic command.
+
+So, instead of the traditional pandas method of calling a method associated with an object, in this case showing the 'head' (first 5 rows) of the dataframe:
+```python
+df.head() 
+```
+
+Piper passes the result of the dataframe object as the first parameter to the next function in the pipeline that, in turn, both accepts and returns dataframe objects. So the equivalent of above with piper is:
+```python
+%%piper
+df >> head() 
+```
+
+This 'chaining' or linking of functions provides a rapid, easy to use/remember approach to exploring, cleaning or building a data pipeline from csv, xml, excel, databases etc. Custom functions that accept and return dataframe objects can be linked together using this kind of syntax:
+```python
+%%piper
+read_oracle_database() 
+>> validate_data()
+>> cleanup_data()
+>> generate_summary()
+>> write_to_target_system()
+```
+
+
+The concept is based on the approach used in the R language [tidyverse](https://www.tidyverse.org/) and 
+[magrittr](https://magrittr.tidyverse.org/) packages. The main functions are:
+- select()
+- assign()
+- relocate()
+- where()
+- group_by()
+- summarise()
+- order_by()
+
 For other _piper_ functionality, please see the [Goals and Features](#Goals-and-Features) section.
 
 ___Alternatives___ 
@@ -20,17 +54,6 @@ For a comprehensive alternative, please check out __Michael Chow's__ [siuba pack
 * [Goals and Features](#Goals-and-Features)
 * [Contact](#Contact)
 
-The functions can be used independently but can be combined to form a data pipeline using an SQL like syntax. This is achieved by linking the functions together in a [Jupyter](https://jupyter.org/) notebook cell using the __%%piper__ magic command.
-
-The concept is based on the approach used in the R language [tidyverse](https://www.tidyverse.org/) and 
-[magrittr](https://magrittr.tidyverse.org/) packages. The main functions are:
-- select()
-- assign()
-- relocate()
-- where()
-- group_by()
-- summarise()
-- order_by()
 
 ## Installation 
 To install the package, enter the following:
