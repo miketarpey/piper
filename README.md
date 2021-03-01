@@ -22,16 +22,8 @@ For a comprehensive alternative, please check out __Michael Chow's__ [siuba pack
 
 The functions can be used independently but can be combined to form a data pipeline using an SQL like syntax. This is achieved by linking the functions together in a [Jupyter](https://jupyter.org/) notebook cell using the __%%piper__ magic command.
 
-## Installation 
-To install the package, enter the following:
-
-```unix
-pip install dpiper
-```
-The concept is similar to the way R's [tidyverse](https://www.tidyverse.org/) and 
-[magrittr](https://magrittr.tidyverse.org/) libraries are used. 
-
-The main dataframe manipulation functions are:
+The concept is based on the approach used in the R language [tidyverse](https://www.tidyverse.org/) and 
+[magrittr](https://magrittr.tidyverse.org/) packages. The main functions are:
 - select()
 - assign()
 - relocate()
@@ -40,6 +32,12 @@ The main dataframe manipulation functions are:
 - summarise()
 - order_by()
 
+## Installation 
+To install the package, enter the following:
+
+```unix
+pip install dpiper
+```
 <p>
 
 ## Basic use
