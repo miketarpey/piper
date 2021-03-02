@@ -259,7 +259,7 @@ def counts(df, columns=None, totals='n', sort_values=False,
         else:
             p1 = df.groupby(columns).agg(totals=pd.NamedAgg(columns[0], 'count'))
     except KeyError as e:
-        logger.info(f'Invalid key {e}')
+        logger.info(f"Column {e} not found!")
         return
 
     if p1.shape[0] > 0:
@@ -427,10 +427,7 @@ def clean_columns(df, replace_char=(' ', '_'), title=False, inplace=False):
     -------
     pandas DataFrame object
     '''
-    if inplace:
-        df2 = df
-    else:
-        df2 = df.copy(deep=True)
+    df2 = _inplace(df, inplace)
 
     from_char, to_char = replace_char
 
@@ -541,14 +538,15 @@ def flatten_cols(df, join_char='_', remove_prefix=None):
     >> group_by(['location', 'product'])
     >> summarise(Total=('actual_sales', 'sum'))
     >> pd.DataFrame.unstack()
-    >> flatten_cols()
+    >> flatten_cols(remove_prefix='Total')
     >> pd.DataFrame.reset_index()
 
     | location   |   Beachwear |   Footwear |   Jeans |   Sportswear |   Tops & Blouses |
     |:-----------|------------:|-----------:|--------:|-------------:|-----------------:|
-    | London     |      391553 |     287458 |  337711 |       344004 |           404097 |
-    | Milan      |      359035 |     322247 |  400239 |       396364 |           275888 |
-    | Paris      |      362087 |     527041 |  490046 |       303360 |           271732 |
+    | London     |      417048 |     318564 |  432023 |       461916 |           345902 |
+    | Milan      |      420636 |     313556 |  471798 |       243028 |           254410 |
+    | Paris      |      313006 |     376844 |  355793 |       326413 |           400847 |
+
     '''
     def flatten(column_string, join_char='_', remove_prefix=None):
         ''' Takes a dataframe column string,
@@ -590,10 +588,7 @@ def trim(df, str_columns=None, inplace=False):
     -------
     pandas dataframe
     '''
-    if inplace:
-        df2 = df
-    else:
-        df2 = df.copy(deep=True)
+    df2 = _inplace(df, inplace)
 
     if str_columns is None:
         str_columns = df2.select_dtypes(include='object')
@@ -676,6 +671,9 @@ def select(df, expr=None):
                 returned_column_list.remove(expr[1:])
                 return df[returned_column_list]
             else:
+                if expr not in returned_column_list:
+                    raise KeyError(f"Column '{expr}' not found!")
+
                 return df[expr].to_frame()
 
         if isinstance(expr, list):
@@ -695,40 +693,23 @@ def select(df, expr=None):
                     returned_column_list
 
                 return df[returned_column_list]
+
     except (ValueError, KeyError) as e:
         logger.info(e)
-        return None
 
-# contains() {{{1
-@wraps(pd.Series.str.contains)
-def contains(df, *args, **kwargs):
-    '''
-    Example:
-    ========
-    df = get_items()
-    (select(df)
-     .pipe(contains, '(code|technical)')
-     .pipe(clean_columns)
-     .pipe(group_by, ['product_code'])
-     .pipe(summarise, total=pd.NamedAgg('product_code', 'count'))
-     .pipe(order_by, 'product_code', ascending=False)
-     .pipe(head)
-    )
-    '''
-    return df[df.columns[df.columns.str.contains(*args, **kwargs)]]
 
 # rename() {{{1
 @wraps(pd.DataFrame.rename)
 def rename(df, *args, **kwargs):
     '''
+
     Example:
     ========
-    (select(df)
-     .pipe(counts, 'group_code')
-     .pipe(where, "group_code.isin(['P01', 'P15'])")
-     .pipe(rename, columns={'count': 'total_rows'})
-     .reset_index()
-    )
+    %%piper
+
+    get_sample_sales()
+    >> rename(columns={'product': 'item'})
+
     '''
     return df.rename(*args, **kwargs)
 
@@ -740,11 +721,20 @@ def rename_axis(df, *args, **kwargs):
     Example:
     ========
     %%piper
-    abc <- resample_pivot(df, index=index, grouper=[grouper, grouper2], rule=rule) >>
-    rename_axis(index_names, axis='rows') >>
 
-    assign(reg_totval2_percent = piper_group_percent_example ) >>
-    head(6)
+    get_sample_sales()
+    >> pivot_table(index=['location', 'product'], values='target_sales')
+    >> rename_axis(('AAA', 'BBB'), axis='rows')
+    >> head()
+
+    |                          |   target_sales |
+    |    AAA          BBB      |                |
+    |:-------------------------|---------------:|
+    | ('London', 'Beachwear')  |        31379.8 |
+    | ('London', 'Footwear')   |        27302.6 |
+    | ('London', 'Jeans')      |        28959.8 |
+    | ('London', 'Sportswear') |        29466.4 |
+
     '''
     return df.rename_axis(*args, **kwargs)
 
@@ -784,6 +774,15 @@ def relocate(df, column=None, loc='last', ref_column=None,
     pandas dataframe
 
     '''
+    def sequence(columns, index=False):
+        ''' Return column or index sequence '''
+
+        if index:
+            return df.reorder_levels(columns)
+        else:
+            return df[columns]
+
+
     if index:
         type_ = 'index(es)'
         df_cols = df.index.names.copy()
@@ -806,11 +805,11 @@ def relocate(df, column=None, loc='last', ref_column=None,
 
     if loc == 'first':
         df_cols = column + df_cols
-        return df[df_cols]
+        return sequence(df_cols, index=index)
 
     elif loc == 'last':
         df_cols = df_cols + column
-        return df[df_cols]
+        return sequence(df_cols, index=index)
 
     if loc == 'after':
         position = 0
@@ -827,20 +826,8 @@ def relocate(df, column=None, loc='last', ref_column=None,
 
     new_column_sequence = list(flatten(new_column_sequence))
 
-    if index:
-        return df.reorder_levels(new_column_sequence)
-    else:
-        return df[new_column_sequence]
+    return sequence(new_column_sequence, index=index)
 
-
-# insert() {{{1
-@wraps(pd.DataFrame.insert)
-def insert(df, *args, **kwargs):
-    '''
-    '''
-    df.insert(*args, **kwargs)
-
-    return df
 
 # drop() {{{1
 @wraps(pd.DataFrame.drop)
@@ -871,8 +858,7 @@ def assign(df, *args, **kwargs):
                    another=lambda x:3*x.values_1)
     )
     '''
-    logger.debug(kwargs)
-    logger.debug(args)
+
     return df.assign(*args, **kwargs)
 
 
@@ -1408,70 +1394,76 @@ def resample_pivot(df, index=None, grouper=None, rule='M', values=None, aggfunc=
     return p1
 
 
-# add_group_calc() {{{1
-def add_group_calc(df, index=None, column=None, value=None,
+# group_calc() {{{1
+def group_calc(df, index=None, column=None, value=None,
                    function='percent', sort_values=None, ascending=None):
     '''
-    Add grouped calculation. This function is useful to make group
-    calculations within a group of columns.
+    Add grouped calculation. Takes a df and for specified index grouping
+    will generate a column aggregation based on the function supplied.
 
     Example #1 - Calculate group percentage value
 
-    df = get_sample_data()
-    gx = df.groupby(['countries', 'regions']).agg(TotSales1=('values_1', 'sum'))
-    gx.head(8)
+    %%piper
+    get_sample_data() >>
+    group_by(['countries', 'regions']) >>
+    summarise(TotSales1=('values_1', 'sum'))
 
-                        TotSales1
-    countries 	regions
-    France 	East         2170
-    North 	             2275
-    South 	             2118
-    West 	             4861
-    Germany 	East 	     1764
-    North 	             2239
-    South 	             1753
-    West 	             1575
+    |                      |   TotSales1 |
+    |:---------------------|------------:|
+    | ('France', 'East')   |        2170 |
+    | ('France', 'North')  |        2275 |
+    | ('France', 'South')  |        2118 |
+    | ('France', 'West')   |        4861 |
+    | ('Germany', 'East')  |        1764 |
+    | ('Germany', 'North') |        2239 |
+    | ('Germany', 'South') |        1753 |
+    | ('Germany', 'West')  |        1575 |
 
-    This can be expresses as follows:
+    To add a group percentage based on the countries:
 
-    gx = add_group_calc(gx, index=['countries'],
-                        value='TotSales1',
-                        function='percent',
-                        sort_values=['countries', 'grouped value'],
-                        ascending=[True, False])
-    gx.head(8)
+    %%piper
+    get_sample_data() >>
+    group_by(['countries', 'regions']) >>
+    summarise(TotSales1=('values_1', 'sum')) >>
+    group_calc(index='countries', value='TotSales1') >>
+    head(8)
 
-                         TotSales1   grouped value
-    countries 	regions
-    France 	West 	      4861           42.55
-    North 	              2275           19.91
-    East 	              2170           19.00
-    South 	              2118           18.54
-    Germany 	North 	      2239           30.54
-    East 	              1764           24.06
-    South 	              1753           23.91
-    West 	              1575           21.48
+    |                      |   TotSales1 |   group_% |
+    |:---------------------|------------:|----------:|
+    | ('France', 'East')   |        2170 |     19    |
+    | ('France', 'North')  |        2275 |     19.91 |
+    | ('France', 'South')  |        2118 |     18.54 |
+    | ('France', 'West')   |        4861 |     42.55 |
+    | ('Germany', 'East')  |        1764 |     24.06 |
+    | ('Germany', 'North') |        2239 |     30.54 |
+    | ('Germany', 'South') |        1753 |     23.91 |
+    | ('Germany', 'West')  |        1575 |     21.48 |
+
 
     Example #2 - Calculating total group value
 
-    gx = df.groupby(['countries', 'regions']).agg(TotSales1=('values_1', 'sum'))
-    gx = add_group_calc(gx, column='Total_for_group',
-                         index=['countries'], value='TotSales1',
-                         function=lambda x: x.sum(),
-                         sort_values=['countries', 'Total_for_group'],
-                         ascending=[True, False])
-    gx.head(8)
+    %%piper
+    get_sample_data() >>
+    group_by(['countries', 'regions']) >>
+    summarise(TotSales1=('values_1', 'sum')) >>
+    group_calc(column='Total_for_group',
+               index='countries', value='TotSales1',
+               function=lambda x: x.sum(),
+               sort_values=['countries', 'Total_for_group'],
+               ascending=[True, False]) >>
+    head(8)
 
-                         TotSales1 Total_for_group
-    countries 	regions
-    France 	East 	      2170           11424
-    North 	              2275           11424
-    South 	              2118           11424
-    West 	              4861           11424
-    Germany 	East 	      1764            7331
-    North 	              2239            7331
-    South 	              1753            7331
-    West 	              1575            7331
+    |                      |   TotSales1 |   Total_for_group |
+    |:---------------------|------------:|------------------:|
+    | ('France', 'East')   |        2170 |             11424 |
+    | ('France', 'North')  |        2275 |             11424 |
+    | ('France', 'South')  |        2118 |             11424 |
+    | ('France', 'West')   |        4861 |             11424 |
+    | ('Germany', 'East')  |        1764 |              7331 |
+    | ('Germany', 'North') |        2239 |              7331 |
+    | ('Germany', 'South') |        1753 |              7331 |
+    | ('Germany', 'West')  |        1575 |              7331 |
+
 
     Parameters
     ----------
@@ -1481,10 +1473,10 @@ def add_group_calc(df, index=None, column=None, value=None,
 
     column - column title to be used (default: None -> 'grouped_%')
 
-    function - function to apply in grouping calculation
-               (default 'percent')
-               built-in functions: 'percent', 'rank'
-               (example: np.sum, np.cumsum, np.mean  etc.)
+    function - function to apply within group (default 'percent')
+               built-in functions:
+               'sum', 'mean', percent', 'rank', 'rank_desc'
+               (other examples: np.sum, np.cumsum, np.mean  etc.)
 
     sort_values - str/list of column names to sort returned dataframe
                   (default None)
@@ -1497,26 +1489,26 @@ def add_group_calc(df, index=None, column=None, value=None,
     original dataframe with additional grouped calculation column
 
     '''
+    built_in_func = {'sum': lambda x: x.sum(), 'mean': lambda x: x.mean(),
+                     'percent': lambda x: (x * 100 / x.sum()).round(2),
+                     'rank': lambda x: x.rank(method='dense', ascending=True),
+                     'rank_desc': lambda x: x.rank(method='dense', ascending=False)}
+
     if index is None:
         index = df.index
 
     if value is None:
         value = df.columns[0]
 
-    if function == 'percent':
-
+    built_in = built_in_func.get(function, None)
+    if built_in:
+        func = built_in
         if column is None:
-            column = 'group_%'
+            column = function
+    else:
+        func = function
 
-        function = lambda x: (x * 100 / x.sum()).round(2)
-
-    if function == 'rank':
-        if column is None:
-            column = 'rank'
-
-        function = lambda x: x.rank(method='dense', ascending=False)
-
-    df[column] = df.groupby(index)[value].transform(function)
+    df[column] = df.groupby(index)[value].transform(func)
 
     if sort_values:
         df = df.sort_values(by=sort_values, ascending=ascending)
@@ -1530,11 +1522,12 @@ def add_formula(df, column_name='xl_calc', formula='=CONCATENATE(A{row}, B{row},
 
     ''' add Excel (xl) formula column
 
+
     Examples
     --------
-
     formula = '=CONCATENATE(A{row}, B{row}, C{row})'
     add_formula(df, column_name='X7', loc=2, formula=formula, inplace=True)
+
 
     Parameters
     ----------
@@ -1559,10 +1552,7 @@ def add_formula(df, column_name='xl_calc', formula='=CONCATENATE(A{row}, B{row},
     -------
     pandas dataframe
     '''
-    if inplace:
-        df2 = df
-    else:
-        df2 = df.copy(deep=True)
+    df2 = _inplace(df, inplace)
 
     col_values = []
     for x in range(offset, df.shape[0] + offset):
@@ -1575,8 +1565,6 @@ def add_formula(df, column_name='xl_calc', formula='=CONCATENATE(A{row}, B{row},
     df2.insert(loc=loc, column=column_name, value=col_values)
 
     return df2
-
-
 
 
 # duplicated() {{{1
@@ -1796,3 +1784,14 @@ def to_parquet(df, *args, **kwargs):
 def to_excel(df, file_name=None, *args, **kwargs):
 
     WorkBook(file_name=file_name, sheets=df, *args, **kwargs)
+
+
+def _inplace(df, inplace=False):
+    ''' helper function to return either a copy of
+    dataframe or a reference to the passed dataframe
+    '''
+
+    if inplace:
+        return df
+    else:
+        return df.copy(deep=True)

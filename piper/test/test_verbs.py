@@ -1,34 +1,39 @@
-from piper.verbs import to_tsv
-from piper.pandas import read_csv
-from piper.verbs import left_join
-from piper.verbs import right_join
-from piper.verbs import outer_join
-from piper.verbs import inner_join
-from piper.verbs import duplicated
-from piper.verbs import resample_groupby
-from piper.verbs import resample_pivot
-from piper.verbs import add_group_calc
-from piper.verbs import overlaps
 from piper.verbs import add_formula
 from piper.verbs import adorn
+from piper.verbs import assign
 from piper.verbs import clean_columns
 from piper.verbs import columns
+from piper.verbs import combine_header_rows
 from piper.verbs import count
 from piper.verbs import counts
-from piper.verbs import head
-from piper.verbs import select
-from piper.verbs import where
-from piper.verbs import summarise
-from piper.verbs import info
-from piper.verbs import relocate
-from piper.verbs import sample
-from piper.verbs import pivot_table
-from piper.verbs import group_by
+from piper.verbs import drop
+from piper.verbs import duplicated
 from piper.verbs import flatten_cols
-from piper.verbs import combine_header_rows
-from piper.verbs import tail
-from piper.verbs import trim
+from piper.verbs import group_by
+from piper.verbs import group_calc
 from piper.verbs import has_special_chars
+from piper.verbs import head
+from piper.verbs import info
+from piper.verbs import inner_join
+from piper.verbs import left_join
+from piper.verbs import outer_join
+from piper.verbs import overlaps
+from piper.verbs import pivot_table
+from piper.verbs import relocate
+from piper.verbs import rename
+from piper.verbs import rename_axis
+from piper.verbs import resample_groupby
+from piper.verbs import resample_pivot
+from piper.verbs import right_join
+from piper.verbs import sample
+from piper.verbs import select
+from piper.verbs import set_columns
+from piper.verbs import summarise
+from piper.verbs import tail
+from piper.verbs import to_tsv
+from piper.verbs import trim
+from piper.verbs import where
+from piper.pandas import read_csv
 from piper.test.factory import get_sample_orders_01
 from piper.test.factory import get_sample_df1
 from piper.test.factory import get_sample_df2
@@ -122,6 +127,51 @@ def test_tail_with_dataframe(get_sample_df2):
 
 
 
+# test_assign {{{1
+def test_assign(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = where(df, "ids == 'A'")
+    df = where(df, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
+    df = assign(df, new_field=lambda x: x.countries.str[:3]+x.regions,
+                       another=lambda x:3*x.values_1)
+
+    expected = ['dates', 'order_dates', 'countries',
+                'regions', 'ids', 'values_1',
+                'values_2', 'new_field', 'another']
+    actual = df.columns.tolist()
+
+    assert expected == actual
+
+
+# test_drop {{{1
+def test_drop(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = drop(df, columns=['countries', 'regions'])
+
+    expected = ['dates', 'order_dates', 'ids', 'values_1', 'values_2']
+    actual = df.columns.tolist()
+
+    assert expected == actual
+
+
+# test_relocate_index {{{1
+def test_relocate_index(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = df.set_index(['countries', 'regions'])
+    df = relocate(df, 'regions', loc='first', index=True)
+
+    expected = ['regions', 'countries']
+    actual = df.index.names
+
+    assert expected == actual
+
+
 # test_relocate_single_column {{{1
 def test_relocate_single_column(get_sample_df2):
     """
@@ -132,6 +182,7 @@ def test_relocate_single_column(get_sample_df2):
     expected = ['regions', 'ids']
     actual = df.columns.values.tolist()
     assert expected == actual
+
 
 # test_relocate_single_column_last_column {{{1
 def test_relocate_single_column_last_column(get_sample_df2):
@@ -211,6 +262,28 @@ def test_relocate_index_column_after(get_sample_df1):
     assert expected == actual
 
 
+# test_flatten_cols_no_index {{{1
+def test_flatten_cols_no_index(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = group_by(df, ['countries', 'regions'])
+    df = summarise(df, total=('values_2', 'sum'))
+    df = df.unstack()
+    df = df.reset_index()
+
+    # Twice called is deliberate NOT a mistake :)
+    # The second call is to make sure function does
+    # not crash, just returns passed given column names
+    df = flatten_cols(df, remove_prefix='total')
+    df = flatten_cols(df, remove_prefix='total')
+
+    expected = ['countries', 'East', 'North', 'South', 'West']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
 # test_flatten_cols_keep_prefix {{{1
 def test_flatten_cols_keep_prefix(get_sample_df1):
     """
@@ -222,6 +295,22 @@ def test_flatten_cols_keep_prefix(get_sample_df1):
     df = flatten_cols(df)
 
     expected = ['total_East', 'total_North', 'total_South', 'total_West']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_flatten_cols_lose_prefix {{{1
+def test_flatten_cols_lose_prefix(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = group_by(df, ['countries', 'regions'])
+    df = summarise(df, total=('values_2', 'sum'))
+    df = df.unstack()
+    df = flatten_cols(df, remove_prefix='total')
+
+    expected = ['East', 'North', 'South', 'West']
     actual = df.columns.to_list()
 
     assert expected == actual
@@ -244,7 +333,7 @@ def test_flatten_cols_remove_prefix(get_sample_df1):
 
 
 # test_combine_header_rows {{{1
-def test_flatten_cols_remove_prefix():
+def test_combine_header_rows():
 
     data = {'A': ['Order', 'Qty', 10, 40],
             'B': ['Order', 'Number', 12345, 12346]}
@@ -253,6 +342,51 @@ def test_flatten_cols_remove_prefix():
     df = combine_header_rows(df)
 
     expected = ['Order Qty', 'Order Number']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_combine_header_rows_lower {{{1
+def test_combine_header_rows_lower():
+
+    data = {'A': ['Order', 'Qty', 10, 40],
+            'B': ['Order', 'Number', 12345, 12346]}
+
+    df = pd.DataFrame(data)
+    df = combine_header_rows(df, apply='lower')
+
+    expected = ['order qty', 'order number']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_combine_header_rows_title {{{1
+def test_combine_header_rows_title():
+
+    data = {'A': ['Order', 'Qty', 10, 40],
+            'B': ['Order', 'Number', 12345, 12346]}
+
+    df = pd.DataFrame(data)
+    df = combine_header_rows(df, apply='title')
+
+    expected = ['Order Qty', 'Order Number']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_set_columns {{{1
+def test_set_columns():
+
+    data = {'A': ['Order', 'Qty', 10, 40],
+            'B': ['Order', 'Number', 12345, 12346]}
+
+    df = pd.DataFrame(data)
+    df = set_columns(df, ['C', 'D'])
+
+    expected = ['C', 'D']
     actual = df.columns.to_list()
 
     assert expected == actual
@@ -502,6 +636,16 @@ def test_select_columns(get_sample_df1):
     assert expected == actual
 
 
+# test_select_invalid_column {{{1
+def test_select_invalid_column(get_sample_df1):
+
+    df = get_sample_df1
+
+    expected = None
+    actual = select(df, 'AAA')
+
+    assert expected == actual
+
 # test_info {{{1
 def test_info(get_sample_df5):
 
@@ -542,7 +686,7 @@ def test_count(get_sample_df5):
 
     assert expected == actual
 
-# test_count {{{1
+# test_count_no_column {{{1
 def test_count_no_column(get_sample_df5):
 
     df = get_sample_df5
@@ -591,6 +735,50 @@ def test_count_with_total_percent_cum_percent(get_sample_df5):
     expected = (2, 4)
     actual = count(df, 'bgy56icnt', add_total=True, sort_values=True,
                    percent=True, cum_percent=True).shape
+
+    assert expected == actual
+
+
+# test_count_with_cum_percent_with_threshold {{{1
+def test_count_with_cum_percent_with_threshold(get_sample_df1):
+
+    expected = (6, 3)
+
+    df = count(get_sample_df1, 'countries', threshold = 80, cum_percent=True)
+    actual = df.shape
+
+    assert expected == actual
+
+
+# test_counts_not_found_column {{{1
+def test_counts_not_found_column(get_sample_df1):
+
+    df = get_sample_df1
+
+    expected = None
+    actual = counts(df, 'invalid_column')
+
+    assert expected == actual
+
+
+# test_counts_no_column {{{1
+def test_counts_no_column(get_sample_df1):
+
+    df = get_sample_df1
+
+    expected = (7, 2)
+    actual = counts(df).shape
+
+    assert expected == actual
+
+
+# test_counts_column_reset_index_true {{{1
+def test_counts_column_reset_index_true(get_sample_df1):
+
+    df = get_sample_df1
+
+    expected = (8, 2)
+    actual = counts(df, 'countries', reset_index=True).shape
 
     assert expected == actual
 
@@ -908,6 +1096,37 @@ def test_sample_series(get_sample_s1):
     actual = sample(df, random_state=42).shape
 
     assert expected == actual
+# test_rename {{{1
+def test_rename(get_sample_df1):
+    """
+    """
+
+    expected = ['trans_dt', 'order_dates', 'countries',
+                'regions', 'ids', 'values_1',
+                'values_2']
+
+    df = get_sample_df1
+    df = rename(df, columns={'dates': 'trans_dt'})
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_rename_axis {{{1
+def test_rename_axis(get_sample_df1):
+    """
+    """
+
+    expected = ['AAA', 'BBB']
+
+    df = get_sample_df1
+    df = pivot_table(df, index=['countries', 'regions'], values='values_1')
+    df = rename_axis(df, mapper=('AAA', 'BBB'), axis='rows')
+    actual = df.index.names
+
+    assert expected == actual
+
+
 # test_sample_dataframe {{{1
 def test_sample_dataframe(get_sample_df1):
     """
@@ -918,6 +1137,7 @@ def test_sample_dataframe(get_sample_df1):
     actual = sample(df, random_state=42).shape
 
     assert expected == actual
+
 
 # test_resample_groupby {{{1
 def test_resample_groupby(get_sample_df1):
@@ -1104,24 +1324,17 @@ def test_calc_grouped_value(get_sample_df1):
     """
     """
 
-    df = get_sample_df1
-
-    # % and total group contribution (values_1)
     index = ['countries', 'regions']
+    cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
+    df = get_sample_df1[cols]
 
-    x = lambda x: x.sum()
-
-    subset_df = df[['countries', 'regions', 'ids', 'values_1', 'values_2']].copy()
-
-    gx = add_group_calc(subset_df, column='group % contribution',
-                       value='values_2', index=index)
-
-    gx = add_group_calc(subset_df, column='Total Grouped Value',
-                        value='values_2', index=index, function=x)
+    gx = group_calc(df, column='group_%', value='values_2', index=index)
+    gx = group_calc(df, column='total_group_value', value='values_2',
+                    index=index, function='sum')
 
     gx.set_index(['countries', 'regions', 'ids'], inplace=True)
 
-    expected = (367,4)
+    expected = (367, 4)
     actual = gx.shape
 
     assert expected == actual
@@ -1155,6 +1368,20 @@ def test_adorn_column_total(get_sample_df1):
     assert expected == actual
 
 
+# test_adorn_with_ignore_row_index {{{1
+def test_adorn_row_with_ignore_row_index(get_sample_df1):
+
+    df = get_sample_df1
+    df = group_by(df, ['countries'])
+    df = summarise(df, total=('values_1', 'sum'))
+    df = adorn(df, axis = 'row', ignore_row_index=True)
+
+    expected = 'All'
+    actual = df.iloc[df.shape[0]-1, 0]
+
+    assert expected == actual
+
+
 # test_adorn_column_with_column_specified {{{1
 def test_adorn_column_with_column_specified(get_sample_df1):
 
@@ -1165,6 +1392,20 @@ def test_adorn_column_with_column_specified(get_sample_df1):
 
     expected = 8432
     actual = df.loc['Sweden', 'All']
+
+    assert expected == actual
+
+
+def test_adorn_column_with_column_list_specified(get_sample_df1):
+
+    df = get_sample_df1
+    df = group_by(df, ['countries'])
+    df = summarise(df, total=('values_1', 'sum'))
+    df = assign(df, total2=lambda x: x.total * 10)
+    df = adorn(df, columns=['total', 'total2'], axis = 'both')
+
+    expected = ['total', 'total2', 'All']
+    actual = df.columns.tolist()
 
     assert expected == actual
 
