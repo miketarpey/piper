@@ -7,6 +7,8 @@ from piper.verbs import combine_header_rows
 from piper.verbs import count
 from piper.verbs import counts
 from piper.verbs import drop
+from piper.verbs import distinct
+from piper.verbs import explode
 from piper.verbs import duplicated
 from piper.verbs import flatten_cols
 from piper.verbs import group_by
@@ -521,6 +523,19 @@ def test_columns_as_regex(get_sample_df1):
 
     assert expected == actual
 
+# test_distinct {{{1
+def test_distinct(get_sample_df1):
+
+    df = get_sample_df1
+    df = select(df, ['countries', 'regions', 'ids'])
+    df = distinct(df, 'ids')
+
+    expected = (5, 3)
+    actual = df.shape
+
+    assert expected == actual
+
+
 # test_select_no_parms {{{1
 def test_select_no_parms(get_sample_df1):
 
@@ -645,6 +660,7 @@ def test_select_invalid_column(get_sample_df1):
     actual = select(df, 'AAA')
 
     assert expected == actual
+
 
 # test_info {{{1
 def test_info(get_sample_df5):
@@ -1096,6 +1112,22 @@ def test_sample_series(get_sample_s1):
     actual = sample(df, random_state=42).shape
 
     assert expected == actual
+
+
+# test_explode {{{1
+def test_explode(get_sample_df1):
+    """
+    """
+    df = get_sample_df1
+    df = group_by(df, 'countries')
+    df = summarise(df, ids=('ids', set))
+
+    expected = (40, 1)
+    actual = explode(df, 'ids').shape
+
+    assert expected == actual
+
+
 # test_rename {{{1
 def test_rename(get_sample_df1):
     """
@@ -1158,6 +1190,7 @@ def test_resample_groupby(get_sample_df1):
 
     assert g1.loc['2020 Mar', 'Totals1'] > 0
 
+
 # test_resample_multi_grouper_groupby {{{1
 def test_resample_multi_grouper_groupby():
     """
@@ -1185,6 +1218,7 @@ def test_resample_multi_grouper_groupby():
 
     assert expected == actual
 
+
 # test_resample_groupby_multi_index_single_grouper {{{1
 def test_resample_groupby_multi_index_single_grouper():
     """
@@ -1210,6 +1244,7 @@ def test_resample_groupby_multi_index_single_grouper():
     actual = g1.shape
 
     assert expected == actual
+
 
 # test_pivot_table {{{1
 def test_pivot_table(get_sample_df1):
@@ -1319,8 +1354,8 @@ def test_resample_pivot_single_grouper(get_sample_df1):
 
     assert p2.loc[('2020 Mar', 'East', 'A'), 'values_1'] > 0
 
-# test_calc_grouped_value {{{1
-def test_calc_grouped_value(get_sample_df1):
+# test_grouped_calc {{{1
+def test_grouped_calc(get_sample_df1):
     """
     """
 
@@ -1331,6 +1366,53 @@ def test_calc_grouped_value(get_sample_df1):
     gx = group_calc(df, column='group_%', value='values_2', index=index)
     gx = group_calc(df, column='total_group_value', value='values_2',
                     index=index, function='sum')
+
+    gx.set_index(['countries', 'regions', 'ids'], inplace=True)
+
+    expected = (367, 4)
+    actual = gx.shape
+
+    assert expected == actual
+
+
+# test_group_calc_with_sort {{{1
+def test_group_calc_with_sort(get_sample_df1):
+    """
+    """
+
+    index = ['countries', 'regions']
+    cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
+    df = get_sample_df1[cols]
+
+    gx = group_calc(df, column='group_%', value='values_2', index=index)
+    gx = group_calc(df, column='total_group_value', value='values_2',
+                    index=index, sort_values=['countries', 'regions'],
+                    function='sum')
+
+    gx.set_index(['countries', 'regions', 'ids'], inplace=True)
+
+    expected = (367, 4)
+    actual = gx.shape
+
+    assert expected == actual
+
+
+# test_group_calc_custom_function {{{1
+def test_group_calc_custom_function(get_sample_df1):
+    """
+    """
+    index = ['countries', 'regions']
+    cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
+    df = get_sample_df1[cols]
+
+    gx = group_calc(df, column='group_%',
+                    value='values_2', index=index)
+
+    gx = group_calc(gx, column='total_group_value',
+                    value='values_2',
+                    index=index,
+                    sort_values=['countries', 'regions'],
+                    function=lambda x: x.sum())
 
     gx.set_index(['countries', 'regions', 'ids'], inplace=True)
 
@@ -1395,14 +1477,28 @@ def test_adorn_column_with_column_specified(get_sample_df1):
 
     assert expected == actual
 
-
+# test_adorn_column_with_column_list_specified {{{1
 def test_adorn_column_with_column_list_specified(get_sample_df1):
 
     df = get_sample_df1
-    df = group_by(df, ['countries'])
+    df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_1', 'sum'))
     df = assign(df, total2=lambda x: x.total * 10)
     df = adorn(df, columns=['total', 'total2'], axis = 'both')
+
+    expected = ['total', 'total2', 'All']
+    actual = df.columns.tolist()
+
+    assert expected == actual
+
+# test_adorn_column_with_column_str_specified {{{1
+def test_adorn_column_with_column_str_specified(get_sample_df1):
+
+    df = get_sample_df1
+    df = group_by(df, ['countries', 'regions'])
+    df = summarise(df, total=('values_1', 'sum'))
+    df = assign(df, total2=lambda x: x.total * 10)
+    df = adorn(df, columns='total', axis = 'both')
 
     expected = ['total', 'total2', 'All']
     actual = df.columns.tolist()
@@ -1427,6 +1523,7 @@ def test_has_special_chars(get_sample_df1):
     df_count = count(has_special_chars(dx, 'col'), 'item_special_chars')
 
     assert df_count.shape == (2, 2)
+
 
 # test_duplicated {{{1
 def test_duplicated(get_sample_df5):
