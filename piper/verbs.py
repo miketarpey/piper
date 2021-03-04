@@ -1522,7 +1522,6 @@ def add_formula(df, column_name='xl_calc', formula='=CONCATENATE(A{row}, B{row},
 
     ''' add Excel (xl) formula column
 
-
     Examples
     --------
     formula = '=CONCATENATE(A{row}, B{row}, C{row})'
