@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from xlsxwriter.utility import xl_col_to_name
 import logging
 
 logger = logging.getLogger(__name__)
@@ -123,5 +124,59 @@ def get_sample_sales(number_of_rows = 200, year=2021):
     df.month = pd.PeriodIndex(df.month).to_timestamp()
 
     df = df.sort_values(['month', 'location', 'product'])
+
+    return df
+
+
+def get_sample_matrix(size=(5, 5), loc=10, scale=10, lowercase_cols=True, round=3, seed=None):
+    ''' Generate sample data for given size (tuple)
+
+    Draw random samples from a normal (Gaussian) distribution.
+    (Uses np.random.normal)
+
+    Example
+    -------
+    df = sample_data()
+
+    |    |        a |        b |         c |        d |         e |
+    |---:|---------:|---------:|----------:|---------:|----------:|
+    |  0 |  28.2635 |  58.5958 | -37.7419  |  43.1493 |  30.6003  |
+    |  1 |  68.6657 | 133.374  |  -4.08528 |  30.1512 |  74.854   |
+    |  2 |  20.979  | 206.842  |  25.84    |  54.9084 | -40.8005  |
+    |  3 |  80.6453 |  98.5271 |  19.2099  |  93.3201 |  -2.92593 |
+    |  4 | -31.4728 |  50.5013 | -46.5339  | -27.3093 |  80.5112  |
+
+
+    Parameters
+    ----------
+    size: tuple - row and column size required.
+
+    loc : float or array_like of floats
+    Mean ("centre") of the distribution.
+
+    scale : float or array_like of floats
+    Standard deviation (spread or "width") of the distribution.
+    Must be non-negative.
+
+    lowercase_cols: boolean - alphabetical column names are lowercase
+    by default. False - uppercase column names
+
+
+    Returns
+    -------
+    pd.DataFrame
+    '''
+    if seed:
+        np.random.seed(seed)
+
+    rows, cols = size
+
+    data = np.random.normal(loc=loc, scale=scale, size=(rows, cols))
+    cols = [xl_col_to_name(x - 1) for x in range(1, cols + 1)]
+
+    if lowercase_cols:
+        cols = list(map(str.lower, cols))
+
+    df = pd.DataFrame(data, columns=cols).round(round)
 
     return df
