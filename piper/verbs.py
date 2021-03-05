@@ -973,7 +973,7 @@ def summarise(df=None, *args, **kwargs):
 
 
 # adorn() {{{1
-def adorn(df, fillna=None, col_row_name='All', columns=None, axis=0, ignore_row_index=False):
+def adorn(df, columns=None, fillna='', col_row_name='All', axis=0, ignore_row_index=False):
     '''
     Based on R function, for given dataframe, add row or column totals.
 
@@ -982,7 +982,7 @@ def adorn(df, fillna=None, col_row_name='All', columns=None, axis=0, ignore_row_
     ----------
     df - Pandas dataframe
 
-    fillna - fill NaN values (default None)
+    fillna - fill NaN values (default is '')
 
     col_row_name - name of row/column title (default 'Total')
 
@@ -1074,7 +1074,72 @@ def adorn(df, fillna=None, col_row_name='All', columns=None, axis=0, ignore_row_
 # order_by() {{{1
 @wraps(pd.DataFrame.sort_values)
 def order_by(df, *args, **kwargs):
-    return df.sort_values(*args, **kwargs)
+    '''
+    %%piper
+
+    get_sample_data()
+    >> group_by(['countries', 'regions'])
+    >> summarise(totalval1=('values_1', 'sum'))
+    >> group_calc(index='countries')
+    >> order_by(['countries', '-group%'])
+    >> head(8)
+
+    |                      |   totalval1 |   group% |
+    |:---------------------|------------:|---------:|
+    | ('France', 'West')   |        4861 |    42.55 |
+    | ('France', 'North')  |        2275 |    19.91 |
+    | ('France', 'East')   |        2170 |    19    |
+    | ('France', 'South')  |        2118 |    18.54 |
+    | ('Germany', 'North') |        2239 |    30.54 |
+    | ('Germany', 'East')  |        1764 |    24.06 |
+    | ('Germany', 'South') |        1753 |    23.91 |
+    | ('Germany', 'West')  |        1575 |    21.48 |
+
+    '''
+    logger.debug(args)
+    logger.debug(kwargs)
+
+    # args is a tuple, therefore need to 'copy' to a list for
+    # manipulation
+    args_copy = list(args)
+
+    if kwargs.get('by'):
+        column_seq = kwargs.get('by')
+    else:
+        if isinstance(args_copy[0], str) or isinstance(args_copy[0], list):
+            column_seq = args_copy[0]
+
+    f = lambda x: True if not x.startswith('-') else False
+
+    if isinstance(column_seq, list):
+        sort_seq = [f(x) for x in column_seq]
+
+        # Set sort sequence - only if NOT specified by user
+        if kwargs.get('ascending') is None:
+            kwargs['ascending'] = sort_seq
+
+        f = lambda ix, x: column_seq[ix] if x else column_seq[ix][1:]
+        if args_copy != []:
+            args_copy[0] = [f(ix, x) for ix, x in enumerate(sort_seq)]
+        else:
+            kwargs['by'] = [f(ix, x) for ix, x in enumerate(sort_seq)]
+
+    else:
+        # Assume ascending sequence, unless otherwise specified
+        if kwargs.get('ascending') is None:
+
+            kwargs['ascending'] = f(column_seq)
+            if kwargs['ascending'] == False:
+                column_seq = column_seq[1:]
+
+            if args_copy != []:
+                args_copy[0] = column_seq
+            else:
+                kwargs['by'] = column_seq
+
+    logger.debug(args_copy)
+    logger.debug(kwargs)
+    return df.sort_values(*args_copy, **kwargs)
 
 
 # inner_join() {{{1
@@ -1490,12 +1555,14 @@ def group_calc(df, index=None, column=None, value=None,
 
     '''
     built_in_func = {'sum': lambda x: x.sum(), 'mean': lambda x: x.mean(),
+                     'min': lambda x: x.min(), 'max': lambda x: x.max(),
+                     'std': lambda x: x.std(),
                      'percent': lambda x: (x * 100 / x.sum()).round(2),
                      'rank': lambda x: x.rank(method='dense', ascending=True),
                      'rank_desc': lambda x: x.rank(method='dense', ascending=False)}
 
     if index is None:
-        index = df.index
+        index = df.index.names[0]
 
     if value is None:
         value = df.columns[0]
@@ -1504,7 +1571,10 @@ def group_calc(df, index=None, column=None, value=None,
     if built_in:
         func = built_in
         if column is None:
-            column = function
+            if function == 'percent':
+                column = 'group%'
+            else:
+                column = function
     else:
         func = function
 
