@@ -901,6 +901,18 @@ def distinct(df, *args, **kwargs):
     return df.drop_duplicates(*args, **kwargs)
 
 
+# reset_index() {{{1
+@wraps(pd.DataFrame.reset_index)
+def reset_index(df, *args, **kwargs):
+    '''
+    Example:
+    ========
+    %%piper
+    df >> reset_index() >> head()
+    '''
+    return df.reset_index(*args, **kwargs)
+
+
 # group_by() {{{1
 # @wraps(pd.DataFrame.groupby)
 def group_by(df, *args, **kwargs):
@@ -1537,6 +1549,8 @@ def group_calc(df, index=None, column=None, value=None,
     index - grouped column(s) (str or list) to be applied as grouping index.
 
     column - column title to be used (default: None -> 'grouped_%')
+
+    value - the column upon which the group calculation is based upon.
 
     function - function to apply within group (default 'percent')
                built-in functions:

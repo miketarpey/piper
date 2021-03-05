@@ -1354,8 +1354,8 @@ def test_resample_pivot_single_grouper(get_sample_df1):
 
     assert p2.loc[('2020 Mar', 'East', 'A'), 'values_1'] > 0
 
-# test_grouped_calc {{{1
-def test_grouped_calc(get_sample_df1):
+# test_group_calc {{{1
+def test_group_calc(get_sample_df1):
     """
     """
 
@@ -1389,7 +1389,7 @@ def test_group_calc_with_sort(get_sample_df1):
                     index=index, sort_values=['countries', 'regions'],
                     function='sum')
 
-    gx.set_index(['countries', 'regions', 'ids'], inplace=True)
+    gx = gx.set_index(['countries', 'regions', 'ids'])
 
     expected = (367, 4)
     actual = gx.shape
