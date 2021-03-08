@@ -123,8 +123,8 @@ def info(df, include_dupes=False, filter_na_cols=False, memory_info=True):
 
 # count() {{{1
 def count(df, column=None, normalize=False, sort_values=False,  bins=None,
-          dropna=False, add_total=False, totals='n', percent=False,
-          cum_percent=False, threshold=100, round=2):
+          dropna=False, add_total=False, totals='n', percent=True,
+          cum_percent=True, threshold=100, round=2):
     ''' fancy version of pd.Series.value_counts() with totals, %, cum %
 
 
@@ -166,9 +166,9 @@ def count(df, column=None, normalize=False, sort_values=False,  bins=None,
 
     totals: str, name of total column, default 'n'
 
-    percent: provide % total, default False
+    percent: provide % total, default True
 
-    cum_percent: provide cum % total, default False
+    cum_percent: provide cum % total, default True
 
     threshold: filter cum_percent by this value, default 100
 
@@ -224,8 +224,8 @@ def count(df, column=None, normalize=False, sort_values=False,  bins=None,
 
 
 # counts() {{{1
-def counts(df, columns=None, totals='n', sort_values=False, percent=False,
-           cum_percent=False, threshold=100, round=2, reset_index=False):
+def counts(df, columns=None, totals='n', sort_values=False, percent=True,
+           cum_percent=True, threshold=100, round=2, reset_index=False):
     ''' Similar to count() function but with multiple keys.
     Provides total count, % count total, cum % count total.
 
@@ -245,9 +245,9 @@ def counts(df, columns=None, totals='n', sort_values=False, percent=False,
 
     sort_values: default False, None means use index sort
 
-    percent: provide % total, default False
+    percent: provide % total, default True
 
-    cum_percent: provide cum % total, default False
+    cum_percent: provide cum % total, default True
 
     threshold: filter cum_percent by this value, default 100
 

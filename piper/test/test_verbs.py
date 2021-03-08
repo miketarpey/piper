@@ -22,6 +22,7 @@ from piper.verbs import inner_join
 from piper.verbs import left_join
 from piper.verbs import outer_join
 from piper.verbs import overlaps
+from piper.verbs import order_by
 from piper.verbs import pivot_table
 from piper.verbs import relocate
 from piper.verbs import rename
