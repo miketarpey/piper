@@ -8,6 +8,7 @@ from piper.decorators import shape
 from pandas.core.common import flatten
 from pandas.api.types import is_period_dtype
 from pandas.api.types import is_datetime64_any_dtype
+from collections import namedtuple
 from datetime import datetime
 from piper.xl import WorkBook
 import logging
@@ -23,11 +24,13 @@ def head(df, n=4, info=True):
     --------
     head(df)
 
+
     Parameters
     ----------
     df : dataframe
 
     n : number of rows to display, default n=2
+
 
     Returns
     -------
@@ -51,11 +54,13 @@ def tail(df, n=4, info=True):
     --------
     tail(df)
 
+
     Parameters
     ----------
     df : dataframe
 
     n : number of rows to display, default n=2
+
 
     Returns
     -------
@@ -74,7 +79,8 @@ def tail(df, n=4, info=True):
 # info() {{{1
 def info(df, include_dupes=False, filter_na_cols=False, memory_info=True):
     ''' Alternative to df.info(), show all columns that have invalid data
-_
+
+
     Parameters
     ----------
     df : dataframe
@@ -121,6 +127,7 @@ def count(df, column=None, normalize=False, sort_values=False,  bins=None,
           cum_percent=False, threshold=100, round=2):
     ''' fancy version of pd.Series.value_counts() with totals, %, cum %
 
+
     Example
     -------
     count(df, 'price', sort_values=False, add_total=True
@@ -136,9 +143,9 @@ def count(df, column=None, normalize=False, sort_values=False,  bins=None,
     2 	PTCUSPND 	0.04
     3 	Total   	1.00
 
+
     Parameters
     ----------
-
     df : dataframe, or series to be referenced
 
     column : str, column name to analyse, default None
@@ -217,19 +224,19 @@ def count(df, column=None, normalize=False, sort_values=False,  bins=None,
 
 
 # counts() {{{1
-def counts(df, columns=None, totals='n', sort_values=False,
-          percent=False, cum_percent=False, threshold=100, round=2,
-          reset_index=False):
+def counts(df, columns=None, totals='n', sort_values=False, percent=False,
+           cum_percent=False, threshold=100, round=2, reset_index=False):
     ''' Similar to count() function but with multiple keys.
     Provides total count, % count total, cum % count total.
+
 
     Example
     -------
     counts(df, columns=key, sort_values=False, percent=True, cum_percent=True)
 
+
     Parameters
     ----------
-
     df : dataframe reference
 
     columns : dataframe columns/index to be used in groupby function
@@ -289,7 +296,7 @@ def counts(df, columns=None, totals='n', sort_values=False,
 # sample() {{{1
 def sample(df, n=2, frac=None, replace=False, weights=None, random_state=None,
         axis=None, info=True):
-    ''' head: R like function, easier to use and control (than say df.sample())
+    ''' sample: wrapper function rather than using e.g. df.sample()
 
     Example:
     --------
@@ -630,25 +637,27 @@ def select(df, expr=None, regex=False):
     # select ALL columns EXCEPT the column listed (identified by - minus sign prefix)
     select(df, '-column_name')
 
-    # select ALL columns EXCEPT the column listed
+    # select ALL columns EXCEPT the column specified with a minus sign within the list
     select(df, ['-column_name', '-other_column'])
 
-    # select from one column upto and including to column
-    # by passing a slice
+    # select column range from column up to and including the 'to' column.
+    # This is achieved by passing a 'slice' -> e.g. slice('from_col', 'to_col')
     select(df, slice('title', 'isbn'))
 
     # select using a regex string
-    select(df, 'value')
-    select(df, '^value')
-    select(df, 'value$')
+    select(df, 'value') -> select fields containing 'value'
+    select(df, '^value') -> select fields starting with 'value'
+    select(df, 'value$') -> select fields ending with 'value'
+
 
     Parameters
     ----------
-    expr : default None -> select all fields
-           list -> used passed list of column names
+    expr : str, list - default None
+            str - single column (in quotes)
+            list -> list of column names (in quotes)
 
-           NOTE: prefixing column name with a minus sign
-                 filters out the column from returned list of columns
+            NOTE: prefixing column name with a minus sign
+                  filters out the column from returned list of columns
 
     regex : boolean, treat column string as a regex
             default False
@@ -850,19 +859,79 @@ def drop(df, *args, **kwargs):
     '''
     return df.drop(*args, **kwargs)
 
+
 # assign() {{{1
-@wraps(pd.DataFrame.assign)
-def assign(df, *args, **kwargs):
-    '''
+def assign(df, *args, str_to_lambdas=True, lambda_var='x', info=False, **kwargs):
+    ''' Assign new columns to a DataFrame.
+
+    Returns a new object with all original columns in addition to new ones.
+    Existing columns that are re-assigned will be overwritten.
+
+    Parameters
+    ----------
+    **kwargs : dict of {str: callable or Series}
+        The column names are keywords. If the values are
+        callable, they are computed on the DataFrame and
+        assigned to the new columns. The callable must not
+        change input DataFrame (though pandas doesn't check it).
+        If the values are not callable, (e.g. a Series, scalar, or array),
+        they are simply assigned.
+
+    str_to_lambdas: boolean - default is False.
+
+    lambda_var: str - default is 'x'.
+
+    info: boolean - default is False.
+        if True - output contents of kwargs where keyword value is being
+        converted from string to lambda function. (For debug purposes)
+
+
+    Returns
+    -------
+    DataFrame
+        A new DataFrame with the new columns in addition to
+        all the existing columns.
+
+
+    Notes
+    -----
+    Assigning multiple columns within the same ``assign`` is possible.
+    Later items in '\*\*kwargs' may refer to newly created or modified
+    columns in 'df'; items are computed and assigned into 'df' in order.
+
+
     Example:
-    ========
-    (get_sample_data()
-     .pipe(where, "ids == 'A'")
-     .pipe(where, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
-     .pipe(assign, new_field=lambda x: x.countries.str[:3]+x.regions,
-                   another=lambda x:3*x.values_1)
-    )
+    --------
+    %%piper
+
+    get_sample_sales()
+    >> select()
+    >> assign(month_plus_one = lambda x: x.month + pd.Timedelta(1, 'D'),
+              alternative_text_formula = "x.actual_sales * .2")
+
+    ---
+    assign(profit_sales = 'x.actual_profit - x.actual_sales',
+           month_value = "x.month.dt.month",
+           product_added = "x['product'] + ', TEST'",
+           salesthing = "x.target_sales.sum()", info=False)
+
+    ---
+    Alternative, use standard lambda convention
+    assign(adast = lambda x: x.adast.astype('category'),
+           adcrcd = lambda x: x.adcrcd.astype('category'),
+           aduom = lambda x: x.aduom.astype('category'))
+
     '''
+    if kwargs:
+        for keyword, value in kwargs.items():
+            if str_to_lambdas:
+                if isinstance(value, str):
+                    lambda_str = f"lambda {lambda_var}: " + value
+                    function = eval(lambda_str)
+                    if info:
+                        logger.info(f'keyword {keyword} = {lambda_str}')
+
+                    kwargs[keyword] = function
 
     return df.assign(*args, **kwargs)
 
@@ -955,12 +1024,11 @@ def reset_index(df, *args, **kwargs):
 
 
 # summarise() {{{1
-# @wraps(pd.DataFrame.agg)
-def summarise(df=None, *args, **kwargs):
+def summarise(df, *args, **kwargs):
     ''' wrapper for pd.Dataframe.agg() function
 
     Examples
-    ========
+    --------
 
     # Syntax 1: column_name = ('existing_column', function)
     # note: below there are some 'common' functions that can
@@ -998,7 +1066,7 @@ def summarise(df=None, *args, **kwargs):
     # explode('product')
 
     '''
-    if kwargs == {} and args == ():
+    if not kwargs and len(args) == 0:
         return df.agg('count')
 
     group_df = df.agg(*args, **kwargs)
@@ -1428,11 +1496,11 @@ def pivot_table(df, *args, freq='M', format_date=False, **kwargs):
 
 
 # transform() {{{1
-def transform(df, index=None, column=None, value=None,
-                   function='percent', **kwargs):
-    '''
-    Add grouped calculation. Takes a df and for specified index grouping
-    will generate a column aggregation based on the function supplied.
+def transform(df, index=None, **kwargs):
+    ''' Add a 'grouped' calculation.
+    Transform is based on the pandas .transform() function.
+    Based on the given dataframe and grouping index, creates new aggregated column
+    values using the list of keyword/value arguments (kwargs) supplied.
 
     Example #1 - Calculate group percentage value
 
@@ -1479,19 +1547,14 @@ def transform(df, index=None, column=None, value=None,
 
     index - grouped column(s) (str or list) to be applied as grouping index.
 
-    column - column title to be used (default: None -> 'grouped_%')
-
-    value - the column upon which the group calculation is based upon.
-
-    function - function to apply within group (default 'percent')
-               built-in functions:
-               'sum', 'mean', percent', 'rank', 'rank_desc'
-               (other examples: np.sum, np.cumsum, np.mean  etc.)
-
     kwargs - similar to 'assign', keyword arguments to be
             assigned as dataframe columns containing, tuples
             of column_name and function
             e.g. new_column=('existing_col', 'sum')
+
+            if no kwargs supplied - calculates the group percentage ('g%')
+            using the first index column as index key and the first column
+            value(s).
 
     Returns
     -------
@@ -1587,6 +1650,7 @@ def duplicated(df=None, subset=None, keep=False, sort=True,
                unique_only=False):
     ''' get dataframe with identified duplicate data
 
+
     Parameters
     ----------
     df : pandas dataframe
@@ -1612,12 +1676,10 @@ def duplicated(df=None, subset=None, keep=False, sort=True,
 
     ref_column = None
 
+
     Returns
     -------
     pandas dataframe
-
-    Example
-    -------
 
     '''
     dx = df.copy(deep=True)
