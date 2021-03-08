@@ -69,7 +69,7 @@ def get_sample_data(start='2020', end='2021', freq='D', seed=30):
     return df
 
 
-def get_sample_sales(number_of_rows = 200, year=2021):
+def get_sample_sales(number_of_rows = 200, year=2021, seed=42):
     '''
     Generate sales product test data for given year:
 
@@ -95,6 +95,8 @@ def get_sample_sales(number_of_rows = 200, year=2021):
     Pandas Dataframe
 
     '''
+    if seed is not None:
+        np.random.seed(seed)
 
     locations = ['London', 'Paris', 'Milan']
     products = ['Tops & Blouses', 'Jeans', 'Footwear',

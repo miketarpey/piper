@@ -1,3 +1,4 @@
+from piper.pandas import read_csv
 from piper.verbs import add_formula
 from piper.verbs import adorn
 from piper.verbs import assign
@@ -6,13 +7,14 @@ from piper.verbs import columns
 from piper.verbs import combine_header_rows
 from piper.verbs import count
 from piper.verbs import counts
-from piper.verbs import drop
 from piper.verbs import distinct
-from piper.verbs import explode
+from piper.verbs import drop
 from piper.verbs import duplicated
+from piper.verbs import explode
 from piper.verbs import flatten_cols
+from piper.verbs import format_dateindex
 from piper.verbs import group_by
-from piper.verbs import group_calc
+from piper.verbs import transform
 from piper.verbs import has_special_chars
 from piper.verbs import head
 from piper.verbs import info
@@ -24,8 +26,6 @@ from piper.verbs import pivot_table
 from piper.verbs import relocate
 from piper.verbs import rename
 from piper.verbs import rename_axis
-from piper.verbs import resample_groupby
-from piper.verbs import resample_pivot
 from piper.verbs import right_join
 from piper.verbs import sample
 from piper.verbs import select
@@ -35,7 +35,6 @@ from piper.verbs import tail
 from piper.verbs import to_tsv
 from piper.verbs import trim
 from piper.verbs import where
-from piper.pandas import read_csv
 from piper.test.factory import get_sample_orders_01
 from piper.test.factory import get_sample_df1
 from piper.test.factory import get_sample_df2
@@ -550,10 +549,11 @@ def test_select_no_parms(get_sample_df1):
     assert expected == actual
 
 
-# test_select_str_contains {{{1
+# test_select_str_with_regex {{{1
+def test_select_str_with_regex(get_sample_df1):
 
     df = get_sample_df1
-    df = select(df, df.columns.str.startswith('values'))
+    df = select(df, 'values', regex=True)
 
     expected = ['values_1', 'values_2']
 
@@ -1173,28 +1173,24 @@ def test_sample_dataframe(get_sample_df1):
 
 # test_resample_groupby {{{1
 def test_resample_groupby(get_sample_df1):
-    """
-    """
+    """ """
 
     df = get_sample_df1
 
-    rule = 'Q'
-    grouper = pd.Grouper(key='dates', freq=rule)
-
-    index = [grouper]
-    g1 = resample_groupby(df, index=index, grouper=grouper, rule=rule)
+    g1 = group_by(df, by=['dates'], freq='Q').sum()
+    g1 = format_dateindex(g1, freq='Q')
 
     # Tidy axis labels
     g1.index.name = 'Date period'
     g1.columns = ['Totals1', 'Totals2']
 
-    assert g1.loc['2020 Mar', 'Totals1'] > 0
+    assert g1.loc['Mar 2020', 'Totals1'] > 0
 
 
 # test_resample_multi_grouper_groupby {{{1
 def test_resample_multi_grouper_groupby():
-    """
-    """
+    """ """
+
     prices = {
         'ids': [1, 6, 8, 3],
         'prices': [100, 200, 300, 400],
@@ -1206,12 +1202,8 @@ def test_resample_multi_grouper_groupby():
     df.effective = pd.to_datetime(df.effective)
     df.expired = pd.to_datetime(df.expired)
 
-    rule = 'D'
-    grouper = pd.Grouper(key='effective', freq=rule)
-    grouper2 = pd.Grouper(key='expired', freq=rule)
-    multi_index = ['country', grouper, grouper2, 'prices']
-
-    g1 = resample_groupby(df, multi_index, [grouper, grouper2], rule)
+    cols = ['country', 'effective', 'expired', 'prices']
+    g1 = group_by(df, by=cols, freq='Q').sum()
 
     expected = (4, 1)
     actual = g1.shape
@@ -1234,11 +1226,8 @@ def test_resample_groupby_multi_index_single_grouper():
     df.effective = pd.to_datetime(df.effective)
     df.expired = pd.to_datetime(df.expired)
 
-    rule = 'D'
-    grouper = pd.Grouper(key='effective', freq=rule)
-    multi_index = ['country', grouper, 'prices']
-
-    g1 = resample_groupby(df, multi_index, grouper, rule)
+    cols = ['country', 'effective', 'prices']
+    g1 = group_by(df, by=cols, freq='Q').sum()
 
     expected = (4, 1)
     actual = g1.shape
@@ -1324,38 +1313,34 @@ def test_pivot_cum_percent_calc(get_sample_df1):
     assert expected == actual
 
 
-# test_resample_pivot_multi_grouper {{{1
-def test_resample_pivot_multi_grouper(get_sample_df1):
+# test_pivot_table_multi_grouper {{{1
+def test_pivot_table_multi_grouper(get_sample_df1):
     """
     """
     df = get_sample_df1
 
-    rule = 'Q'
-    grouper = pd.Grouper(key='dates', freq=rule)
-    grouper2 = pd.Grouper(key='order_dates', freq=rule)
+    p2 = pivot_table(df, index=['dates', 'order_dates',
+                                'regions', 'ids'],
+                                freq='Q',
+                                format_date=True)
 
-    index = [grouper, grouper2, 'regions', 'ids']
-    p2 = resample_pivot(df, index=index, grouper=[grouper, grouper2],
-                        rule=rule)
+    assert p2.loc[('Mar 2020', 'Mar 2020', 'East', 'A'), 'values_1'] > 0
 
-    assert p2.loc[('2020 Mar', '2020 Mar', 'East', 'A'), 'values_1'] > 0
 
-# test_resample_pivot_single_grouper {{{1
-def test_resample_pivot_single_grouper(get_sample_df1):
+# test_pivot_table_single_grouper {{{1
+def test_pivot_table_single_grouper(get_sample_df1):
     """
     """
     df = get_sample_df1
 
-    rule = 'Q'
-    grouper = pd.Grouper(key='dates', freq=rule)
+    p2 = pivot_table(df, index=['dates', 'regions', 'ids'],
+                     freq='Q', format_date=True)
 
-    index = [grouper, 'regions', 'ids']
-    p2 = resample_pivot(df, index=index, grouper=grouper, rule=rule)
+    assert p2.loc[('Mar 2020', 'East', 'A'), 'values_1'] > 0
 
-    assert p2.loc[('2020 Mar', 'East', 'A'), 'values_1'] > 0
 
-# test_group_calc {{{1
-def test_group_calc(get_sample_df1):
+# test_transform {{{1
+def test_transform(get_sample_df1):
     """
     """
 
@@ -1363,9 +1348,8 @@ def test_group_calc(get_sample_df1):
     cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
     df = get_sample_df1[cols]
 
-    gx = group_calc(df, column='group_%', value='values_2', index=index)
-    gx = group_calc(df, column='total_group_value', value='values_2',
-                    index=index, function='sum')
+    gx = transform(df, index=index, g_perc=('values_2', 'percent'))
+    gx = transform(df, index=index, total_group_value=('values_2', 'sum'))
 
     gx.set_index(['countries', 'regions', 'ids'], inplace=True)
 
@@ -1375,8 +1359,8 @@ def test_group_calc(get_sample_df1):
     assert expected == actual
 
 
-# test_group_calc_with_sort {{{1
-def test_group_calc_with_sort(get_sample_df1):
+# test_transform_with_sort {{{1
+def test_transform_with_sort(get_sample_df1):
     """
     """
 
@@ -1384,10 +1368,8 @@ def test_group_calc_with_sort(get_sample_df1):
     cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
     df = get_sample_df1[cols]
 
-    gx = group_calc(df, column='group_%', value='values_2', index=index)
-    gx = group_calc(df, column='total_group_value', value='values_2',
-                    index=index, sort_values=['countries', 'regions'],
-                    function='sum')
+    gx = transform(df, index=index, g_perc=('values_2', 'percent'))
+    gx = transform(df, index=index, total_group_value=('values_2', 'sum'))
 
     gx = gx.set_index(['countries', 'regions', 'ids'])
 
@@ -1397,22 +1379,16 @@ def test_group_calc_with_sort(get_sample_df1):
     assert expected == actual
 
 
-# test_group_calc_custom_function {{{1
-def test_group_calc_custom_function(get_sample_df1):
+# test_transform_custom_function {{{1
+def test_transform_custom_function(get_sample_df1):
     """
     """
     index = ['countries', 'regions']
     cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
     df = get_sample_df1[cols]
 
-    gx = group_calc(df, column='group_%',
-                    value='values_2', index=index)
-
-    gx = group_calc(gx, column='total_group_value',
-                    value='values_2',
-                    index=index,
-                    sort_values=['countries', 'regions'],
-                    function=lambda x: x.sum())
+    gx = transform(df, index=index, g_perc=('values_2', 'percent'))
+    gx = transform(df, index=index, total_group_value=('values_2', lambda x: x.sum()))
 
     gx.set_index(['countries', 'regions', 'ids'], inplace=True)
 

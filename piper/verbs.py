@@ -6,6 +6,8 @@ from functools import wraps
 from piper.io import _file_with_ext
 from piper.decorators import shape
 from pandas.core.common import flatten
+from pandas.api.types import is_period_dtype
+from pandas.api.types import is_datetime64_any_dtype
 from datetime import datetime
 from piper.xl import WorkBook
 import logging
@@ -610,7 +612,7 @@ def trim(df, str_columns=None, inplace=False):
 
 
 # select() {{{1
-def select(df, expr=None):
+def select(df, expr=None, regex=False):
     ''' Based on select() function from R.
 
     Given dataframe, select column names
@@ -635,10 +637,10 @@ def select(df, expr=None):
     # by passing a slice
     select(df, slice('title', 'isbn'))
 
-    # Note: You can also pass str functions with df.columns
-    select(df, df.columns.str.startswith('product'))
-    select(df, df.columns.str.endswith('product'))
-    select(df, df.columns.str.contains('product'))
+    # select using a regex string
+    select(df, 'value')
+    select(df, '^value')
+    select(df, 'value$')
 
     Parameters
     ----------
@@ -647,6 +649,9 @@ def select(df, expr=None):
 
            NOTE: prefixing column name with a minus sign
                  filters out the column from returned list of columns
+
+    regex : boolean, treat column string as a regex
+            default False
 
     Returns
     -------
@@ -659,13 +664,13 @@ def select(df, expr=None):
         if expr is None:
             return df
 
-        if isinstance(expr, np.ndarray):
-            return df.loc[:, expr]
-
         if isinstance(expr, slice):
             return df.loc[:, expr]
 
         if isinstance(expr, str):
+
+            if regex:
+                return df.filter(regex=expr)
 
             if expr.startswith('-'):
                 returned_column_list.remove(expr[1:])
@@ -901,6 +906,42 @@ def distinct(df, *args, **kwargs):
     return df.drop_duplicates(*args, **kwargs)
 
 
+# stack() {{{1
+@wraps(pd.DataFrame.stack)
+def stack(df, *args, **kwargs):
+    '''
+    Example:
+    ========
+    %%piper
+    df >> stack() >> head()
+    '''
+    return df.stack(*args, **kwargs)
+
+
+# unstack() {{{1
+@wraps(pd.DataFrame.unstack)
+def unstack(df, *args, **kwargs):
+    '''
+    Example:
+    ========
+    %%piper
+    df >> unstack() >> head()
+    '''
+    return df.unstack(*args, **kwargs)
+
+
+# set_index() {{{1
+@wraps(pd.DataFrame.reset_index)
+def set_index(df, *args, **kwargs):
+    '''
+    Example:
+    ========
+    %%piper
+    df >> set_index() >> head()
+    '''
+    return df.set_index(*args, **kwargs)
+
+
 # reset_index() {{{1
 @wraps(pd.DataFrame.reset_index)
 def reset_index(df, *args, **kwargs):
@@ -911,25 +952,6 @@ def reset_index(df, *args, **kwargs):
     df >> reset_index() >> head()
     '''
     return df.reset_index(*args, **kwargs)
-
-
-# group_by() {{{1
-# @wraps(pd.DataFrame.groupby)
-def group_by(df, *args, **kwargs):
-    ''' wrapper for pd.Dataframe.groupby() function
-
-    Example:
-    ========
-    %%piper
-
-    get_sample_data()
-    >> where("ids == 'A'")
-    >> where("values_1 > 300 & countries.isin(['Italy', 'Spain'])")
-    >> group_by(['countries', 'regions'])
-    >> summarise(total_values_1=pd.NamedAgg('values_1', 'sum'))
-
-    '''
-    return df.groupby(*args, **kwargs)
 
 
 # summarise() {{{1
@@ -1304,176 +1326,110 @@ def explode(df, *args, **kwargs):
     return df.explode(*args, **kwargs)
 
 
+# set_grouper() {{{1
+def set_grouper(df, index=None, freq='D'):
+    ''' For given dataframe and index (str, list),
+    return a pd.Grouper object for each defined index.
+    '''
+
+    def grouper(df, col, freq):
+        ''' return grouper object, and if datetime object set frequency. '''
+
+        if is_period_dtype(df[col].dtype):
+            logger.info(f'Warning:: Period data types not yet supported')
+
+        if is_datetime64_any_dtype(df[col].dtype):
+           return pd.Grouper(key=col, freq=freq)
+
+        return pd.Grouper(key=col)
+
+    if isinstance(index, str):
+        return grouper(df, index, freq)
+
+    if isinstance(index, list):
+        return [grouper(df, col, freq) for col in index]
+
+
+# format_dateindex() {{{1
+def format_dateindex(df, freq='D'):
+    ''' format dataframe if index key contains a 'frequency'
+    parameter to the the requested freq parameter.
+    '''
+    fmts = {'A': '%Y', 'AS': '%Y', 'Q': '%b %Y', 'M': '%b', 'D': '%Y-%m-%d'}
+
+    # Reset index, cannot work out how to update date index column with
+    # index set.
+    index = df.index.names
+
+    df = df.reset_index()
+
+    for col in index:
+        if is_datetime64_any_dtype(df[col].dtype):
+            df[col] = df[col].dt.strftime(fmts.get(freq))
+
+    df = df.set_index(index)
+
+    return df
+
+
+# group_by() {{{1
+# @wraps(pd.DataFrame.groupby)
+def group_by(df, *args, freq='D', **kwargs):
+    ''' wrapper for pd.Dataframe.groupby() function
+
+    Example:
+    ========
+    %%piper
+
+    get_sample_data()
+    >> where("ids == 'A'")
+    >> where("values_1 > 300 & countries.isin(['Italy', 'Spain'])")
+    >> group_by(['countries', 'regions'])
+    >> summarise(total_values_1=pd.NamedAgg('values_1', 'sum'))
+
+    '''
+    args_copy = list(args)
+    logger.debug(args_copy)
+    logger.debug(kwargs)
+
+    if kwargs.get('by') != None:
+        index = set_grouper(df, kwargs.get('by'), freq=freq)
+        kwargs['by'] = index
+
+    if len(args) > 0:
+        args_copy[0] = set_grouper(df, args[0], freq=freq)
+
+    df = df.groupby(*args_copy, **kwargs)
+
+    return df
+
+
 # pivot_table() {{{1
 @wraps(pd.DataFrame.pivot_table)
-def pivot_table(df, *args, **kwargs):
+def pivot_table(df, *args, freq='M', format_date=False, **kwargs):
     '''
     Example:
     ========
-    '''
-    return df.pivot_table(*args, **kwargs)
-
-
-# resample_groupby() {{{1
-def resample_groupby(df, index=None, grouper=None, rule='M'):
-    ''' resample dataframe with date index using groupby method.
-
-    Parameters
-    ----------
-
-    df : dataframe reference
-
-    index : dataframe index to be used in groupby function
-
-    grouper : pd.grouper (date) definition object
-              Note: Can accept list of grouper objects too
-              e.g. [grouper, grouper2]
-
-    rule : date frequency string value
-           e.g. MonthEnd 	'M' 	calendar month end
-                MonthBegin 	'MS' 	calendar month begin
-                QuarterEnd 	'Q' 	calendar quarter end
-                QuarterBegin 	'QS' 	calendar quarter begin
-                YearEnd 	'A' 	calendar year end
-                YearBegin 	'AS' or 'BYS' 	calendar year begin
-
-    see below for more string values:
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
-
-    Returns
-    -------
-    pandas groupby dataframe
-
-
-    Example #1
-    ----------
-    # Single grouper index
-
-    rule = 'Q'
-    grouper = pd.Grouper(key='dates', freq=rule)
-
-    index = [grouper]
-    g1 = resample_groupby(df, index=index, grouper=grouper, rule=rule)
-
-
-    Example #2
-    ----------
-    # Multi-index (including grouper)
-
-    rule = 'M'
-    grouper = pd.Grouper(key='dates', freq=rule)
-    multi_index = ['countries', grouper, 'ids']
-
-    g1 = resample_groupby(df, multi_index, grouper, rule)
-
-    # Tidy axis labels
-    g1.index.names = ['Country', 'period', 'ids']
-    g1.columns = ['Totals1', 'Totals2']
 
     '''
-    date_format_conversion = {'A': '%Y', 'Q': '%Y %b', 'M': '%Y %b',
-                              'D': '%Y-%m-%d'}
+    logger.debug(args)
+    logger.debug(kwargs)
 
-    g1 = df.groupby(index).sum()
-    g1.reset_index(inplace=True)
+    if kwargs.get('index') != None:
+        index = set_grouper(df, kwargs.get('index'), freq=freq)
+        kwargs['index'] = index
 
-    logger.debug(isinstance(grouper, list))
+    df = pd.pivot_table(df, *args, **kwargs)
 
-    if isinstance(grouper, list):
-        for group_col in grouper:
-            g1[group_col.key] = (g1[group_col.key].dt
-                                 .strftime(date_format_conversion.get(rule)))
-    else:
-        g1[grouper.key] = (g1[grouper.key].dt
-                           .strftime(date_format_conversion.get(rule)))
+    if format_date:
+        df = format_dateindex(df, freq=freq)
 
-    # set index based on multi-index given
-    f = lambda x: x.key if isinstance(x, pd.Grouper) else x
-    keys = list(map(f, index))
-    g1.set_index(keys, inplace=True)
-
-    return g1
+    return df
 
 
-# resample_pivot() {{{1
-def resample_pivot(df, index=None, grouper=None, rule='M', values=None, aggfunc='sum'):
-    ''' resample dataframe with date index using pivot_table method.
-
-    Parameters
-    ----------
-
-    df : dataframe reference
-
-    index : dataframe index to be used in groupby function
-
-    grouper : pd.grouper (date) definition object
-              Note: Can accept list of grouper objects too
-              e.g. [grouper, grouper2]
-
-    rule : date frequency string value
-           e.g. MonthEnd 	'M' 	calendar month end
-                MonthBegin 	'MS' 	calendar month begin
-                QuarterEnd 	'Q' 	calendar quarter end
-                QuarterBegin 	'QS' 	calendar quarter begin
-                YearEnd 	'A' 	calendar year end
-                YearBegin 	'AS' or 'BYS' 	calendar year begin
-
-    see below for more string values:
-    https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
-
-    values : see pivot_table values parameter
-
-    aggfunc : see pivot_table aggfunc parameter
-
-    Returns
-    -------
-    pandas pivot_table dataframe
-
-    Example #1
-    ----------
-    # resample pivot with grouper object only
-
-    rule = 'M'
-    grouper = pd.Grouper(key='dates', freq=rule)
-    index=[grouper]
-    p1 = resample_pivot(df, index=index, grouper=grouper, rule=rule, values=['values2'])
-
-
-    Example #2
-    ----------
-    # resample pivot with multi-index
-
-    rule = 'M'
-    grouper = pd.Grouper(key='dates', freq=rule)
-    index = [grouper, 'countries', 'ids']
-    p1 = resample_pivot(df, index=index, grouper=grouper, rule=rule)
-
-    '''
-    date_format_conversion = {'A': '%Y', 'Q': '%Y %b', 'M': '%Y %b',
-                              'D': '%Y-%m-%d'}
-
-    p1 = df.pivot_table(index=index, values=values, aggfunc=aggfunc)
-    p1.reset_index(inplace=True)
-
-    if isinstance(grouper, list):
-        for group_col in grouper:
-            p1[group_col.key] = (p1[group_col.key].dt
-                                 .strftime(date_format_conversion.get(rule)))
-    else:
-        p1[grouper.key] = (p1[grouper.key].dt
-                           .strftime(date_format_conversion.get(rule)))
-
-    # set index based on multi-index given
-    f = lambda x: x.key if isinstance(x, pd.Grouper) else x
-    keys = list(map(f, index))
-    p1.set_index(keys, inplace=True)
-
-    return p1
-
-
-# group_calc() {{{1
-def group_calc(df, index=None, column=None, value=None,
-                   function='percent', sort_values=None, ascending=None):
+# transform() {{{1
+def transform(df, index=None, column=None, value=None,
+                   function='percent', **kwargs):
     '''
     Add grouped calculation. Takes a df and for specified index grouping
     will generate a column aggregation based on the function supplied.
@@ -1502,44 +1458,19 @@ def group_calc(df, index=None, column=None, value=None,
     get_sample_data() >>
     group_by(['countries', 'regions']) >>
     summarise(TotSales1=('values_1', 'sum')) >>
-    group_calc(index='countries', value='TotSales1') >>
+    transform(index='countries', g_percent=('TotSales1', 'percent')) >>
     head(8)
 
-    |                      |   TotSales1 |   group_% |
-    |:---------------------|------------:|----------:|
-    | ('France', 'East')   |        2170 |     19    |
-    | ('France', 'North')  |        2275 |     19.91 |
-    | ('France', 'South')  |        2118 |     18.54 |
-    | ('France', 'West')   |        4861 |     42.55 |
-    | ('Germany', 'East')  |        1764 |     24.06 |
-    | ('Germany', 'North') |        2239 |     30.54 |
-    | ('Germany', 'South') |        1753 |     23.91 |
-    | ('Germany', 'West')  |        1575 |     21.48 |
-
-
-    Example #2 - Calculating total group value
-
-    %%piper
-    get_sample_data() >>
-    group_by(['countries', 'regions']) >>
-    summarise(TotSales1=('values_1', 'sum')) >>
-    group_calc(column='Total_for_group',
-               index='countries', value='TotSales1',
-               function=lambda x: x.sum(),
-               sort_values=['countries', 'Total_for_group'],
-               ascending=[True, False]) >>
-    head(8)
-
-    |                      |   TotSales1 |   Total_for_group |
-    |:---------------------|------------:|------------------:|
-    | ('France', 'East')   |        2170 |             11424 |
-    | ('France', 'North')  |        2275 |             11424 |
-    | ('France', 'South')  |        2118 |             11424 |
-    | ('France', 'West')   |        4861 |             11424 |
-    | ('Germany', 'East')  |        1764 |              7331 |
-    | ('Germany', 'North') |        2239 |              7331 |
-    | ('Germany', 'South') |        1753 |              7331 |
-    | ('Germany', 'West')  |        1575 |              7331 |
+    |                      |   TotSales1 |   g_percent |
+    |:---------------------|------------:|------------:|
+    | ('France', 'East')   |        2170 |       19    |
+    | ('France', 'North')  |        2275 |       19.91 |
+    | ('France', 'South')  |        2118 |       18.54 |
+    | ('France', 'West')   |        4861 |       42.55 |
+    | ('Germany', 'East')  |        1764 |       24.06 |
+    | ('Germany', 'North') |        2239 |       30.54 |
+    | ('Germany', 'South') |        1753 |       23.91 |
+    | ('Germany', 'West')  |        1575 |       21.48 |
 
 
     Parameters
@@ -1557,45 +1488,45 @@ def group_calc(df, index=None, column=None, value=None,
                'sum', 'mean', percent', 'rank', 'rank_desc'
                (other examples: np.sum, np.cumsum, np.mean  etc.)
 
-    sort_values - str/list of column names to sort returned dataframe
-                  (default None)
-
-    ascending - list of sort sequences to sort returned dataframe
-                (default None)
+    kwargs - similar to 'assign', keyword arguments to be
+            assigned as dataframe columns containing, tuples
+            of column_name and function
+            e.g. new_column=('existing_col', 'sum')
 
     Returns
     -------
     original dataframe with additional grouped calculation column
 
     '''
-    built_in_func = {'sum': lambda x: x.sum(), 'mean': lambda x: x.mean(),
-                     'min': lambda x: x.min(), 'max': lambda x: x.max(),
-                     'std': lambda x: x.std(),
-                     'percent': lambda x: (x * 100 / x.sum()).round(2),
-                     'rank': lambda x: x.rank(method='dense', ascending=True),
-                     'rank_desc': lambda x: x.rank(method='dense', ascending=False)}
-
     if index is None:
         index = df.index.names[0]
 
-    if value is None:
-        value = df.columns[0]
+    def check_builtin(function):
+        ''' for given function, check if its one of the
+        built-in ones
+        '''
+        built_in_func = {'percent': lambda x: (x * 100 / x.sum()).round(2),
+                         'rank': lambda x: x.rank(method='dense', ascending=True),
+                         'rank_desc': lambda x: x.rank(method='dense', ascending=False)}
 
-    built_in = built_in_func.get(function, None)
-    if built_in:
-        func = built_in
-        if column is None:
-            if function == 'percent':
-                column = 'group%'
-            else:
-                column = function
+        built_in = built_in_func.get(function, None)
+        if built_in:
+            return built_in
+
+        return function
+
+    if kwargs != {}:
+        for keyword, value in kwargs.items():
+            if isinstance(value, tuple):
+                column, function = value
+                f = check_builtin(function)
+                df[keyword] = df.groupby(index)[column].transform(f)
     else:
-        func = function
-
-    df[column] = df.groupby(index)[value].transform(func)
-
-    if sort_values:
-        df = df.sort_values(by=sort_values, ascending=ascending)
+        # If no kwargs passed, default to group % on
+        # first column in dataframe
+        column, value = 'g%', df.columns[0]
+        func = check_builtin('percent')
+        df[column] = df.groupby(index)[value].transform(func)
 
     return df
 
