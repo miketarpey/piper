@@ -14,6 +14,16 @@ import pandas as pd
 import pytest
 
 
+@pytest.fixture
+def sample_orders_01():
+    return get_sample_orders_01()
+
+
+@pytest.fixture
+def sample_df4():
+    return get_sample_df4()
+
+
 # test_read_sql_valid_info_true {{{1
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_read_sql_valid_info_true():
@@ -87,10 +97,10 @@ def test_istype_not_str():
     assert expected == actual
 
 # test_generate_summary_df {{{1
-def test_generate_summary_df(get_sample_df4):
+def test_generate_summary_df(sample_df4):
     """
     """
-    df, df2 = get_sample_df4
+    df, df2 = sample_df4
 
     datasets = [('1st dataset', df), ('2nd dataset', df2)]
     summary_df = generate_summary_df(datasets, title='Summary',

@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 
 
-@pytest.fixture
 def get_sample_orders_01():
     '''
     Generate a dataset with a number of issues to be 'cleaned'.
@@ -74,7 +73,6 @@ def get_sample_orders_01():
     return df
 
 
-@pytest.fixture
 def get_sample_orders_02():
     '''
     Generate a dataset with valid data for testing
@@ -130,7 +128,6 @@ def get_sample_orders_02():
     return df
 
 
-@pytest.fixture
 def get_sample_df1(start='2020', end='2021', freq='D', seed=30):
     ''' Generate and return sample time series data
     '''
@@ -173,7 +170,6 @@ def get_sample_df1(start='2020', end='2021', freq='D', seed=30):
     return df
 
 
-@pytest.fixture
 def get_sample_df2():
 
     id_list = ['A', 'B', 'C', 'D', 'E']
@@ -188,7 +184,6 @@ def get_sample_df2():
     return df
 
 
-@pytest.fixture
 def get_sample_df3():
 
     id_list = ['A', 'B', 'C', 'D', 'E']
@@ -205,7 +200,6 @@ def get_sample_df3():
     return df
 
 
-@pytest.fixture
 def get_sample_df4():
 
     dict_a = {'column_A': {'0': 'A100',  '1': 'A101',  '2': 'A101',
@@ -226,7 +220,6 @@ def get_sample_df4():
     return df, df2
 
 
-@pytest.fixture
 def get_sample_df5():
 
     test = ''' {"bgy56icnt":{"0":"BE","1":"BE","2":"BE","3":"BE","4":"BE"},
@@ -238,7 +231,6 @@ def get_sample_df5():
     return df
 
 
-@pytest.fixture
 def get_sample_df6():
 
     test = ''' {"column_A":{"0":"AA","1":"BB","2":"CC","3":"DD","4":"EE"},
@@ -252,7 +244,6 @@ def get_sample_df6():
     return df, df2
 
 
-@pytest.fixture
 def get_sample_df7():
 
     test = ''' {"test_col": {

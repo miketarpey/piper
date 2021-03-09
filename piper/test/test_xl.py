@@ -10,10 +10,20 @@ from pathlib import Path
 relative_folder = Path(__file__).parents[1] / 'temp/'
 
 
-def test_workbook_add_sheet_auto(get_sample_orders_01):
+@pytest.fixture
+def sample_orders_01():
+    return get_sample_orders_01()
+
+
+@pytest.fixture
+def sample_orders_02():
+    return get_sample_orders_02()
+
+
+def test_workbook_add_sheet_auto(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook - auto sheet.xlsx'
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     wb = WorkBook(file_name, ts_prefix=False)
     wb.add_sheet(df, sheet_name='**auto')
@@ -25,10 +35,10 @@ def test_workbook_add_sheet_auto(get_sample_orders_01):
     assert expected == actual
 
 
-def test_workbook_add_sheet_test_zoom(get_sample_orders_01):
+def test_workbook_add_sheet_test_zoom(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook - zoom.xlsx'
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     wb = WorkBook(file_name, ts_prefix=False)
     wb.add_sheet(df, sheet_name='**auto', zoom=130)
@@ -40,10 +50,10 @@ def test_workbook_add_sheet_test_zoom(get_sample_orders_01):
     assert expected == actual
 
 
-def test_workbook_add_sheet_test_tab_color(get_sample_orders_01):
+def test_workbook_add_sheet_test_tab_color(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook - tab color.xlsx'
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     wb = WorkBook(file_name, ts_prefix=False)
     wb.add_sheet(df, sheet_name='**auto', tab_color='green')
@@ -55,10 +65,10 @@ def test_workbook_add_sheet_test_tab_color(get_sample_orders_01):
     assert expected == actual
 
 
-def test_workbook_add_sheet_test_index(get_sample_orders_01):
+def test_workbook_add_sheet_test_index(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook - with index.xlsx'
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     wb = WorkBook(file_name, ts_prefix=False)
     wb.add_sheet(df, sheet_name='**auto', index=True)
@@ -70,10 +80,10 @@ def test_workbook_add_sheet_test_index(get_sample_orders_01):
     assert expected == actual
 
 
-def test_workbook_add_sheet_test_invalid_theme(get_sample_orders_01):
+def test_workbook_add_sheet_test_invalid_theme(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook - sheet dictionary meta.xlsx'
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     wb = WorkBook(file_name, ts_prefix=False)
 
@@ -83,9 +93,9 @@ def test_workbook_add_sheet_test_invalid_theme(get_sample_orders_01):
     wb.close()
 
 
-def test_workbook_add_sheet_test_sheet_dict(get_sample_orders_01):
+def test_workbook_add_sheet_test_sheet_dict(sample_orders_01):
 
-    df = pd.DataFrame((get_sample_orders_01))
+    df = pd.DataFrame((sample_orders_01))
 
     file_name = relative_folder / 'WorkBook - sheet dictionary meta.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -112,9 +122,9 @@ def test_workbook_add_sheet_test_sheet_dict(get_sample_orders_01):
     assert expected_ws_reference == actual
 
 
-def test_workbook_add_sheet_sql(get_sample_orders_01):
+def test_workbook_add_sheet_sql(sample_orders_01):
 
-    df = pd.DataFrame((get_sample_orders_01))
+    df = pd.DataFrame((sample_orders_01))
 
     file_name = relative_folder / 'WorkBook - add SQL sheet.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -128,9 +138,9 @@ def test_workbook_add_sheet_sql(get_sample_orders_01):
     assert expected_shape == actual
 
 
-def test_workbook_get_range_all(get_sample_orders_01):
+def test_workbook_get_range_all(sample_orders_01):
 
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     file_name = relative_folder / 'WorkBook - get_range test.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -143,9 +153,9 @@ def test_workbook_get_range_all(get_sample_orders_01):
     assert expected_shape == actual
 
 
-def test_workbook_get_range_single_column(get_sample_orders_01):
+def test_workbook_get_range_single_column(sample_orders_01):
 
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     file_name = relative_folder / 'WorkBook - get_range test.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -159,9 +169,9 @@ def test_workbook_get_range_single_column(get_sample_orders_01):
     assert expected_shape == actual
 
 
-def test_workbook_get_range_from_to(get_sample_orders_01):
+def test_workbook_get_range_from_to(sample_orders_01):
 
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     file_name = relative_folder / 'WorkBook - get_range test.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -175,9 +185,9 @@ def test_workbook_get_range_from_to(get_sample_orders_01):
     assert expected_shape == actual
 
 
-def test_workbook_add_sheet_conditional_fmt(get_sample_orders_02):
+def test_workbook_add_sheet_conditional_fmt(sample_orders_02):
 
-    df = pd.DataFrame(get_sample_orders_02)
+    df = pd.DataFrame(sample_orders_02)
 
     file_name = relative_folder / 'WorkBook - conditional fmt1.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -202,10 +212,10 @@ def test_workbook_add_sheet_conditional_fmt(get_sample_orders_02):
     assert expected_shape == actual
 
 
-def test_get_metadata_invalid(get_sample_orders_01):
+def test_get_metadata_invalid(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook - test metadata.xlsx'
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     wb = WorkBook(file_name, ts_prefix=False)
     wb.add_sheet(df, sheet_name='**auto')
@@ -216,10 +226,10 @@ def test_get_metadata_invalid(get_sample_orders_01):
     wb.close()
 
 
-def test_get_styles_invalid(get_sample_orders_01):
+def test_get_styles_invalid(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook - test metadata.xlsx'
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
 
     wb = WorkBook(file_name, ts_prefix=False)
     wb.add_sheet(df, sheet_name='**auto')
@@ -230,7 +240,7 @@ def test_get_styles_invalid(get_sample_orders_01):
     wb.close()
 
 
-def test_WorkBook_Sheet_list_None_(get_sample_orders_01):
+def test_WorkBook_Sheet_list_None_(sample_orders_01):
 
     file_name = relative_folder / 'WorkBook None sheet.xlsx'
 
@@ -240,9 +250,9 @@ def test_WorkBook_Sheet_list_None_(get_sample_orders_01):
     assert expected == actual
 
 
-def test_WorkBook_Sheet_list_single_dataframe(get_sample_orders_01):
+def test_WorkBook_Sheet_list_single_dataframe(sample_orders_01):
 
-    df = pd.DataFrame(get_sample_orders_01)
+    df = pd.DataFrame(sample_orders_01)
     file_name = relative_folder / 'WorkBook Single dataframe.xlsx'
     WorkBook(file_name, sheets=df, ts_prefix=False)
 
@@ -251,10 +261,10 @@ def test_WorkBook_Sheet_list_single_dataframe(get_sample_orders_01):
     assert rows, columns == actual
 
 
-def test_WorkBook_Sheet_list_list_of_dataframes(get_sample_orders_01, get_sample_orders_02):
+def test_WorkBook_Sheet_list_list_of_dataframes(sample_orders_01, sample_orders_02):
 
-    df = pd.DataFrame(get_sample_orders_01)
-    df2 = pd.DataFrame(get_sample_orders_02)
+    df = pd.DataFrame(sample_orders_01)
+    df2 = pd.DataFrame(sample_orders_02)
     file_name = relative_folder / 'WorkBook list of dataframes.xlsx'
     WorkBook(file_name, sheets=[df, df2], ts_prefix=False)
 
@@ -263,11 +273,11 @@ def test_WorkBook_Sheet_list_list_of_dataframes(get_sample_orders_01, get_sample
     assert rows, columns == actual
 
 
-def test_WorkBook_Sheet_list_dictionary_of_dataframes(get_sample_orders_01,
-                                                     get_sample_orders_02):
+def test_WorkBook_Sheet_list_dictionary_of_dataframes(sample_orders_01,
+                                                     sample_orders_02):
 
-    df = pd.DataFrame(get_sample_orders_01)
-    df2 = pd.DataFrame(get_sample_orders_02)
+    df = pd.DataFrame(sample_orders_01)
+    df2 = pd.DataFrame(sample_orders_02)
     file_name = relative_folder / 'WorkBook list of tuples.xlsx'
     WorkBook(file_name, sheets={'SheetA': df, 'SheetB': df2}, ts_prefix=False)
 
@@ -276,9 +286,9 @@ def test_WorkBook_Sheet_list_dictionary_of_dataframes(get_sample_orders_01,
     assert rows, columns == actual
 
 
-def test_WorkBook_Sheet_list_number_of_rows(get_sample_orders_02):
+def test_WorkBook_Sheet_list_number_of_rows(sample_orders_02):
 
-    df = pd.DataFrame(get_sample_orders_02)
+    df = pd.DataFrame(sample_orders_02)
     file_name = relative_folder / 'WorkBook single - shape test.xlsx'
     WorkBook(file_name, sheets=df, ts_prefix=False)
 
@@ -287,10 +297,10 @@ def test_WorkBook_Sheet_list_number_of_rows(get_sample_orders_02):
     assert rows, columns == actual
 
 
-def test_WorkBook_Sheet_add_format(get_sample_orders_01):
+def test_WorkBook_Sheet_add_format(sample_orders_01):
     ''' Not sure how I can 'test' add_format directly.
     '''
-    df = get_sample_orders_01
+    df = sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_format.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -303,10 +313,10 @@ def test_WorkBook_Sheet_add_format(get_sample_orders_01):
     wb.close()
 
 
-def test_WorkBook_Sheet_add_formats(get_sample_orders_01):
+def test_WorkBook_Sheet_add_formats(sample_orders_01):
     ''' Not sure how I can 'test' add_format directly.
     '''
-    df = get_sample_orders_01
+    df = sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_formats.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -325,10 +335,10 @@ def test_WorkBook_Sheet_add_formats(get_sample_orders_01):
     wb.close()
 
 
-def test_WorkBook_Sheet_add_condition(get_sample_orders_01):
+def test_WorkBook_Sheet_add_condition(sample_orders_01):
     ''' Not sure how I can 'test' add_condition directly.
     '''
-    df = get_sample_orders_01
+    df = sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_condition.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -341,10 +351,10 @@ def test_WorkBook_Sheet_add_condition(get_sample_orders_01):
     wb.close()
 
 
-def test_WorkBook_Sheet_add_condition_default_error_format(get_sample_orders_01):
+def test_WorkBook_Sheet_add_condition_default_error_format(sample_orders_01):
     ''' Not sure how I can 'test' add_condition directly.
     '''
-    df = get_sample_orders_01
+    df = sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_condition - default error format.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -357,10 +367,10 @@ def test_WorkBook_Sheet_add_condition_default_error_format(get_sample_orders_01)
     wb.close()
 
 
-def test_WorkBook_Sheet_add_conditions(get_sample_orders_01):
+def test_WorkBook_Sheet_add_conditions(sample_orders_01):
     ''' Not sure how I can 'test' add_condition directly.
     '''
-    df = get_sample_orders_01
+    df = sample_orders_01
 
     file_name = relative_folder / 'WorkBook - add_conditions.xlsx'
     wb = WorkBook(file_name, ts_prefix=False)
@@ -374,7 +384,7 @@ def test_WorkBook_Sheet_add_conditions(get_sample_orders_01):
     wb.close()
 
 
-def test_WorkBook_get_themes(get_sample_orders_01):
+def test_WorkBook_get_themes(sample_orders_01):
     '''
     '''
     file_name = relative_folder / 'WorkBook - test themes.xlsx'
@@ -383,7 +393,7 @@ def test_WorkBook_get_themes(get_sample_orders_01):
     wb.close()
 
 
-def test_WorkBook_show_styles(get_sample_orders_01):
+def test_WorkBook_show_styles(sample_orders_01):
     '''
     '''
     file_name = relative_folder / 'WorkBook - test themes.xlsx'

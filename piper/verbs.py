@@ -77,42 +77,39 @@ def tail(df, n=4, info=True):
 
 
 # info() {{{1
-def info(df, include_dupes=False, filter_na_cols=False, memory_info=True):
+def info(df, n_dupes=False, fillna=False, memory_info=True):
     ''' Alternative to df.info(), show all columns that have invalid data
-
 
     Parameters
     ----------
     df : dataframe
 
-    include_dupes:  boolean - include column showing the numbers of duplicate records
-                    default: False
+    n_dupes: boolean - column showing the numbers of groups of duplicate records
+             default: False
 
-    filter_na_cols: boolean - filter out only columns which contain nulls/np.nan
-                    default: False
+    fillna: boolean - filter out only columns which contain nulls/np.nan
+            default: False
 
     memory: boolean - If True, show memory returned dataframe consumption
 
     '''
-    null_col_list = [df[col].isnull().sum() for col in df]
-    na_col_list = [df[col].isna().sum() for col in df]
-    dtypes_col_list = [df[col].dtype for col in df]
+    null_list = [df[col].isnull().sum() for col in df]
+    na_list = [df[col].isna().sum() for col in df]
+    dtypes_list = [df[col].dtype for col in df]
     nunique_list = [df[col].nunique() for col in df]
-    dupes_col_list = [df.duplicated(col, keep=False).sum() for col in df]
+    dupes_list = [df.duplicated(col, keep=False).sum() for col in df]
     total_list = [df[col].value_counts(dropna=False).sum() for col in df]
 
-    if include_dupes:
-        dicta = {'columns': df.columns.values, 'data_type': dtypes_col_list,
-                 'isna': na_col_list, 'isnull': null_col_list, 'unique': nunique_list,
-                 'dupes': dupes_col_list, 'total_count': total_list}
-    else:
-        dicta = {'columns': df.columns.values, 'data_type': dtypes_col_list,
-                 'unique': nunique_list, 'isna': na_col_list, 'isnull': null_col_list,
-                 'total_count': total_list}
+    dicta = {'columns': df.columns.values, 'type': dtypes_list,
+             'n': total_list, 'isna': na_list, 'isnull': null_list,
+             'unique': nunique_list}
+
+    if n_dupes:
+        dicta.update({'n dupes': dupes_list})
 
     dr = pd.DataFrame.from_dict(dicta)
 
-    if filter_na_cols:
+    if fillna:
         return dr.query('isna > 0')
 
     if memory_info:
@@ -122,112 +119,11 @@ def info(df, include_dupes=False, filter_na_cols=False, memory_info=True):
 
 
 # count() {{{1
-def count(df, column=None, normalize=False, sort_values=False,  bins=None,
-          dropna=False, add_total=False, totals='n', percent=True,
-          cum_percent=True, threshold=100, round=2):
-    ''' fancy version of pd.Series.value_counts() with totals, %, cum %
-
-
-    Example
-    -------
-    count(df, 'price', sort_values=False, add_total=True
-          dropna=True, bins=5, ascending=True, percent=False, cum_percent=True)
-
-    count(customer_prices_merge, 'adjustment', normalize=True,
-      sort_values=False, add_total=True, dropna=True,
-      ascending=True, percent=False, cum_percent=False).round(2)
-
-       	adjustment 	total rows
-    0 	PTCUSPRC 	0.90
-    1 	PTCUSLOS 	0.06
-    2 	PTCUSPND 	0.04
-    3 	Total   	1.00
-
-
-    Parameters
-    ----------
-    df : dataframe, or series to be referenced
-
-    column : str, column name to analyse, default None
-
-    normalize: bool, default False
-        If True then the object returned will contain the relative frequencies of the unique values.
-
-    sort_values: Sort by frequencies, default False, None means use index sort
-
-    bins: int, optional
-        Rather than count values, group them into half-open bins, a convenience for pd.cut,
-        only works with numeric data.
-
-    dropna: bool, default True
-        Don’t include counts of NaN.
-
-    add_total: bool, add total column, default False
-
-    totals: str, name of total column, default 'n'
-
-    percent: provide % total, default True
-
-    cum_percent: provide cum % total, default True
-
-    threshold: filter cum_percent by this value, default 100
-
-    round: round decimals, default 2
-
-    Returns
-    -------
-    pandas dataframe
-    '''
-    if isinstance(df, pd.DataFrame):
-        if column is None:
-            df = df.count().to_frame()
-            df.columns = [totals]
-            df = df.reset_index(drop=False)
-            return df
-
-    if isinstance(df, pd.Series):
-        df = df.to_frame()
-        column = df.columns.tolist()[0]
-
-    if sort_values:
-        df = (df[column].value_counts(normalize=normalize, ascending=sort_values,
-                                      bins=bins, dropna=dropna)
-                        .to_frame())
-    else:
-        df = (df[column].value_counts(normalize=normalize, bins=bins, dropna=dropna)
-                        .to_frame())
-
-    df.columns = [totals]
-
-    if percent:
-        df['%'] = (df[totals] * 100 / df[totals].sum()).round(round)
-
-    if cum_percent:
-        df['cum %'] = (df[totals].cumsum() * 100 / df[totals].sum()).round(round)
-
-        if threshold < 100:
-            df = df[df['cum %'] <= threshold]
-
-    df.index.names = [column]
-
-    if add_total:
-        df = adorn(df, col_row_name='Total')
-        if percent:
-            df.loc['Total', '%'] = df['%'].sum()
-
-    if not normalize:
-        df[[totals]] = df[[totals]].astype(int)
-
-    df = df.reset_index(drop=False)
-
-    return df
-
-
-# counts() {{{1
-def counts(df, columns=None, totals='n', sort_values=False, percent=True,
-           cum_percent=True, threshold=100, round=2, reset_index=False):
-    ''' Similar to count() function but with multiple keys.
-    Provides total count, % count total, cum % count total.
+def count(df, columns=None, totals_name='n', sort_values=False, percent=True,
+          cum_percent=True, threshold=100, round=2, totals=False,
+          reset_index=False):
+    ''' For each unique 'value' within selected column(s)
+    total count, % count total, cum % count
 
 
     Example
@@ -239,9 +135,9 @@ def counts(df, columns=None, totals='n', sort_values=False, percent=True,
     ----------
     df : dataframe reference
 
-    columns : dataframe columns/index to be used in groupby function
+    columns: dataframe columns/index to be used in groupby function
 
-    totals: str, name of total column, default 'n'
+    totals_name: str, name of total column, default 'n'
 
     sort_values: default False, None means use index sort
 
@@ -253,42 +149,53 @@ def counts(df, columns=None, totals='n', sort_values=False, percent=True,
 
     round = round decimals, default 2
 
+    totals: bool, add total column, default False
+
     reset_index: bool, default False
     '''
-    if isinstance(df, pd.DataFrame):
-        if columns is None:
-            df = df.count().to_frame()
-            df.columns = [totals]
-            df = df.reset_index(drop=False)
-            return df
-
     try:
         if isinstance(columns, str):
-            p1 = df.groupby(columns).agg(totals=pd.NamedAgg(columns, 'count'))
-        else:
-            p1 = df.groupby(columns).agg(totals=pd.NamedAgg(columns[0], 'count'))
-    except KeyError as e:
-        logger.info(f"Column {e} not found!")
+            p1 = df.groupby(columns).agg(totals=(columns, 'count'))
+        elif isinstance(df, pd.Series):
+            new_df = df.to_frame()
+            columns = new_df.columns.tolist()[0]
+            p1 = new_df.groupby(columns).agg(totals=(columns, 'count'))
+        elif isinstance(df, pd.DataFrame):
+            if columns is not None:
+                p1 = df.groupby(columns).agg(totals=(columns[0], 'count'))
+            else:
+                p1 = df.count().to_frame()
+
+    except (KeyError, AttributeError) as e:
+        logger.info(f"Column {columns} not found!")
         return
 
     if p1.shape[0] > 0:
-        p1.columns = [totals]
+        p1.columns = [totals_name]
 
         if sort_values is not None:
-            p1.sort_values(by=totals, ascending=sort_values, inplace=True)
+            p1.sort_values(by=totals_name, ascending=sort_values, inplace=True)
 
         if percent:
             func = lambda x : (x*100/x.sum()).round(round)
-            p1['%'] = func(p1[totals].values)
+            p1['%'] = func(p1[totals_name].values)
 
         if cum_percent:
-            p1['cum %'] = (p1[totals].cumsum() * 100 / p1[totals].sum()).round(round)
+            p1['cum %'] = (p1[totals_name].cumsum() * 100 / p1[totals_name].sum()).round(round)
 
             if threshold < 100:
                 p1 = p1[p1['cum %'] <= threshold]
 
-    if reset_index:
-        p1 = p1.reset_index()
+        if reset_index:
+            p1 = p1.reset_index()
+
+        if totals:
+            cols = ['n']
+            if percent:
+                cols.append('%')
+
+            p1 = adorn(p1, columns=cols, col_row_name='Total',
+                       ignore_row_index=reset_index)
 
     return p1
 
@@ -896,7 +803,7 @@ def assign(df, *args, str_to_lambdas=True, lambda_var='x', info=False, **kwargs)
     Notes
     -----
     Assigning multiple columns within the same ``assign`` is possible.
-    Later items in '\*\*kwargs' may refer to newly created or modified
+    Later items in '\\*\\*kwargs' may refer to newly created or modified
     columns in 'df'; items are computed and assigned into 'df' in order.
 
 
