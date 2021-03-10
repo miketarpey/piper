@@ -872,14 +872,23 @@ def where(df, *args, **kwargs):
 
 # distinct() {{{1
 @wraps(pd.DataFrame.drop_duplicates)
-def distinct(df, *args, **kwargs):
+def distinct(df, *args, info=True, **kwargs):
     '''
     Example:
     ========
     %%piper
     df >> distinct(['author']) >> head()
     '''
-    return df.drop_duplicates(*args, **kwargs)
+    result = df.drop_duplicates(*args, **kwargs)
+
+    if info:
+        if isinstance(df, pd.Series):
+            logger.info(f'{df.shape[0]} rows')
+
+        if isinstance(df, pd.DataFrame):
+            logger.info(f'{df.shape[0]} rows, {df.shape[1]} columns')
+
+    return result
 
 
 # stack() {{{1
@@ -1105,11 +1114,7 @@ def order_by(df, *args, **kwargs):
     | ('Germany', 'West')  |        1575 |    21.48 |
 
     '''
-    logger.debug(args)
-    logger.debug(kwargs)
-
-    # args is a tuple, therefore need to 'copy' to a list for
-    # manipulation
+    # args is a tuple, therefore need to 'copy' to a list for manipulation
     args_copy = list(args)
 
     if kwargs.get('by'):
@@ -1146,8 +1151,6 @@ def order_by(df, *args, **kwargs):
             else:
                 kwargs['by'] = column_seq
 
-    logger.debug(args_copy)
-    logger.debug(kwargs)
     return df.sort_values(*args_copy, **kwargs)
 
 
