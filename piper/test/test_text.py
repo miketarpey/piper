@@ -1,9 +1,5 @@
 from piper.text import pipe_parser
 from piper.text import join_function_parms
-import logging
-
-
-logger = logging.getLogger(__name__)
 
 
 # test_parser_single_statement {{{1

@@ -3,6 +3,7 @@ import numpy as np
 from xlsxwriter.utility import xl_col_to_name
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 
