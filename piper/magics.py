@@ -15,7 +15,8 @@ class PipeMagic(Magics):
     @magic_arguments.magic_arguments()
     @magic_arguments.argument('--info', '-i', action='store_true', help='Print the equivalent pipe statements')
     @magic_arguments.argument('--debug', '-d', action='store_true', help='Debug information')
-    @magic_arguments.argument('--r', '-r', action='store_true', help='pipe_symbol to be used')
+    @magic_arguments.argument('--r', '-r', action='store_true', help='pipe_symbol magrittr R version')
+    @magic_arguments.argument('--dot', '-e', action='store_true', help='pipe_symbol ".."')
     def piper(self, line='', cell=None):
 
         info, debug = False, False
@@ -34,6 +35,9 @@ class PipeMagic(Magics):
 
             if args.r:
                 pipe_symbol = '%>%'
+
+            if args.dot:
+                pipe_symbol = '..'
 
             cell_value, execute = pipe_parser(cell, pipe_symbol=pipe_symbol, info=info, debug=debug)
             return run_cmd(execute, cell_value)

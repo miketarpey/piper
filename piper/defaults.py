@@ -8,6 +8,7 @@ from .io import *
 from .xl import *
 from .dates import *
 from .pandas import *
+import numpy as np
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt
@@ -26,7 +27,7 @@ logging.basicConfig(level=logging.INFO, format=log_fmt, datefmt='%Y-%m-%d %H:%M:
 logger = logging.getLogger(__name__)
 
 runtime = datetime.now().strftime('%A, %d %B %Y %H:%M:%S')
-logger.info(f"piper version {__version__}, last run: {runtime}")
+logger.info(f"piper v{__version__}: {runtime}")
 
 # IPython setup
 pd.set_option("display.max_columns", 80)

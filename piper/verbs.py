@@ -443,25 +443,38 @@ def flatten_cols(df, join_char='_', remove_prefix=None):
     For given multi-index dataframe reduce/flatten column names to make it easier to
     refer to the column name references subsequently.
 
+    Parameters
+    ----------
+    df: pd.DataFrame - dataframe
+
+    join_char: str - delimitter joining 'prefix' value(s) to be removed.
+
+    remove_prefix: str - string(s) (delimitted by pipe '|')
+                    e.g. ='mike|eoin|totalval1'
+
+
     Example
     -------
-    from piper import piper
-    from piper.factory import get_sample_sales
-    from piper.verbs import *
+    from piper.defaults import *
+
     %%piper
 
-    get_sample_sales()
-    >> group_by(['location', 'product'])
-    >> summarise(Total=('actual_sales', 'sum'))
-    >> pd.DataFrame.unstack()
-    >> flatten_cols(remove_prefix='Total')
-    >> pd.DataFrame.reset_index()
+    get_sample_data()
+    >> group_by(['countries', 'regions'])
+    >> summarise(totalval1=('values_1', 'sum'))
+    >> assign(mike='x.totalval1 * 50', eoin='x.totalval1 * 100')
+    >> transform()
+    >> order_by(['countries', '-g%'])
+    >> unstack()
+    >> flatten_cols(remove_prefix='mike|eoin|totalval1')
+    >> reset_index()
+    >> set_index('countries')
+    >> head()
 
-    | location   |   Beachwear |   Footwear |   Jeans |   Sportswear |   Tops & Blouses |
-    |:-----------|------------:|-----------:|--------:|-------------:|-----------------:|
-    | London     |      417048 |     318564 |  432023 |       461916 |           345902 |
-    | Milan      |      420636 |     313556 |  471798 |       243028 |           254410 |
-    | Paris      |      313006 |     376844 |  355793 |       326413 |           400847 |
+
+    Returns
+    -------
+    pd.DataFrame
 
     '''
     def flatten(column_string, join_char='_', remove_prefix=None):
