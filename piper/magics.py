@@ -1,5 +1,6 @@
 from IPython.core import magic_arguments
 from IPython.core.magic import line_magic, cell_magic, line_cell_magic, Magics, magics_class
+from IPython import get_ipython
 from piper.text import pipe_parser
 import logging
 
@@ -59,3 +60,6 @@ def run_cmd(execute, cell_value, env_variables=None):
         logger.info(e)
 
 
+# Register magics
+ip = get_ipython()
+ip.register_magics(PipeMagic)

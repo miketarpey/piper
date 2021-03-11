@@ -1,16 +1,16 @@
-import re
-import pandas as pd
-import numpy as np
-import logging
-from functools import wraps
-from piper.io import _file_with_ext
-from piper.decorators import shape
-from pandas.core.common import flatten
-from pandas.api.types import is_period_dtype
-from pandas.api.types import is_datetime64_any_dtype
 from collections import namedtuple
 from datetime import datetime
+from functools import wraps
+from pandas.api.types import is_datetime64_any_dtype
+from pandas.api.types import is_period_dtype
+from pandas.core.common import flatten
+from piper.decorators import shape
+from piper.io import _file_with_ext
 from piper.xl import WorkBook
+import logging
+import numpy as np
+import pandas as pd
+import re
 import logging
 
 logger = logging.getLogger(__name__)
