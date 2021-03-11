@@ -6,6 +6,8 @@ from .verbs import *
 from .factory import *
 from .io import *
 from .xl import *
+from .dates import *
+from .pandas import *
 import pandas as pd
 import logging
 import matplotlib.pyplot as plt

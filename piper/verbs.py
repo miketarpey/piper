@@ -465,19 +465,20 @@ def flatten_cols(df, join_char='_', remove_prefix=None):
 
     '''
     def flatten(column_string, join_char='_', remove_prefix=None):
-        ''' Takes a dataframe column string,
-        if it's a tuple (from a groupby/stack/pivot df) returns a
-        'joined' string otherwise just return the string.
+        ''' Takes a dataframe column string value.
+        if tuple (from a groupby/stack/pivot df) returns a 'joined' string
+        otherwise returns the original string.
         '''
-        if isinstance(column_string, tuple):
-            return_str = join_char.join([str(x) for x in column_string]).strip(join_char)
+        modified_string = column_string
 
-            if remove_prefix is not None:
-                return re.sub(remove_prefix, '', return_str).strip(join_char)
+        if isinstance(modified_string, tuple):
+            modified_string = join_char.join([str(x) for x in modified_string]).strip(join_char)
 
-            return return_str
+        if isinstance(modified_string, str):
+            if remove_prefix:
+                modified_string = re.sub(remove_prefix, '', modified_string).strip(join_char)
 
-        return column_string
+        return modified_string
 
     df.columns = [flatten(x, join_char, remove_prefix) for x in df.columns]
 
