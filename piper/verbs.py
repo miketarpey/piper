@@ -821,10 +821,35 @@ def assign(df, *args, str_to_lambdas=True, lambda_var='x', info=False, **kwargs)
     columns in 'df'; items are computed and assigned into 'df' in order.
 
 
-    Example:
+    Examples
     --------
-    %%piper
+    You can create a dictionary of column names to corresponding functions,
+    then pass the dictionary to the assign function as shown below:
 
+    %%piper --dot
+
+    df
+    .. assign(**{'reversed': 'x.regions.apply(lambda x: x[::-1])',
+                 'v1_x_10': 'x.values_1 * 10',
+                 'v2_div_4': lambda x: x.values_2 / 4,
+                 'dow': lambda x: x.dates.dt.day_name(),
+                 'ref': lambda x: x.v2_div_4 * 5,
+                 'values_1': 'x.values_1.astype(int)',
+                 'values_2': 'x.values_2.astype(int)',
+                 'ids': lambda x: x.ids.astype('category')})
+    .. pd.DataFrame.astype({'values_1': float, 'values_2': float})
+    .. relocate('dow', 'after', 'dates')
+    .. select(['-dates', '-order_dates'])
+    .. head()
+
+    | dow      | countries| regions| ids|values_1 |values_2 | reversed|v1_x_10 |v2_div_4 |    ref |
+    |:---------|:---------|:-------|:---|--------:|--------:|:--------|-------:|--------:|-------:|
+    | Wednesday| Italy    | East   | A  |     311 |      26 | tsaE    |   3110 |    6.5  |  32.5  |
+    | Thursday | Portugal | South  | D  |     150 |     375 | htuoS   |   1500 |   93.75 | 468.75 |
+    | Friday   | Spain    | East   | A  |     396 |      88 | tsaE    |   3960 |   22    | 110    |
+    | Saturday | Italy    | East   | B  |     319 |     233 | tsaE    |   3190 |   58.25 | 291.25 |
+
+    %%piper
     get_sample_sales()
     >> select()
     >> assign(month_plus_one = lambda x: x.month + pd.Timedelta(1, 'D'),
