@@ -1021,8 +1021,12 @@ def summarise(df, *args, **kwargs):
     # explode('product')
 
     '''
+
+    # If nothing passed to summarise - return a count of all columns
     if not kwargs and len(args) == 0:
-        return df.agg('count')
+        df = df.agg('count').to_frame().rename(columns={0: 'n'})
+        df.index.names = ['names']
+        return df
 
     group_df = df.agg(*args, **kwargs)
 
