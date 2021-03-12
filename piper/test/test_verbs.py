@@ -959,72 +959,45 @@ def test_add_formula_inplace_false(sample_df2):
 # test_overlaps {{{1
 def test_overlaps():
 
-    prices = {
-        'prices': [100, 200, 300],
-        'contract': ['A', 'B', 'A'],
-        'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
-        'expired': ['2020-12-31', '2021-04-30', '2022-04-01']
-    }
+    prices = {'prices': [100, 200, 300],
+              'contract': ['A', 'B', 'A'],
+              'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
+              'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
 
     df = pd.DataFrame(prices)
 
-    expected = (2, 6)
-    actual = overlaps(df, effective='effective', expired='expired',
-                      price='prices', unique_cols=['contract'])
+    expected = (3, 5)
+    actual = overlaps(df, start='effective', end='expired', unique_key='contract')
 
     assert expected == actual.shape
 
 
-# test_overlaps_pos_first {{{1
-def test_overlaps_pos_first():
-
-    prices = {
-        'prices': [100, 200, 300],
-        'contract': ['A', 'B', 'A'],
-        'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
-        'expired': ['2020-12-31', '2021-04-30', '2022-04-01']
-    }
-
-    df = pd.DataFrame(prices)
-
-    expected = 'price_diff'
-    actual = overlaps(df, effective='effective', loc='first',
-                      expired='expired', price='prices',
-                      unique_cols=['contract'])
-
-    assert expected == actual.columns.tolist()[0]
-
 # test_overlaps_raises_key_error {{{1
 def test_overlaps_raises_key_error():
 
-    prices = {
-        'prices': [100, 200, 300],
-        'contract': ['A', 'B', 'A'],
-        'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
-        'expired': ['2020-12-31', '2021-04-30', '2022-04-01']
-    }
+    prices = {'prices': [100, 200, 300],
+              'contract': ['A', 'B', 'A'],
+              'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
+              'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
 
     df = pd.DataFrame(prices)
 
     with pytest.raises(KeyError):
-        actual = overlaps(df, effective='false_field', expired='expired',
-                          price='prices', unique_cols=['contract'])
+        actual = overlaps(df, start='false_field', end='expired', unique_key='contract')
+
 
 # test_overlaps_no_price {{{1
-def test_overlaps_no_price():
+def test_overlaps_unique_key_list():
 
-    prices = {
-        'prices': [100, 200, 300],
-        'contract': ['A', 'B', 'A'],
-        'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
-        'expired': ['2020-12-31', '2021-04-30', '2022-04-01']
-    }
+    prices = {'prices': [100, 200, 300],
+              'contract': ['A', 'B', 'A'],
+              'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
+              'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
 
     df = pd.DataFrame(prices)
 
-    expected = (2, 5)
-    actual = overlaps(df, effective='effective', expired='expired',
-                      price=False, unique_cols=['contract'])
+    expected = (3, 5)
+    actual = overlaps(df, start='effective', end='expired', unique_key=['contract'])
 
     assert expected == actual.shape
 

@@ -129,7 +129,6 @@ def apply_date_function(df, columns=None, function=None, format=None):
         else:
             df[columns] = df[columns].apply(function, format=format)
 
-
     if isinstance(columns, list):
         for column in columns:
 

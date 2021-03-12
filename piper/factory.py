@@ -183,3 +183,62 @@ def get_sample_matrix(size=(5, 5), loc=10, scale=10, lowercase_cols=True, round=
     df = pd.DataFrame(data, columns=cols).round(round)
 
     return df
+
+
+def generate_periods(year=2021, month_range=(1, 12), delta_range=(1, 10), rows=20, seed=42):
+    ''' Generate random effective and expired period pairs
+
+    Parameters
+    ----------
+    year: int - desired year
+
+    month_range: tuple - range of months required for effective date range.count
+
+    delta_range: tuple - range of delta periods to add to effective
+
+    rows: int - number of rows or records needed
+
+    seed: int - default 42 - for testing, provide consistent outcome by
+                setting the random seed value
+
+    Returns
+    -------
+    dataframe containing generated effective and expired values.
+
+
+    Example
+    -------
+    head(generate_periods(year=2022, rows=1))
+
+    effective	expired
+    2022-07-20	2022-07-28
+
+   '''
+    def create_date(period):
+        '''
+        '''
+
+        period_str = period.strftime('%Y-%m')
+        day_str = str(np.random.randint(1, period.daysinmonth))
+
+        return f'{period_str}-{day_str.zfill(2)}'
+
+    if seed:
+        np.random.seed(seed)
+
+    low, high = month_range
+    months = np.random.randint(low, high, size=rows)
+    periods = [pd.Period(f'{year}-{str(month).zfill(2)}') for month in months]
+    periods = pd.Series(periods, name='Periods')
+
+    effective = pd.Series([pd.to_datetime(create_date(period)) for period in periods], name='effective')
+
+    low, high = delta_range
+    deltas = pd.Series(pd.to_timedelta(np.random.randint(low, high, rows), 'd'), name='duration')
+
+    expired = effective + deltas
+    expired.name = 'expired'
+
+    df = pd.concat([effective, expired], axis=1)
+
+    return df

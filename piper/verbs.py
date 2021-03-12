@@ -1629,94 +1629,88 @@ def duplicated(df=None, subset=None, keep=False, sort=True,
 
 
 # overlaps() {{{1
-def overlaps(df, effective='effective_date', expired='expiry_date', price='price',
-                     unique_cols=['customer#', 'item'],
-                     overlap_name='overlaps', price_diff_name='price_diff',
-                     loc='last'):
+def overlaps(df, unique_key=None, start='effective', end='expiry', overlaps='overlaps'):
     ''' Analyse dataframe rows with overlapping dates and optionally different prices
 
     Example:
     --------
-    customer_prices_ovl = overlaps(customer_prices, loc=4)
+    customer_prices_ovl = overlaps(customer_prices)
+
 
     Parameters
     ----------
-    df :
-        dataframe
+    df : dataframe
 
-    effective:
+    unique_key: (str, list)
+        column(s) that uniquely identify rows
+
+    start:
         column that defines start/effective date, default 'effective_date'
 
-    expired:
+    end:
         column that defines end/expired date, default 'expiry_date'
 
-    price: (bool, str)
-        column that defines price, default - False (no check performed)
-        If provided, price difference check will be performed.
+    overlaps: str - default 'overlaps'
+        name of overlapping column containing True/False values
 
-    unique_cols:
-        columns that uniquely identify rows
-
-    overlap_name:
-        name of overlapping column, default 'overlaps'
-
-    price_diff_name:
-        name of price difference column, default 'price_diff'
-
-    loc : int, 'first', 'last'
-        new location (zero based), default='last'
 
     Returns
     -------
-    pandas dataframe
+    pandas dataframe with boolean based overlap column
+
+
+    Example
+    -------
+    data = {'prices': [100, 200, 300],
+            'contract': ['A', 'B', 'A'],
+            'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
+            'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
+
+    df = pd.DataFrame(data)
+    overlaps(df, start='effective', end='expired', unique_key='contract')
+
+    |    |   prices | contract   | effective   | expired    | overlaps   |
+    |---:|---------:|:-----------|:------------|:-----------|:-----------|
+    |  0 |      100 | A          | 2020-01-01  | 2020-12-31 | True       |
+    |  1 |      200 | B          | 2020-03-03  | 2021-04-30 | False      |
+    |  2 |      300 | A          | 2020-05-30  | 2022-04-01 | True       |
+
     '''
-    if loc == 'first':
-        loc = 0
+    if unique_key is None:
+        raise ValueError('Please provide unique key.')
 
-    if loc == 'last':
-        loc = df.shape[1]+1
+    if isinstance(unique_key, str):
+        unique_key = [unique_key]
 
-    check_cols = [effective, expired, price] + unique_cols
-    if not price:
-        check_cols = [effective, expired] + unique_cols
+    key_cols = unique_key + [start, end]
 
-    missing_cols = [col for col in check_cols if col not in df.columns.tolist()]
+    missing_cols = ', '.join([col for col in key_cols if col not in df.columns.tolist()])
     if len(missing_cols) > 0:
-        raise KeyError(f"Column(s) '{missing_cols}' not found in dataframe")
+        raise KeyError(f"'{missing_cols}' not found in dataframe")
 
-    # Drop given df's original index, add fresh index as comparison column.
-    dfa = df.reset_index(drop=True).reset_index(drop=False)
-    dfb = dfa.copy(deep=True)
+    dfa = df[key_cols]
+    dfa.insert(0, 'index', df.index)
+    dfb = dfa
 
-    df_merge = (dfa.merge(dfb, how='left', on=unique_cols))
+    merged = dfa.merge(dfb, how='left', on=unique_key)
 
-    criteria_1 = df_merge[f'{expired}_x'] >= df_merge[f'{effective}_y']
-    criteria_2 = df_merge[f'{effective}_x'] <= df_merge[f'{expired}_y']
-    criteria_3 = df_merge.index_x != df_merge.index_y
+    criteria_1 = merged[f'{end}_x'] >= merged[f'{start}_y']
+    criteria_2 = merged[f'{start}_x'] <= merged[f'{end}_y']
+    criteria_3 = merged.index_x != merged.index_y
 
-    overlap_data = ((criteria_1) & (criteria_2) & (criteria_3))
-    df_merge.insert(loc=loc, column=overlap_name, value=overlap_data)
+    merged[overlaps] = criteria_1 & criteria_2 & criteria_3
 
-    if price:
-        criteria_4 = df_merge[f'{price}_x'] != df_merge[f'{price}_y']
-        price_diff = ((criteria_1) & (criteria_2) & (criteria_3) & (criteria_4))
-        df_merge.insert(loc=loc, column=price_diff_name, value=price_diff)
+    # Find unique keys with overlapping dates
+    merged[overlaps] = criteria_1 & criteria_2 & criteria_3
+    cols = unique_key + [overlaps]
 
-    # sort by given unique key
-    df_merge = df_merge[df_merge[overlap_name] == True].sort_values(unique_cols)
+    # We need just the unique key and whether it overlaps or not
+    merged = merged[cols][merged[overlaps]].drop_duplicates()
 
-    # drop merged fields '_y'
-    cols = [x for x in df_merge if '_y' in x]
-    df_merge.drop(columns=cols, inplace=True)
+    merged = df.merge(merged, how='left', on=unique_key)
+    merged[overlaps] = merged[overlaps].fillna(False)
 
-    # drop index column
-    df_merge.drop(columns='index_x', inplace=True)
-
-    # remove _x suffix from remaining fields
-    cols = {x: x.replace('_x', '') for x in df_merge if '_x' in x}
-    df_merge.rename(columns=cols, inplace=True)
-
-    return df_merge.reset_index(drop=True)
+    return merged
 
 
 # memory() {{{1
