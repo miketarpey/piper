@@ -69,6 +69,9 @@ def to_date(df, columns=None, format='%d/%m/%Y',
     '''
     def convert_date(dt_value):
 
+        if isinstance(dt_value, int):
+            dt_value = str(dt_value)
+
         return_dt = pd.to_datetime(dt_value, format=format, errors=errors)
         if isinstance(return_dt, pd.Timestamp):
             return_dt = return_dt.date()
@@ -134,8 +137,7 @@ def apply_date_function(df, columns=None, function=None, format=None):
 
             if column not in df.columns.values:
                 raise TypeError(f'column {column} not in dataframe.')
-
-            if column in df.columns.values:
+            else:
                 func_name = function.__name__
                 logger.debug(f'applying {func_name} to column {column}')
                 if format is None:

@@ -289,21 +289,14 @@ def read_excels(source='inputs/',  glob_pattern='*.xls*', func=None,
 
 # read_excel_sheets() {{{1
 def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
-                      column='sheet_name', info=False, return_type='dataframe',
+                      column='sheet_name', info=False, return_type='list_frames',
                       **kwargs):
     ''' For given Excel file name, return all or selected (list of) sheets as a
     consolidated pandas DataFrame
 
     Example
     -------
-    dataframes = []
-
-    for f in get_files(source='inputs/excel_workbooks/'):
-        df = read_excel_sheets(f.as_posix(), include_sheet=True, column='category')
-        df = df.assign(date = pd.to_datetime(f.stem, format='%m_%Y'))
-        dataframes.append(df)
-
-    df = pd.concat(dataframes)
+    test1, test2 = read_excel_sheets(xl_file, return_type='list_frames')
 
 
     Parameters
@@ -323,10 +316,18 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
     info - print sheet names(s) read including rows, columns retrieved
 
     return_type - (str) options are:
-                        'dataframe' - (default) return consolidated sheets in ONE dataframe
-                        'dataframes' - return dictionary of sheet_name and sheet dataframe
-                        'metadata' - return dataframe containing filename, sheet, rows, cols
+
+                        'list_frames' - (default) return a list of sheet dataframes
+
                         'list' - return list of sheet names
+
+                        'dict_frames' - return a dictionary containing:
+                                        sheet_name: dataframe
+
+                        'consolidate' - return consolidated sheets in ONE dataframe
+
+                        'metadata' - return dataframe containing filename, sheet, rows, cols
+
     '''
     dataframes = []
     dataframe_dict = {}
@@ -349,22 +350,25 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
                 if info:
                     logger.info(f'sheet: {sheet}, (rows, cols) {dx.shape}')
 
-                if return_type == 'dataframe':
+                if return_type == 'list_frames':
                     dataframes.append(dx)
+
                 elif return_type == 'dataframes':
                     dataframes_dict['sheet'] = dx
 
-    if return_type == 'dataframe':
-        df = pd.concat(dataframes)
-        return df
-    elif return_type == 'dataframes':
-        return dataframes_dict
-    elif return_type == 'metadata':
-        df_meta = pd.DataFrame(metadata)
-        return df_meta
+    if return_type == 'list_frames':
+        return dataframes
     elif return_type == 'list':
         df_meta = pd.DataFrame(metadata)
         return df_meta['sheet_name'].tolist()
+    elif return_type == 'dict_frames':
+        return dataframes_dict
+    if return_type == 'consolidate':
+        df = pd.concat(dataframes)
+        return df
+    elif return_type == 'metadata':
+        df_meta = pd.DataFrame(metadata)
+        return df_meta
 
 
 # split_dataframe() {{{1
