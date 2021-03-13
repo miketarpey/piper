@@ -980,11 +980,30 @@ def reset_index(df, *args, **kwargs):
 
 # summarise() {{{1
 def summarise(df, *args, **kwargs):
-    ''' wrapper for pd.Dataframe.agg() function
+    ''' Summarise or aggregate data.
 
-    Examples
-    --------
+    This function is a wrapper for pd.DataFrame.agg()
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.agg.html
 
+    ::NOTE:: Different behaviour to pd.DataFrame.agg()
+    If no arguments or keywords are passed, the function will
+    do a 'count' and 'sum' of all columns. See also info().
+
+    %piper get_sample_sales() >> summarise()
+
+    | names         |   n |        sum |
+    |:--------------|----:|-----------:|
+    | location      | 200 |        nan |
+    | product       | 200 |        nan |
+    | month         | 200 |        nan |
+    | target_sales  | 200 | 5423715.00 |
+    | target_profit | 200 |  487476.42 |
+    | actual_sales  | 200 | 5376206.33 |
+    | actual_profit | 200 |  482133.92 |
+
+
+    Syntax examples
+    ---------------
     # Syntax 1: column_name = ('existing_column', function)
     # note: below there are some 'common' functions that can
     # be quoted like 'sum', 'mean', 'count', 'nunique' or
@@ -1024,9 +1043,12 @@ def summarise(df, *args, **kwargs):
 
     # If nothing passed to summarise - return a count of all columns
     if not kwargs and len(args) == 0:
-        df = df.agg('count').to_frame().rename(columns={0: 'n'})
-        df.index.names = ['names']
-        return df
+        sum_ = df.select_dtypes(include='number').agg('sum')
+        count_ = df.agg('count')
+        summary_ = pd.concat([count_, sum_], axis=1)
+        summary_.columns = ['n', 'sum']
+        summary_.index.names = ['names']
+        return summary_
 
     group_df = df.agg(*args, **kwargs)
 

@@ -899,7 +899,7 @@ def test_summarise_default(sample_df1):
 
     df = sample_df1
 
-    expected = (7, 1)
+    expected = (7, 2)
     actual = summarise(df)
 
     assert expected == actual.shape
