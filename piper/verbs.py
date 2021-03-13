@@ -986,6 +986,7 @@ def summarise(df, *args, **kwargs):
     https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.agg.html
 
     ::NOTE:: Different behaviour to pd.DataFrame.agg()
+
     If only the dataframe is passed, the function will
     do a 'count' and 'sum' of all columns. See also info().
 
@@ -1000,6 +1001,12 @@ def summarise(df, *args, **kwargs):
     | target_profit | 200 |  487476.42 |
     | actual_sales  | 200 | 5376206.33 |
     | actual_profit | 200 |  482133.92 |
+
+    If you pass a groupby object to summarise() with no other
+    parameters - summarise will summate all numeric columns.
+
+    The equivalent to:
+    %pipe df >> group_by(['col1', 'col2']) >> summarise(sum)
 
 
     Syntax examples
