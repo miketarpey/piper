@@ -986,7 +986,7 @@ def summarise(df, *args, **kwargs):
     https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.agg.html
 
     ::NOTE:: Different behaviour to pd.DataFrame.agg()
-    If no arguments or keywords are passed, the function will
+    If only the dataframe is passed, the function will
     do a 'count' and 'sum' of all columns. See also info().
 
     %piper get_sample_sales() >> summarise()
@@ -1041,14 +1041,21 @@ def summarise(df, *args, **kwargs):
 
     '''
 
-    # If nothing passed to summarise - return a count of all columns
+    # If nothing passed to summarise - return a count and sum of all columns
     if not kwargs and len(args) == 0:
-        sum_ = df.select_dtypes(include='number').agg('sum')
-        count_ = df.agg('count')
-        summary_ = pd.concat([count_, sum_], axis=1)
-        summary_.columns = ['n', 'sum']
-        summary_.index.names = ['names']
-        return summary_
+
+        if isinstance(df, pd.DataFrame):
+            logger.info("Use group_by() and summarise() for more detail")
+            sum_ = df.select_dtypes(include='number').agg('sum')
+            count_ = df.agg('count')
+            summary_ = pd.concat([count_, sum_], axis=1)
+            summary_.columns = ['n', 'sum']
+            summary_.index.names = ['names']
+            return summary_
+
+        # If groupby obj, assume sum function
+        if isinstance(df, pd.core.groupby.generic.DataFrameGroupBy ):
+                return df.agg(sum)
 
     group_df = df.agg(*args, **kwargs)
 
