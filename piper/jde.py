@@ -2,12 +2,33 @@ import logging
 import pandas as pd
 from datetime import datetime
 
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    Union,
+)
+
+
 logger = logging.getLogger(__name__)
 
 
 # add_jde_batch() {{{1
-def add_jde_batch(df, col_prefix='ed', userid='userid',
-                  batch_prefix='ABC', start=100, step=100, inplace=False):
+def add_jde_batch(df: pd.DataFrame,
+                  col_prefix: str = 'ed',
+                  userid: str = 'userid',
+                  batch_prefix: str = 'ABC',
+                  start: int = 100,
+                  step: int = 100,
+                  inplace: bool = False) -> pd.DataFrame:
     ''' Add 'standard' JDE timestamp/default column and values to
     a dataframe - allowing it to be used (for example) for Z-file
     upload.
@@ -17,7 +38,7 @@ def add_jde_batch(df, col_prefix='ed', userid='userid',
 
     Parameters
     ----------
-    df : pandas dataframe
+    df : the pandas dataframe object
 
     col_prefix : 2 character (e.g. 'ed') column name prefix
 
