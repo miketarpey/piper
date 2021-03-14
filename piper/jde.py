@@ -25,45 +25,47 @@ logger = logging.getLogger(__name__)
 def add_jde_batch(df: pd.DataFrame,
                   col_prefix: str = 'ed',
                   userid: str = 'userid',
-                  batch_prefix: str = 'ABC',
+                  batch: str = 'ABC',
                   start: int = 100,
-                  step: int = 100,
-                  inplace: bool = False) -> pd.DataFrame:
-    ''' Add 'standard' JDE timestamp/default column and values to
-    a dataframe - allowing it to be used (for example) for Z-file
-    upload.
+                  step: int = 100) -> pd.DataFrame:
+    ''' Add 'standard' JDE timestamp/default columns.
+    For given dataframe, adds the following standard Z-file columns.
 
-    Note: returns a copy of the given dataframe
+    User ID (edus)
+    Batch Number (edbt)
+    Transaction Number (edtn)
+    Line Number (edln)
 
 
     Parameters
     ----------
     df : the pandas dataframe object
 
-    col_prefix : 2 character (e.g. 'ed') column name prefix
+    col_prefix : 2 character (e.g. 'ed') column name prefix to be
+        applied to the added columns
 
     userid : default userid text value
 
-    batch_prefix : prefix used in xxbt column
+    batch : 2 character prefix to concatenated to current timestamp
 
-    start : start number in xxln column
+    trans_no : start number in xxln column
 
     step : step increment in xxln column
 
 
     Returns
     -------
-    pandas dataframe (copy)
+    A pandas dataframe
     '''
     timestamp = datetime.now().strftime('_%Y%m%d')
     start_position = 0
 
     range_seq = range(start, (df.shape[0]+1)*step, step)
-    line_sequence = pd.Series(range_seq)
 
     df.insert(start_position, f'{col_prefix}us', userid)
-    df.insert(start_position+1, f'{col_prefix}bt', batch_prefix + timestamp)
+    df.insert(start_position+1, f'{col_prefix}bt', batch + timestamp)
     df.insert(start_position+2, f'{col_prefix}tn', 1)
-    df.insert(start_position+3, f'{col_prefix}ln', line_sequence)
+
+    df.insert(start_position+3, f'{col_prefix}ln', pd.Series(range_seq))
 
     return df

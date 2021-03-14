@@ -13,8 +13,7 @@ def sample_df1():
 def test_add_jde_batch(sample_df1):
     """
     """
-    dx = sample_df1
-    df = add_jde_batch(dx, inplace=False)
+    df = add_jde_batch(sample_df1)
 
     expected = (367, 11)
     actual = df.shape
