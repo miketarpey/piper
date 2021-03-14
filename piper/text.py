@@ -1,92 +1,118 @@
 import re
 import logging
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    Union,
+)
 
 
 logger = logging.getLogger(__name__)
 
 
 # pipe_parser() {{{1
-def pipe_parser(text, pipe_symbol=None, info=False, debug=False):
-    ''' piper parser - for given text, split by pipe_symbol then for each
-    split statement, wrap with .pipe().
+def pipe_parser(text: str,
+                pipe_symbol: Optional[str] = None,
+                info: bool = False,
+                debug: bool = False) -> Tuple[str, Callable]:
+    ''' piper parser - split by pipe_symbol chained expression statements
 
     Return completed pipeline of functions/commands, plus a boolean to determine
-    whether the statement should be executed or not.
-
-    Parameters
-    ----------
-    text: str - text to be parsed
-
-    pipe_symbol: str - default '>>' pipe character used to 'link' statement chain
-                     together
-
-    info: boolean - default False. If True - print rendered linked 'pipe' statement
-
-    Returns
-    -------
-    revised_stmt: str - revised 'piped' pandas pipeline statement
-
-    execute: function - 'exec/eval' - for magic run_cmd to determine whether the
-                        python statement returned should executed or evaluated.
-                        if revised_stmt is 'assigned' to another variable
-                        then 'exec' is used otherwise 'eval'
+    whether the statement should be executed or not by the piper magic method
+    (run_cmd).
 
     Example
     -------
-    cell_value, call_function = pipe_parser(cell, pipe_symbol=pipe_symbol, info=info, debug=False)
+    ```python
+    %%piper --info
+    get_sample_sales() >>
+    select('-target_profit') >>
+    reset_index(drop=True) >>
+    head()
+    ```
+
+    is rendered by the parser as:
+
+    ```python
+    %%piper --info
+    get_sample_sales() >>
+    select('-target_profit') >>
+    reset_index(drop=True) >>
+    head()
+    ```
+
+    **Expression assignment**
+    The parser also understands assignment in either R form (i.e. using <-) or Python (using '=').
+    ```python
+    df <- pd.read_csv('inputs/test.csv')
+    df =  pd.read_csv('inputs/test.csv')
+    ```
+
+    Parameters
+    ----------
+    text: text to be parsed
+
+    pipe_symbol: default '>>' pipe character used to uniquely identify to
+        the piper parse when to replace it with the .pipe() statement.
+
+    info: default False. If True - print rendered linked 'pipe' statement
+
+
+    Returns
+    -------
+    revised_stmt: revised 'piped' pandas pipeline statement
+
+    execute: 'exec/eval' - for magic run_cmd to determine whether the
+             python statement returned should executed or evaluated.
+             if revised_stmt is 'assigned' to another variable
+             then 'exec' is used otherwise 'eval'
+
     '''
     if pipe_symbol in (None, False):
         pipe_symbol = '>>'
 
-    # Take a copy of the input text
-    revised_text = text
+    # Check if text contains an R or Pythonic assignment symbol
+    assignment, revised_text = check_assignment(text)
 
-    # 0. Check to see if an assignment has been made
-    # Example:     df <- pd.read_csv('inputs/test.csv')
-    # Converts to: df =  pd.read_csv('inputs/test.csv')
-    r_assignment = r'(?<=\<\-)'
-    match = re.search(fr'(.*){r_assignment}(.*)', text.strip(), flags=re.M | re.DOTALL)
-    if match:
-        assignment = match.groups()[0].strip().replace('<-', '= ')
-        revised_text = match.groups()[1].strip()
-
-    if match is None:
-        python_assignment = r'^(.*?\=)(.*)'
-        match = re.match(python_assignment, text.strip(), flags=re.M | re.DOTALL)
-        if match and '(' not in match.groups()[0]:
-            assignment = match.groups()[0].strip()
-            revised_text = match.groups()[1].strip()
-        else:
-            # Ensure no 'assignment takes place
-            match = None
-
-    # 1. Split by newline
-    revised_text = revised_text.split('\n')
-    revised_text = [x.strip()+' ' for x in revised_text if x != '']
+    # 1. Split into a list by newline
+    text_as_list = revised_text.split('\n')
+    text_as_list = [x.strip()+' ' for x in text_as_list if x != '']
 
     # 2. Remove commented out lines (I think its safer in case variables contain '#'
-    revised_text = [x for x in revised_text if re.search('#', x) is None]
+    text_as_list = [x for x in text_as_list if re.search('#', x) is None]
 
     # 3. Combine text back into one text then split by pipe_symbol
-    revised_text = ''.join(revised_text).split(pipe_symbol)
+    revised_text = ''.join(text_as_list)
+    text_as_list = revised_text.split(pipe_symbol)
 
     # 4. Parse function and split out parameters
     # That is, look for a '(' that starts a line, capturing the parameters
     # and subsequent ending bracket in the second match group.
     regex = r'(^.*?\()?(.*)?'
-    revised_text = [re.search(regex, x.strip()).groups() for x in revised_text]
+    search_lambda = lambda x: re.search(regex, x.strip()).groups() # type: ignore
+
+    piped_list = [search_lambda(x) for x in text_as_list]
 
     # 5. Replace chosen pipe_symbol (e.g. >>) with '.pipe' chain function,
     # appending function + parameters
-    revised_stmt = [join_function_parms(idx, x) for idx, x in enumerate(revised_text)]
-    revised_stmt = ''.join(revised_stmt)
+    piped_list = [join_function_parms(ix, x) for ix, x in enumerate(piped_list)] # type: ignore
+    revised_stmt = ''.join(piped_list) # type: ignore
 
-    revised_stmt = revised_stmt.split('.pipe')
+    text_as_list = revised_stmt.split('.pipe')
     f = lambda ix, x: '\n.pipe'+x if ix > 0 else x
-    revised_stmt = '(' + ''.join([f(ix, x) for ix, x in enumerate(revised_stmt)]) + ')'
+    revised_stmt = '(' + ''.join([f(ix, x) for ix, x in enumerate(text_as_list)]) + ')'
 
     call_function = eval
-    if match:
+    if assignment != '':
         call_function = exec
         revised_stmt = assignment + revised_stmt
 
@@ -100,15 +126,48 @@ def pipe_parser(text, pipe_symbol=None, info=False, debug=False):
     return (revised_stmt, call_function)
 
 
-def join_function_parms(idx, value):
-    ''' join function with associated parameter values
+def check_assignment(text: str) -> Tuple[str, str]:
+    ''' Check if R or Pythonic assignment defined in text
+
 
     Parameters
     ----------
-    idx: (int) - list index currently being processed
+    text - text string to be parsed
 
-    value: (str) - function plus optional parameters to be joined
-                   to form .pipe() statement
+
+    Returns
+    -------
+    assignment - assignment expression
+
+    output_text - remaining text expression(s)
+
+    '''
+    assignment = ''
+    text_output = text
+
+    r_assignment = r'(?<=\<\-)'
+    match = re.search(fr'(.*){r_assignment}(.*)', text.strip(), flags=re.M | re.DOTALL)
+    if match:
+        assignment = match.groups()[0].strip().replace('<-', '= ')
+        text_output = match.groups()[1].strip()
+
+    if match is None:
+        python_assignment = r'^(.*?\=)(.*)'
+        match = re.match(python_assignment, text.strip(), flags=re.M | re.DOTALL)
+        if match and '(' not in match.groups()[0]:
+            assignment = match.groups()[0].strip()
+            text_output = match.groups()[1].strip()
+
+    return assignment, text_output
+
+
+def join_function_parms(idx: int, value: str) -> str:
+    ''' pipe_parser() - join function with associated parameters
+
+    Each statement within the pipeline is individually parsed into two sections:
+    - the function name
+    - the corresponding parameters
+
 
     Example
     -------
@@ -116,6 +175,18 @@ def join_function_parms(idx, value):
     result = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
     result
     > ['head(n=10)']
+
+
+    Parameters
+    ----------
+    idx: list index currently being processed
+
+    value: function + optional parameters required to form .pipe() statement
+
+
+    Returns
+    -------
+    piped functional statement
     '''
     if value[0] is None:
         return value[1]
