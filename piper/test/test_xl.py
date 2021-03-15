@@ -2,8 +2,8 @@ import pytest
 import json
 import pandas as pd
 from piper.xl import WorkBook
-from piper.test.factory import get_sample_orders_01
-from piper.test.factory import get_sample_orders_02
+from piper.factory import bad_quality_orders
+from piper.factory import xl_test_data
 from pathlib import Path
 
 
@@ -12,12 +12,12 @@ relative_folder = Path(__file__).parents[1] / 'temp/'
 
 @pytest.fixture
 def sample_orders_01():
-    return get_sample_orders_01()
+    return bad_quality_orders()
 
 
 @pytest.fixture
 def sample_orders_02():
-    return get_sample_orders_02()
+    return xl_test_data()
 
 
 def test_workbook_add_sheet_auto(sample_orders_01):

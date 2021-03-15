@@ -3,7 +3,7 @@ from piper.pandas import is_type
 from piper.pandas import read_sql
 from piper.verbs import count
 from piper.verbs import trim
-from piper.test.factory import get_sample_orders_01
+from piper.factory import bad_quality_orders
 from piper.test.factory import get_sample_df4
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
@@ -16,7 +16,7 @@ import pytest
 
 @pytest.fixture
 def sample_orders_01():
-    return get_sample_orders_01()
+    return bad_quality_orders()
 
 
 @pytest.fixture

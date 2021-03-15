@@ -1,12 +1,12 @@
 import pytest
 from piper.jde import add_jde_batch
-from piper.factory import get_sample_data
+from piper.factory import sample_data
 
 
 # sample_df1 {{{1
 @pytest.fixture
 def sample_df1():
-    return get_sample_data()
+    return sample_data()
 
 
 # test_add_jde_batch {{{1

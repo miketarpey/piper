@@ -35,19 +35,18 @@ from piper.verbs import tail
 from piper.verbs import to_tsv
 from piper.verbs import trim
 from piper.verbs import where
-from piper.test.factory import get_sample_orders_01
-from piper.factory import get_sample_data
-from piper.test.factory import dataframe_two_columns_five_rows
-from piper.test.factory import get_sample_df3
-from piper.test.factory import get_sample_df4
-from piper.test.factory import get_sample_df5
-from piper.test.factory import get_sample_df6
-from piper.test.factory import get_sample_df7
-from piper.test.factory import simple_series_01
+from piper.factory import bad_quality_orders
+from piper.factory import sample_data
+from piper.factory import two_columns_five_rows
+from piper.factory import get_sample_df3
+from piper.factory import get_sample_df4
+from piper.factory import get_sample_df5
+from piper.factory import get_sample_df6
+from piper.factory import get_sample_df7
+from piper.factory import simple_series_01
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
 import random
-import json
 import numpy as np
 import pandas as pd
 import pytest
@@ -55,17 +54,17 @@ import pytest
 # sample_orders_01 {{{1
 @pytest.fixture
 def sample_orders_01():
-    return get_sample_orders_01()
+    return bad_quality_orders()
 
 # sample_df1 {{{1
 @pytest.fixture
 def sample_df1():
-    return get_sample_data()
+    return sample_data()
 
 # t_dataframe_two_columns {{{1
 @pytest.fixture
-def t_dataframe_two_columns_five_rows():
-    return dataframe_two_columns_five_rows()
+def t_two_columns_five_rows():
+    return two_columns_five_rows()
 
 # sample_df3 {{{1
 @pytest.fixture
@@ -111,9 +110,9 @@ def get_column_list():
     return column_list
 
 # test_add_xl_formula {{{1
-def test_add_xl_formula(t_dataframe_two_columns_five_rows):
+def test_add_xl_formula(t_two_columns_five_rows):
 
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
 
     formula = '=CONCATENATE(A{row}, B{row}, C{row})'
     add_xl_formula(df, column_name='X7', formula=formula)
@@ -284,9 +283,9 @@ def test_clean_column_list_using_df_columns(get_column_list):
     assert expected == actual
 
 # test_columns_as_list {{{1
-def test_columns_dataframe(t_dataframe_two_columns_five_rows):
+def test_columns_dataframe(t_two_columns_five_rows):
 
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
 
     expected = ['ids', 'regions']
     actual = columns(df, astype='list')
@@ -306,9 +305,9 @@ def test_columns_dataframe(t_dataframe_two_columns_five_rows):
 
 
 # test_columns_as_series {{{1
-def test_columns_as_series(t_dataframe_two_columns_five_rows):
+def test_columns_as_series(t_two_columns_five_rows):
 
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
 
     expected = pd.Series(['ids', 'regions'], index=range(2), name='column_names')
     actual = columns(df, astype='series')
@@ -756,10 +755,10 @@ def test_head_with_series(t_simple_series_01):
 
 
 # test_head_with_dataframe {{{1
-def test_head_with_dataframe(t_dataframe_two_columns_five_rows):
+def test_head_with_dataframe(t_two_columns_five_rows):
     """
     """
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
 
     expected = (4, 2)
     actual = head(df).shape
@@ -972,10 +971,10 @@ def test_read_csv_with_data(sample_orders_01):
 
     assert expected == actual
 # test_relocate_no_column {{{1
-def test_relocate_no_column(t_dataframe_two_columns_five_rows):
+def test_relocate_no_column(t_two_columns_five_rows):
     """
     """
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
 
     with pytest.raises(KeyError):
         actual = relocate(df, column=None, loc='first')
@@ -996,10 +995,10 @@ def test_relocate_index(sample_df1):
 
 
 # test_relocate_single_column {{{1
-def test_relocate_single_column(t_dataframe_two_columns_five_rows):
+def test_relocate_single_column(t_two_columns_five_rows):
     """
     """
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
     df = relocate(df, 'regions', loc='first')
 
     expected = ['regions', 'ids']
@@ -1008,10 +1007,10 @@ def test_relocate_single_column(t_dataframe_two_columns_five_rows):
 
 
 # test_relocate_single_column_last_column {{{1
-def test_relocate_single_column_last_column(t_dataframe_two_columns_five_rows):
+def test_relocate_single_column_last_column(t_two_columns_five_rows):
     """
     """
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
     df = relocate(df, 'regions', loc='last')
 
     expected = ['ids', 'regions']
@@ -1379,10 +1378,10 @@ def test_tail_with_series(t_simple_series_01):
     assert expected == actual
 
 # test_tail_with_dataframe {{{1
-def test_tail_with_dataframe(t_dataframe_two_columns_five_rows):
+def test_tail_with_dataframe(t_two_columns_five_rows):
     """
     """
-    df = t_dataframe_two_columns_five_rows
+    df = t_two_columns_five_rows
 
     expected = (4, 2)
     actual = tail(df).shape
