@@ -6,57 +6,57 @@ logger = logging.getLogger(__name__)
 
 
 # shape() {{{1
-def shape(*args2, **kwargs2):
-    '''
-    shape decorator allows reporting of shape (rows, cols) info
-    when a pd.DataFrame object is returned from decorated function.
+def shape(trigger='after', keyword='shape', debug=False):
+    ''' Shape decorator [Experimental]
+    Shape decorator allows reporting of shape (rows, cols) info
+    within a decorated function.
+
+    If the decorated function has a keyword 'shape' specified then
+    the shape functionality is triggered. The shape function can be
+    invoked before or after the decorated function using the
+    trigger parameter.
+
 
     Parameters
     ----------
-    debug : False (default), True show keyword pair arguments
-                             and arguments (*kwargs, *args)
+    trigger: trigger action before or after decorated function invoked.
 
-    Example:
+    keyword: default 'shape'. keyword to trigger the decorated action/event.
 
-    @shape(debug=False)
-    def read_tsv(*args, **kwargs):
-
-        if kwargs == {}:
-            df = pd.read_csv(*args, sep='\t')
-        else:
-            kwargs.update({'sep':'\t'})
-            df = pd.read_csv(*args, **kwargs)
-
-        return df
-
-    read_tsv('inputs/20160321_01_A940_(cleaned).tsv').head(2)
-    INFO:__main__:rows, columns: (8620, 11)
+    debug: default False. True shows decorated *args, **kwargs
 
     '''
-    def outer_function(func):
+    def wrapper_function(func):
 
         @wraps(func)
-        def shape_deco(*args, **kwargs):
+        def decorated_function(*args, **kwargs):
 
-            if kwargs2 != {}:
-                if kwargs2['debug']:
-                    logger.info(f'Arguments for {args}')
-                    logger.info(f'Arguments for {kwargs}')
+            if debug == True:
+                logger.info(f'args: {args}')
+                logger.info(f'kwargs: {kwargs}')
+
+            if trigger == 'before':
+                if kwargs.get(keyword):
+                    _shape(args[0])
 
             result = func(*args, **kwargs)
 
-            if isinstance(result, pd.Series):
-                if kwargs2['debug']:
-                    logger.info(f'{func.__name__} -> {result.shape[0]} rows')
-                logger.info(f'{result.shape[0]} rows')
-
-            if isinstance(result, pd.DataFrame):
-                if kwargs2['debug']:
-                    logger.info(f'{func.__name__} -> {result.shape[0]} rows, {result.shape[1]} columns')
-                logger.info(f'{result.shape[0]} rows, {result.shape[1]} columns')
+            if trigger == 'after':
+                if kwargs.get(keyword):
+                    _shape(result)
 
             return result
 
-        return shape_deco
+        return decorated_function
 
-    return outer_function
+    return wrapper_function
+
+
+def _shape(df):
+    ''' show df.shape in logger output
+    '''
+    if isinstance(df, pd.Series):
+        logger.info(f'{df.shape[0]} rows')
+
+    if isinstance(df, pd.DataFrame):
+        logger.info(f'{df.shape[0]} rows, {df.shape[1]} columns')

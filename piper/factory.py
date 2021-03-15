@@ -7,9 +7,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_sample_data(start='2020', end='2021', freq='D', seed=30):
-    ''' NOTE:: This function for use when testing in notebooks
-                - nothing to do with PYTESTING
+# get_sample_data {{{1
+def get_sample_data(start: str = '2020',
+                    end: str = '2021',
+                    freq: str = 'D',
+                    seed: int = 30) -> pd.DataFrame:
+    ''' TEST - Regions, countries, dates, values
 
     Example
     -------
@@ -70,6 +73,7 @@ def get_sample_data(start='2020', end='2021', freq='D', seed=30):
     return df
 
 
+# get_sample_sales {{{1
 def get_sample_sales(number_of_rows = 200, year=2021, seed=42):
     '''
     Generate sales product test data for given year:
@@ -131,6 +135,7 @@ def get_sample_sales(number_of_rows = 200, year=2021, seed=42):
     return df
 
 
+# get_sample_matrix {{{1
 def get_sample_matrix(size=(5, 5), loc=10, scale=10, lowercase_cols=True, round=3, seed=None):
     ''' Generate sample data for given size (tuple)
 
@@ -184,7 +189,7 @@ def get_sample_matrix(size=(5, 5), loc=10, scale=10, lowercase_cols=True, round=
 
     return df
 
-
+# generate_periods {{{1
 def generate_periods(year=2021, month_range=(1, 12), delta_range=(1, 10), rows=20, seed=42):
     ''' Generate random effective and expired period pairs
 

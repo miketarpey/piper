@@ -3,7 +3,17 @@ import json
 import pandas as pd
 import numpy as np
 
+# simple_series_01 {{{1
+def simple_series_01():
+    ''' Simple series, one column of alphabetical values '''
+    np.random.seed(42)
 
+    id_list = ['A', 'B', 'C', 'D', 'E']
+    s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
+
+    return s1
+
+# get_sample_orders_01(): {{{1
 def get_sample_orders_01():
     '''
     Generate a dataset with a number of issues to be 'cleaned'.
@@ -73,6 +83,7 @@ def get_sample_orders_01():
     return df
 
 
+# get_sample_orders_02 {{{1
 def get_sample_orders_02():
     '''
     Generate a dataset with valid data for testing
@@ -128,62 +139,23 @@ def get_sample_orders_02():
     return df
 
 
-def get_sample_df1(start='2020', end='2021', freq='D', seed=30):
-    ''' Generate and return sample time series data
-    '''
-
-    if seed is not None:
-        np.random.seed(seed)
-
-    sample_period = pd.date_range(start=start, end=end, freq=freq)
-    len_period = len(sample_period)
-    dates = pd.Series(sample_period, name='dates')
-
-    order_year_offset = np.random.randint(1, 10)
-    order_dates = (pd.date_range(start=start, end=end, freq=freq)
-                     .shift(freq=freq, periods=np.random.randint(1, 30)))
-
-    values_1 = pd.Series(np.random.randint(low=10, high=400, size=len_period), name='values_1')
-    values_2 = pd.Series(np.random.randint(low=10, high=400, size=len_period), name='values_2')
-
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    ids = pd.Series(np.random.choice(id_list, size=len_period), name='ids')
-
-    region_list = ['East', 'West', 'North', 'South']
-    regions = pd.Series(np.random.choice(region_list, size=len_period), name='regions')
-
-    country_list = ['Germany', 'Italy', 'France', 'Spain', 'Sweden', 'Portugal', 'Norway', 'Switzerland']
-    countries = pd.Series(np.random.choice(country_list, size=len_period), name='countries')
-
-    data_dictionary = {
-        'dates': dates,
-        'order_dates': order_dates,
-        'countries': countries,
-        'regions': regions,
-        'ids': ids,
-        'values_1': values_1,
-        'values_2': values_2
-    }
-
-    df = pd.DataFrame(data_dictionary)
-
-    return df
 
 
-def get_sample_df2():
+# dataframe_two_columns_five_rows {{{1
+def dataframe_two_columns_five_rows():
 
     id_list = ['A', 'B', 'C', 'D', 'E']
     s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
 
     region_list = ['East', 'West', 'North', 'South']
-    s2 = pd.Series(np.random.choice(region_list, size=5),
-                   name='regions')
+    s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
 
     df = pd.concat([s1, s2], axis=1)
 
     return df
 
 
+# get_sample_df3 {{{1
 def get_sample_df3():
 
     id_list = ['A', 'B', 'C', 'D', 'E']
@@ -200,6 +172,7 @@ def get_sample_df3():
     return df
 
 
+# get_sample_df4 {{{1
 def get_sample_df4():
 
     dict_a = {'column_A': {'0': 'A100',  '1': 'A101',  '2': 'A101',
@@ -220,6 +193,7 @@ def get_sample_df4():
     return df, df2
 
 
+# get_sample_df5 {{{1
 def get_sample_df5():
 
     test = ''' {"bgy56icnt":{"0":"BE","1":"BE","2":"BE","3":"BE","4":"BE"},
@@ -231,6 +205,7 @@ def get_sample_df5():
     return df
 
 
+# get_sample_df6 {{{1
 def get_sample_df6():
 
     test = ''' {"column_A":{"0":"AA","1":"BB","2":"CC","3":"DD","4":"EE"},
@@ -244,6 +219,7 @@ def get_sample_df6():
     return df, df2
 
 
+# get_sample_df7 {{{1
 def get_sample_df7():
 
     test = ''' {"test_col": {

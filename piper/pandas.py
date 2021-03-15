@@ -197,6 +197,7 @@ def read_excels(source='inputs/',  glob_pattern='*.xls*', func=None,
 
     info - (bool) - Provide debugging information - default False
 
+
     Returns
     -------
     pd.DataFrame - pandas DataFrame
