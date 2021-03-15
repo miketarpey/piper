@@ -2,48 +2,70 @@ import pandas as pd
 import numpy as np
 from xlsxwriter.utility import xl_col_to_name
 import logging
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    Union,
+)
 
 
 logger = logging.getLogger(__name__)
 
 
 # get_sample_data {{{1
-def get_sample_data(start: str = '2020',
-                    end: str = '2021',
+def get_sample_data(start: int = 2020,
+                    end: int = 2021,
                     freq: str = 'D',
                     seed: int = 30) -> pd.DataFrame:
     ''' TEST - Regions, countries, dates, values
 
-    Example
-    -------
-    df = get_sample_data()
+    Usage example
+    -------------
+    get_sample_data().head()
+
+    | dates      | order_dates| countries| regions| ids|values_1 |values_2 |
+    |:-----------|:-----------|:---------|:-------|:---|--------:|--------:|
+    | 2020-01-01 | 2020-01-07 | Italy    | East   | A  |     311 |      26 |
+    | 2020-01-02 | 2020-01-08 | Portugal | South  | D  |     150 |     375 |
+    | 2020-01-03 | 2020-01-09 | Spain    | East   | A  |     396 |      88 |
+    | 2020-01-04 | 2020-01-10 | Italy    | East   | B  |     319 |     233 |
+    | 2020-01-05 | 2020-01-11 | Italy    | East   | D  |     261 |     187 |
 
 
     Parameters
     ----------
-    start: int - start year
+    start: start year
 
-    end: int - end year
+    end: end year
 
-    freq: str - frequency (default 'D' days)
+    freq: frequency (default 'D' days)
 
-    seed: int - random seed, default 42
+    seed: random seed, default 42
 
 
     Returns
     -------
-    Pandas Dataframe
+    A pandas Dataframe
     '''
 
     if seed is not None:
         np.random.seed(seed)
 
-    sample_period = pd.date_range(start=start, end=end, freq=freq)
+    sample_period = pd.date_range(start=str(start), end=str(end), freq=freq)
     len_period = len(sample_period)
     dates = pd.Series(sample_period, name='dates')
 
     order_year_offset = np.random.randint(1, 10)
-    order_dates = (pd.date_range(start=start, end=end, freq=freq)
+    order_dates = (pd.date_range(start=str(start), end=str(end), freq=freq)
                      .shift(freq=freq, periods=np.random.randint(1, 30)))
 
     values1 = pd.Series(np.random.randint(low=10, high=400, size=len_period), name='values_1')
@@ -74,16 +96,25 @@ def get_sample_data(start: str = '2020',
 
 
 # get_sample_sales {{{1
-def get_sample_sales(number_of_rows = 200, year=2021, seed=42):
-    '''
-    Generate sales product test data for given year:
+def get_sample_sales(number_of_rows: int = 200,
+                     year: int = 2021,
+                     seed: int = 42) -> pd.DataFrame:
+    ''' TEST - Generate sales product data
 
     location, product, month, target_sales,
     target_profit, actual_sales, actual profit.
 
     Example
     -------
-    df = get_sample_sales()
+    get_sample_sales().head()
+
+    | location| product   | month     |target_sales |target_profit |actual_sales |actual_profit |
+    |:--------|:----------|:----------|------------:|-------------:|------------:|-------------:|
+    | London  | Beachwear | 2021-01-01|       31749 |      1904.94 |     29209.1 |      1752.54 |
+    | London  | Beachwear | 2021-01-01|       37833 |      6053.28 |     34049.7 |      5447.95 |
+    | London  | Jeans     | 2021-01-01|       29485 |      4127.9  |     31549   |      4416.85 |
+    | London  | Jeans     | 2021-01-01|       37524 |      3752.4  |     40901.2 |      4090.12 |
+    | London  | Sportswear| 2021-01-01|       27216 |      4354.56 |     29121.1 |      4659.38 |
 
 
     Parameters
@@ -136,7 +167,12 @@ def get_sample_sales(number_of_rows = 200, year=2021, seed=42):
 
 
 # get_sample_matrix {{{1
-def get_sample_matrix(size=(5, 5), loc=10, scale=10, lowercase_cols=True, round=3, seed=None):
+def get_sample_matrix(size: Tuple = (5, 5),
+                      loc: int = 10,
+                      scale: int = 10,
+                      lowercase_cols: bool = True,
+                      round: int = 3,
+                      seed:int = 42) -> pd.DataFrame:
     ''' Generate sample data for given size (tuple)
 
     Draw random samples from a normal (Gaussian) distribution.
@@ -190,8 +226,20 @@ def get_sample_matrix(size=(5, 5), loc=10, scale=10, lowercase_cols=True, round=
     return df
 
 # generate_periods {{{1
-def generate_periods(year=2021, month_range=(1, 12), delta_range=(1, 10), rows=20, seed=42):
+def generate_periods(year: int = 2021,
+                     month_range: Tuple = (1, 12),
+                     delta_range: Tuple = (1, 10),
+                     rows: int = 20,
+                     seed: int = 42) -> pd.DataFrame:
     ''' Generate random effective and expired period pairs
+
+    Usage example
+    -------------
+    head(generate_periods(year=2022, rows=1))
+
+    effective	expired
+    2022-07-20	2022-07-28
+
 
     Parameters
     ----------
@@ -208,16 +256,7 @@ def generate_periods(year=2021, month_range=(1, 12), delta_range=(1, 10), rows=2
 
     Returns
     -------
-    dataframe containing generated effective and expired values.
-
-
-    Example
-    -------
-    head(generate_periods(year=2022, rows=1))
-
-    effective	expired
-    2022-07-20	2022-07-28
-
+    A pandas dataframe containing generated effective and expired values.
    '''
     def create_date(period):
         '''
