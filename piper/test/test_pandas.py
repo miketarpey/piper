@@ -1,16 +1,10 @@
 from piper.pandas import generate_summary_df
 from piper.pandas import is_type
 from piper.pandas import read_sql
-from piper.verbs import count
-from piper.verbs import trim
 from piper.factory import bad_quality_orders
-from piper.test.factory import get_sample_df4
+from piper.factory import get_sample_df4
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
-import random
-import json
-import numpy as np
-import pandas as pd
 import pytest
 
 

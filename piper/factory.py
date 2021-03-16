@@ -232,15 +232,18 @@ def generate_periods(year: int = 2021,
                      delta_range: Tuple = (1, 10),
                      rows: int = 20,
                      seed: int = 42) -> pd.DataFrame:
-    ''' Generate random effective and expired period pairs
+    ''' Generate random effective and expired period pair values
 
     Usage example
     -------------
-    head(generate_periods(year=2022, rows=1))
+    head(generate_periods(year=2022, rows=5))
 
-    effective	expired
-    2022-07-20	2022-07-28
-
+    | effective   | expired    |
+    |:------------|:-----------|
+    | 2022-07-07  | 2022-07-15 |
+    | 2022-04-26  | 2022-05-01 |
+    | 2022-11-19  | 2022-11-23 |
+    | 2022-08-23  | 2022-08-31 |
 
     Parameters
     ----------
@@ -257,7 +260,7 @@ def generate_periods(year: int = 2021,
 
     Returns
     -------
-    A pandas dataframe containing generated effective and expired values.
+    A pandas dataframe containing generated effective and expired pair values.
    '''
     def create_date(period):
         '''
@@ -287,6 +290,42 @@ def generate_periods(year: int = 2021,
     df = pd.concat([effective, expired], axis=1)
 
     return df
+
+
+# make_null_dates(): {{{1
+def make_null_dates(df: pd.DataFrame,
+                    cols: Union[str, List[str]] = ['effective', 'expired'],
+                    null_values_percent: float = .2,
+                    seed: int = 42) -> pd.DataFrame:
+    ''' Generate 'random' null, pd.NaT values
+
+    Parameters
+    ----------
+    df: pandas DataFrame
+
+    cols: column(s) within dataframe to generate random null values for
+
+    null_value_percent: % number of rows to generate null values
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    if seed:
+        np.random.seed(seed)
+
+    rows = df.shape[0]
+    percent_to_make_null = int(rows * null_values_percent)
+
+    for col in cols:
+
+        for row in np.random.randint(1, rows, percent_to_make_null):
+            df.loc[row, col] = pd.NaT
+
+    return df
+
+
 # bad_quality_orders(): {{{1
 def bad_quality_orders():
     '''

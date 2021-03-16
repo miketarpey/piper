@@ -3,316 +3,209 @@ import pandas as pd
 import numpy as np
 import datetime
 from time import strptime
-from piper.dates import to_date
+from piper.factory import generate_periods, make_null_dates
 from piper.dates import from_julian
+from piper.dates import fiscal_year
+from piper.dates import from_excel
 from piper.dates import to_julian
-from piper.dates import apply_date_function
+from piper.dates import apply_date
 
 
-def test_to_date_raise_column_parm_none_error():
+def test_apply_date_str_date_single_col_pd_to_datetime():
+    ''' '''
+    test = ['30/11/2019', '29/4/2019', '30/2/2019', '28/2/2019', '2019/4/30']
+    got = pd.DataFrame(test, columns=['dates'])
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+    # Convert expected values to datetime format
+    exp = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
+    exp = pd.DataFrame(exp, columns=['dates'])
+    exp.dates = exp.dates.astype('datetime64[ns]')
 
-    dates_list = [30112019, 2942019, 3022019, 2822019, 2019430]
-    df = pd.DataFrame(dates_list, columns=['test_dates'])
+    got = apply_date(got, 'dates', pd.to_datetime, format='%d/%m/%Y', errors='coerce')
 
-    convert_date = lambda x: pd.to_datetime(x, dayfirst=True,
-                                            format='%d%m%Y', errors='coerce')
+    assert exp.equals(got) == True
 
-    # Set parameter columns = None (will raise error)
-    with pytest.raises(Exception):
-        to_date(df, columns=None, function=convert_date) is None
 
+def test_apply_date_str_date_single_col_lambda():
+    ''' '''
+    convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
-def test_str_to_date():
+    test = [30112019, 2942019, 3022019, 2822019, 2019430]
+    got = pd.DataFrame(test, columns=['dates'])
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+    # Convert expected values to datetime format
+    exp = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
+    exp = pd.DataFrame(exp, columns=['dates'])
+    exp.dates = exp.dates.astype('datetime64[ns]')
 
-    dates_list = ['30/11/2019', '29/4/2019', '30/2/2019',
-                  '28/2/2019', '2019/4/30']
-    df_dates = pd.DataFrame(dates_list, columns=['test_dates'])
+    got = apply_date(got, 'dates', convert_date)
 
-    actual = to_date(df_dates, ['test_dates'], format='%d/%m/%Y',
-                     errors='coerce')
-    actual = pd.Series(actual.test_dates)
-    actual = actual.astype('datetime64[ns]')
+    assert exp.equals(got) == True
 
-    assert expected[1] == actual[1]
 
+def test_apply_date_raise_column_parm_none_ValueError():
 
-def test_to_date_from_julian():
+    convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
-    dates_list = ['23/05/2164', '30/07/2019']
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+    test = [30112019, 2942019, 3022019, 2822019, 2019430]
+    got = pd.DataFrame(test, columns=['dates'])
 
-    julian_dates = [264144, 119211]
-    df_dates = pd.DataFrame(julian_dates, columns=['test_dates'])
+    # Convert expected values to datetime format
+    exp = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
+    exp = pd.DataFrame(exp, columns=['dates'])
+    exp.dates = exp.dates.astype('datetime64[ns]')
 
-    actual = to_date(df_dates, ['test_dates'], function='from_julian')
-    actual = pd.Series(actual.test_dates)
-    actual = actual.astype('datetime64[ns]')
+    with pytest.raises(ValueError):
+        got = apply_date(got, columns=None, function=convert_date)
 
-    assert expected[0] == actual[0]
-    assert expected[1] == actual[1]
 
+def test_apply_date_raise_function_parm_none_ValueError():
 
-def test_to_date_to_julian():
+    convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
-    julian_dates = [264144, 119211]
-    expected = pd.DataFrame(julian_dates, columns=['test_dates'])
+    test = [30112019, 2942019, 3022019, 2822019, 2019430]
+    got = pd.DataFrame(test, columns=['dates'])
 
-    dates_list = ['23/05/2164', '30/07/2019']
-    df_dates = pd.DataFrame(dates_list, columns=['test_dates'])
+    # Convert expected values to datetime format
+    exp = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
+    exp = pd.DataFrame(exp, columns=['dates'])
+    exp.dates = exp.dates.astype('datetime64[ns]')
 
-    actual = to_date(df_dates, ['test_dates'], function='to_julian',
-                     format='%d/%m/%Y')
+    with pytest.raises(ValueError):
+        got = apply_date(got, columns='dates', function=None)
 
-    assert expected.loc[0, 'test_dates'] == actual.loc[0, 'test_dates']
-    assert expected.loc[1, 'test_dates'] == actual.loc[1, 'test_dates']
 
+def test_apply_date_raise_Series_parm_TypeError():
 
-def test_to_date_apply_function():
+    convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+    test = [30112019, 2942019, 3022019, 2822019, 2019430]
+    got = pd.DataFrame(test, columns=['dates'])
 
-    dates_list = [30112019, 2942019, 3022019, 2822019, 2019430]
-    df = pd.DataFrame(dates_list, columns=['test_dates'])
+    # Convert expected values to datetime format
+    exp = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
+    exp = pd.DataFrame(exp, columns=['dates'])
+    exp.dates = exp.dates.astype('datetime64[ns]')
 
-    convert_date = lambda x: pd.to_datetime(x, dayfirst=True,
-                                            format='%d%m%Y', errors='coerce')
+    with pytest.raises(TypeError):
+        got = apply_date(pd.Series(test), columns='dates', function=convert_date)
 
-    actual = to_date(df, ['test_dates'], function=convert_date)
 
-    actual = pd.Series(actual.test_dates)
-    actual = actual.astype('datetime64[ns]')
+def test_apply_date_raise_column_parm_ValueError():
 
-    assert expected[1] == actual[1]
+    convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
+    test = [30112019, 2942019, 3022019, 2822019, 2019430]
+    got = pd.DataFrame(test, columns=['dates'])
 
-def test_apply_date():
+    # Convert expected values to datetime format
+    exp = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
+    exp = pd.DataFrame(exp, columns=['dates'])
+    exp.dates = exp.dates.astype('datetime64[ns]')
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+    with pytest.raises(ValueError):
+        got = apply_date(got, columns='invalid', function=convert_date)
 
-    dates_list = [30112019, 2942019, 3022019, 2822019, 2019430]
-    df = pd.DataFrame(dates_list, columns=['test_dates'])
 
-    convert_date = lambda x: pd.to_datetime(x, dayfirst=True,
-                                            format='%d%m%Y', errors='coerce')
+def test_apply_date_dataframe_single_column_with_lambda():
 
-    # Set parameter columns != None (will convert specified columns)
-    actual = apply_date_function(df, columns=['test_dates'],
-                                 function=convert_date)
+    convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
 
-    actual = pd.Series(actual.test_dates)
-    actual = actual.astype('datetime64[ns]')
+    df = generate_periods(delta_range=(1, 10), rows=20)
+    df = make_null_dates(df, null_values_percent=.2)
 
-    assert expected[1] == actual[1]
+    exp = df.copy(deep=True)
+    exp.effective = exp.effective.apply(convert_date)
 
+    got = apply_date(df, columns='effective', function=convert_date)
 
-def test_apply_date_raise_column_parm_none_error():
+    assert exp.equals(got) == True
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
 
-    dates_list = [30112019, 2942019, 3022019, 2822019, 2019430]
-    df = pd.DataFrame(dates_list, columns=['test_dates'])
+def test_apply_date_dataframe_multiple_columns_with_lambda():
 
-    convert_date = lambda x: pd.to_datetime(x, dayfirst=True,
-                                            format='%d%m%Y', errors='coerce')
+    convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
 
-    # Set parameter columns = None (will raise error)
-    with pytest.raises(Exception):
-        apply_date_function(df, columns=None, function=convert_date) is None
+    df = generate_periods(delta_range=(1, 10), rows=20)
+    df = make_null_dates(df, null_values_percent=.2)
 
+    exp = df.copy(deep=True)
+    exp.effective = exp.effective.apply(convert_date)
+    exp.expired = exp.expired.apply(convert_date)
 
-def test_apply_date_raise_column_parm_invalid_colname_error():
+    got = apply_date(df, columns=['effective', 'expired'], function=convert_date)
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+    assert exp.equals(got) == True
 
-    dates_list = [30112019, 2942019, 3022019, 2822019, 2019430]
-    df = pd.DataFrame(dates_list, columns=['test_dates'])
 
-    convert_date = lambda x: pd.to_datetime(x, dayfirst=True,
-                                            format='%d%m%Y', errors='coerce')
+def test_apply_date_dataframe_multiple_columns_raise_invalid_column():
 
-    # Set parameter columns = None (will raise error)
-    with pytest.raises(Exception):
-        apply_date_function(df, columns=['invalid'],
-                            function=convert_date) is None
+    convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
 
+    df = generate_periods(delta_range=(1, 10), rows=20)
+    df = make_null_dates(df, null_values_percent=.2)
 
-def test_apply_date_raise_function_parm_none_error():
+    exp = df.copy(deep=True)
+    exp.effective = exp.effective.apply(convert_date)
+    exp.expired = exp.expired.apply(convert_date)
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+    with pytest.raises(ValueError):
+        got = apply_date(df, columns=['effective', 'invalid'], function=convert_date)
 
-    dates_list = [30112019, 2942019, 3022019, 2822019, 2019430]
-    df = pd.DataFrame(dates_list, columns=['test_dates'])
 
-    # Set parameter function = None (will raise error)
-    with pytest.raises(Exception):
-        apply_date_function(df, columns=['test_dates'], function=None) is None
+def test_from_julian_jde_format():
 
+    assert from_julian('093121') == datetime.date(1993, 5, 1)
+    assert from_julian('1234') == '1234'
+    assert from_julian('264144') == datetime.date(2164, 5, 23)
+    assert from_julian(264144) == datetime.date(2164, 5, 23)
+    assert from_julian(100001) == datetime.date(2000, 1, 1)
+    assert from_julian('117001') == datetime.date(2017, 1, 1)
+    assert from_julian('17001', jde_format=False) == datetime.date(2017, 1, 1)
+    assert from_julian(17001, jde_format=False) == datetime.date(2017, 1, 1)
+    assert from_julian(100001.0) == datetime.date(2000, 1, 1)
+    assert from_julian(None) == None
+    assert pd.isna(from_julian(np.nan)) == pd.isna(np.nan)
+    assert pd.isna(from_julian(pd.NaT)) == pd.isna(pd.NaT)
 
-def test_int_to_date():
 
-    dates_list = ['30/11/2019', '29/4/2019', pd.NaT, '28/2/2019', pd.NaT]
-    expected = pd.Series(dates_list).apply(pd.to_datetime)
-    expected = expected.astype('datetime64[ns]')
+def test_to_julian_jde_format():
 
-    dates_list = [30112019, 2942019, 3022019, 2822019, 2019430]
-    df_dates = pd.DataFrame(dates_list, columns=['test_dates'])
+    assert to_julian(pd.to_datetime('30/7/2019')) == 119211
+    assert to_julian(30072019, format='%d%m%Y') == 119211
+    assert to_julian('30/07/2019', format='%d/%m/%Y') == 119211
+    assert to_julian('2019/07/30', format='%Y/%m/%d') == 119211
+    assert to_julian('2019-07-30') == 119211
+    assert to_julian('30072019', format='%d%m%Y') == 119211
+    assert to_julian('--') == '--'
+    assert to_julian('') == ''
+    assert pd.isna(to_julian(np.nan)) == pd.isna(np.nan)
+    assert pd.isna(to_julian(pd.NaT)) == pd.isna(pd.NaT)
 
-    actual = to_date(df_dates, ['test_dates'], format='%d%m%Y',
-                     errors='coerce')
-    actual = pd.Series(actual.test_dates)
-    actual = actual.astype('datetime64[ns]')
 
-    assert expected[1] == actual[1]
+def test_from_excel_date():
 
+    assert from_excel(pd.Timestamp('2014-01-01 08:00:00')) == pd.Timestamp('2014-01-01 08:00:00')
+    assert from_excel('41640.3333') == pd.Timestamp('2014-01-01 08:00:00')
+    assert from_excel(41640.3333) == pd.Timestamp('2014-01-01 08:00:00')
+    assert from_excel(44001) == pd.Timestamp('2020-06-19 00:00:00')
+    assert from_excel('44001') == pd.Timestamp('2020-06-19 00:00:00')
+    assert from_excel(43141) == pd.Timestamp('2018-02-10 00:00:00')
+    assert from_excel('43962') == pd.Timestamp('2020-05-11 00:00:00')
+    assert from_excel('') == ''
+    assert from_excel(0) == 0
+    assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)
+    assert pd.isna(from_excel(pd.NaT)) == pd.isna(pd.NaT)
 
-def test_from_julian_with_value_less_than_six_chars():
 
-    expected = strptime('1/5/1993', '%d/%m/%Y')
-    expected = datetime.datetime(*expected[:6]).date()
-    actual = from_julian('93121')
 
-    assert expected == actual
+def test_fiscal_year():
 
+    assert fiscal_year(pd.Timestamp('2014-01-01')) == 'FY 2013/2014'
+    assert fiscal_year(pd.to_datetime('2014-01-01')) == 'FY 2013/2014'
 
-def test_from_julian_with_value_less_than_five_chars():
+    assert fiscal_year(pd.Timestamp('2014-01-01'), year_only=True) == 'FY 13/14'
+    assert fiscal_year(pd.to_datetime('2014-01-01'), year_only=True) == 'FY 13/14'
 
-    expected = '1234'
-    actual = from_julian('1234')
-
-    assert expected == actual
-
-
-def test_from_julian_with_string_value():
-
-    expected = datetime.date(2164, 5, 23)
-    actual = from_julian('264144')
-
-    assert expected == actual
-
-
-def test_from_julian_with_int_value():
-
-    expected = datetime.date(2164, 5, 23)
-    actual = from_julian(264144)
-
-    assert expected == actual
-
-    expected = datetime.date(2000, 1, 1)
-    actual = from_julian(100001)
-
-    assert expected == actual
-
-
-def test_from_julian_with_NaT():
-
-    expected = pd.NaT
-    actual = from_julian(pd.NaT)
-
-    assert pd.isnull(expected)
-    assert pd.isnull(actual)
-
-
-def test_from_julian_with_float_value():
-
-    expected = datetime.date(2164, 5, 23)
-    actual = from_julian(264144)
-
-    assert expected == actual
-
-    expected = datetime.date(2000, 1, 1)
-    actual = from_julian(100001.0)
-
-    assert expected == actual
-
-
-def test_from_julian_with_NaN():
-
-    # expected = np.nan
-    actual = from_julian(np.nan)
-
-    assert np.isnan(actual)
-
-
-def test_from_julian_with_None():
-
-    # expected = np.nan
-    actual = from_julian(None)
-
-    assert actual == None
-
-
-def test_from_julian_with_special_str_fmt():
-
-    expected = 'Jan 1, 2017'
-    # actual = from_julian('117001').strftime('%b %#d, %Y')
-    # linux version (leading zero)
-    actual = from_julian('117001').strftime('%b %-d, %Y')
-
-    assert expected == actual
-
-
-def test_to_julian_with_special_str_fmt():
-
-    expected = 119211
-    greg_str = '30/7/2019'
-    actual = to_julian(pd.to_datetime(greg_str))
-
-    assert expected == actual
-
-    greg_str = '30/7/2019'
-    actual = to_julian(greg_str, format='%d/%m/%Y')
-
-    assert expected == actual
-
-
-def test_to_julian_with_int_value():
-
-    expected = 119211
-
-    greg_str = 30072019
-    actual = to_julian(greg_str, format='%d%m%Y')
-
-    assert expected == actual
-
-
-def test_to_julian_with_strange_value():
-
-    expected = '--'
-    greg_str = '--'
-    actual = to_julian(greg_str, format='%d%m%Y')
-
-    assert expected == actual
-
-    expected = ''
-    greg_str = ''
-    actual = to_julian(greg_str, format='%d%m%Y')
-
-    assert expected == actual
-
-
-def test_to_julian_with_ValueError2():
-
-    greg_dt = None
-    greg_dt = ''
-
-    with pytest.raises(Exception):
-        assert to_julian(greg_dt)
+    assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)
+    assert pd.isna(from_excel(pd.NaT)) == pd.isna(pd.NaT)
