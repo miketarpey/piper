@@ -37,12 +37,13 @@ from piper.verbs import trim
 from piper.verbs import where
 from piper.factory import bad_quality_orders
 from piper.factory import sample_data
+from piper.factory import sample_sales
 from piper.factory import two_columns_five_rows
 from piper.factory import get_sample_df3
 from piper.factory import get_sample_df4
 from piper.factory import get_sample_df5
 from piper.factory import get_sample_df6
-from piper.factory import get_sample_df7
+from piper.factory import single_column_dataframe_messy_text
 from piper.factory import simple_series_01
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
@@ -56,9 +57,16 @@ import pytest
 def sample_orders_01():
     return bad_quality_orders()
 
-# sample_df1 {{{1
+
+# sample_sales {{{1
 @pytest.fixture
-def sample_df1():
+def t_sample_sales():
+    return sample_sales()
+
+
+# t_sample_data {{{1
+@pytest.fixture
+def t_sample_data():
     return sample_data()
 
 # t_dataframe_two_columns {{{1
@@ -86,10 +94,10 @@ def sample_df5():
 def sample_df6():
     return get_sample_df6()
 
-# sample_df7 {{{1
+# t_single_col_messy_text {{{1
 @pytest.fixture
-def sample_df7():
-    return get_sample_df7()
+def t_single_col_messy_text():
+    return single_column_dataframe_messy_text()
 
 
 # sample_s1 {{{1
@@ -103,9 +111,10 @@ def t_simple_series_01():
 def get_column_list():
     """ Column list for dataframe
     """
-    column_list = ['dupe**', 'Customer   ', 'Target-name   ', '     Public',
-                   '_  Material', 'Prod type', '#Effective     ',
-                   'Expired', 'Price%  ', 'Currency$']
+    column_list = ['dupe**', 'Customer   ', 'mdm no. to use',
+                   'Target-name   ', '     Public', '_  Material',
+                   'Prod type', '#Effective     ', 'Expired',
+                   'Price%  ', 'Currency$']
 
     return column_list
 
@@ -123,9 +132,9 @@ def test_add_xl_formula(t_two_columns_five_rows):
 
 
 # test_adorn_row_total {{{1
-def test_adorn_row_total(sample_df1):
+def test_adorn_row_total(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum'))
     df = adorn(df)
@@ -137,9 +146,9 @@ def test_adorn_row_total(sample_df1):
 
 
 # test_adorn_column_total {{{1
-def test_adorn_column_total(sample_df1):
+def test_adorn_column_total(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum'))
     df = adorn(df, axis = 'column')
@@ -151,9 +160,9 @@ def test_adorn_column_total(sample_df1):
 
 
 # test_adorn_with_ignore_row_index {{{1
-def test_adorn_row_with_ignore_row_index(sample_df1):
+def test_adorn_row_with_ignore_row_index(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum'))
     df = adorn(df, axis = 'row', ignore_row_index=True)
@@ -165,9 +174,9 @@ def test_adorn_row_with_ignore_row_index(sample_df1):
 
 
 # test_adorn_column_with_column_specified {{{1
-def test_adorn_column_with_column_specified(sample_df1):
+def test_adorn_column_with_column_specified(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum'))
     df = adorn(df, columns='total', axis = 'column')
@@ -178,9 +187,9 @@ def test_adorn_column_with_column_specified(sample_df1):
     assert expected == actual
 
 # test_adorn_column_with_column_list_specified {{{1
-def test_adorn_column_with_column_list_specified(sample_df1):
+def test_adorn_column_with_column_list_specified(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_1', 'sum'))
     df = assign(df, total2=lambda x: x.total * 10)
@@ -192,9 +201,9 @@ def test_adorn_column_with_column_list_specified(sample_df1):
     assert expected == actual
 
 # test_adorn_column_with_column_str_specified {{{1
-def test_adorn_column_with_column_str_specified(sample_df1):
+def test_adorn_column_with_column_str_specified(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_1', 'sum'))
     df = assign(df, total2=lambda x: x.total * 10)
@@ -207,10 +216,10 @@ def test_adorn_column_with_column_str_specified(sample_df1):
 
 
 # test_assign {{{1
-def test_assign(sample_df1):
+def test_assign(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = where(df, "ids == 'A'")
     df = where(df, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
     df = assign(df, new_field=lambda x: x.countries.str[:3]+x.regions,
@@ -223,10 +232,10 @@ def test_assign(sample_df1):
 
     assert expected == actual
 # test_assign_with_str_formulas {{{1
-def test_assign_with_str_formulas(sample_df1):
+def test_assign_with_str_formulas(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = where(df, "ids == 'A'")
     df = where(df, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
     df = assign(df, new_field='x.countries.str[:3]+x.regions',
@@ -240,10 +249,10 @@ def test_assign_with_str_formulas(sample_df1):
     assert expected == actual
 
 # test_assign_with_str_formulas_info {{{1
-def test_assign_with_str_formulas_info(sample_df1):
+def test_assign_with_str_formulas_info(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = where(df, "ids == 'A'")
     df = where(df, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
     df = assign(df, new_field='x.countries.str[:3]+x.regions',
@@ -260,7 +269,7 @@ def test_assign_with_str_formulas_info(sample_df1):
 def test_clean_column_list_using_list_and_title(get_column_list):
     """
     """
-    expected = ['Dupe', 'Customer', 'Target_Name', 'Public',
+    expected = ['Dupe', 'Customer', 'Mdm_No_To_Use', 'Target_Name', 'Public',
                 'Material', 'Prod_Type', 'Effective', 'Expired',
                 'Price', 'Currency']
 
@@ -273,7 +282,7 @@ def test_clean_column_list_using_list_and_title(get_column_list):
 def test_clean_column_list_using_df_columns(get_column_list):
     """
     """
-    expected = ['dupe', 'customer', 'target_name', 'public',
+    expected = ['dupe', 'customer', 'mdm_no_to_use', 'target_name', 'public',
                 'material', 'prod_type', 'effective', 'expired',
                 'price', 'currency']
 
@@ -281,6 +290,7 @@ def test_clean_column_list_using_df_columns(get_column_list):
 
     actual = clean_columns(dx).columns.tolist()
     assert expected == actual
+
 
 # test_columns_as_list {{{1
 def test_columns_dataframe(t_two_columns_five_rows):
@@ -316,7 +326,7 @@ def test_columns_as_series(t_two_columns_five_rows):
 
 
 # test_columns_as_regex {{{1
-def test_columns_as_regex(sample_df1):
+def test_columns_as_regex(t_sample_data):
 
     prices = {
         'prices': [100, 200, 300],
@@ -433,20 +443,20 @@ def test_count_with_total_percent_cum_percent(sample_df5):
 
 
 # test_count_with_cum_percent_with_threshold {{{1
-def test_count_with_cum_percent_with_threshold(sample_df1):
+def test_count_with_cum_percent_with_threshold(t_sample_data):
 
     expected = (6, 3)
 
-    df = count(sample_df1, 'countries', threshold = 80, cum_percent=True)
+    df = count(t_sample_data, 'countries', threshold = 80, cum_percent=True)
     actual = df.shape
 
     assert expected == actual
 
 
 # test_count_not_found_column {{{1
-def test_count_not_found_column(sample_df1):
+def test_count_not_found_column(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = None
     actual = count(df, 'invalid_column')
@@ -455,9 +465,9 @@ def test_count_not_found_column(sample_df1):
 
 
 # test_count_no_column {{{1
-def test_count_no_column(sample_df1):
+def test_count_no_column(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = (7, 3)
     actual = count(df).shape
@@ -466,9 +476,9 @@ def test_count_no_column(sample_df1):
 
 
 # test_count_column_reset_index_true {{{1
-def test_count_column_reset_index_true(sample_df1):
+def test_count_column_reset_index_true(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = (8, 4)
     actual = count(df, 'countries', reset_index=True).shape
@@ -477,9 +487,9 @@ def test_count_column_reset_index_true(sample_df1):
 
 
 # test_count_single_column {{{1
-def test_count_single_column(sample_df1):
+def test_count_single_column(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = (4, 3)
     actual = count(df, 'regions').shape
@@ -488,9 +498,9 @@ def test_count_single_column(sample_df1):
 
 
 # test_count_multi_column {{{1
-def test_count_multi_column(sample_df1):
+def test_count_multi_column(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     query = "regions == 'East' and countries.isin(['Italy'])"
     df = df.query(query)
@@ -502,9 +512,9 @@ def test_count_multi_column(sample_df1):
 
 
 # test_count_multi_column_with_percent {{{1
-def test_count_multi_column_with_percent(sample_df1):
+def test_count_multi_column_with_percent(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = df.query("regions == 'East' and countries.isin(['Italy'])")
     df = count(df, ['regions', 'countries'], percent=True, cum_percent=True)
 
@@ -515,9 +525,9 @@ def test_count_multi_column_with_percent(sample_df1):
 
 
 # test_count_multi_column_with_cum_percent_threshold {{{1
-def test_count_multi_column_with_cum_percent_threshold(sample_df1):
+def test_count_multi_column_with_cum_percent_threshold(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = df.query("regions == 'East'")
     df = count(df, ['regions', 'countries'],
                percent=True,
@@ -531,9 +541,9 @@ def test_count_multi_column_with_cum_percent_threshold(sample_df1):
 
 
 # test_distinct {{{1
-def test_distinct(sample_df1):
+def test_distinct(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, ['countries', 'regions', 'ids'])
     df = distinct(df, 'ids', shape=True)
 
@@ -544,10 +554,10 @@ def test_distinct(sample_df1):
 
 
 # test_drop {{{1
-def test_drop(sample_df1):
+def test_drop(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = drop(df, columns=['countries', 'regions'])
 
     expected = ['dates', 'order_dates', 'ids', 'values_1', 'values_2']
@@ -640,10 +650,10 @@ def test_duplicated_data_raise_col_position_error(sample_df5):
                           column_name='dupe', column_pos=6) is None
 
 # test_explode {{{1
-def test_explode(sample_df1):
+def test_explode(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, 'countries')
     df = summarise(df, ids=('ids', set))
 
@@ -654,10 +664,10 @@ def test_explode(sample_df1):
 
 
 # test_flatten_cols_no_index {{{1
-def test_flatten_cols_no_index(sample_df1):
+def test_flatten_cols_no_index(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_2', 'sum'))
     df = df.unstack()
@@ -676,10 +686,10 @@ def test_flatten_cols_no_index(sample_df1):
 
 
 # test_flatten_cols_keep_prefix {{{1
-def test_flatten_cols_keep_prefix(sample_df1):
+def test_flatten_cols_keep_prefix(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_2', 'sum'))
     df = df.unstack()
@@ -692,10 +702,10 @@ def test_flatten_cols_keep_prefix(sample_df1):
 
 
 # test_flatten_cols_lose_prefix {{{1
-def test_flatten_cols_lose_prefix(sample_df1):
+def test_flatten_cols_lose_prefix(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_2', 'sum'))
     df = df.unstack()
@@ -708,10 +718,10 @@ def test_flatten_cols_lose_prefix(sample_df1):
 
 
 # test_flatten_cols_remove_prefix {{{1
-def test_flatten_cols_remove_prefix(sample_df1):
+def test_flatten_cols_remove_prefix(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_2', 'sum'))
     df = df.unstack()
@@ -724,7 +734,7 @@ def test_flatten_cols_remove_prefix(sample_df1):
 
 
 # test_has_special_chars {{{1
-def test_non_alpha(sample_df1):
+def test_non_alpha(t_sample_data):
     """
     """
     np.random.seed(42)
@@ -765,10 +775,10 @@ def test_head_with_dataframe(t_two_columns_five_rows):
     assert expected == actual
 
 # test_head_with_columns_function {{{1
-def test_head_with_columns_function(sample_df1):
+def test_head_with_columns_function(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
 
     expected = (4, 4)
 
@@ -806,6 +816,87 @@ def test_info_with_na_cols(sample_df5):
     actual = info(df, fillna=True).shape
 
     assert expected == actual
+
+# test_order_by_single_col_ascending {{{1
+def test_order_by_single_col_ascending():
+
+    prices = {'prices': [100, 200, 300],
+              'contract': ['A', 'B', 'A'],
+              'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
+              'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
+
+    exp = 200
+
+    got = (pd.DataFrame(prices)
+             .pipe(group_by, 'contract')
+             .pipe(summarise, prices=('prices', 'sum'))
+             .pipe(order_by, by='prices').iloc[0, 0])
+
+    assert exp == got
+
+
+# test_order_by_single_col_descending {{{1
+def test_order_by_single_col_descending():
+
+    prices = {'prices': [100, 200, 300],
+              'contract': ['A', 'B', 'A'],
+              'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
+              'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
+
+    exp = 400
+
+    got = (pd.DataFrame(prices)
+             .pipe(group_by, 'contract')
+             .pipe(summarise, prices=('prices', 'sum'))
+             .pipe(order_by, '-prices').iloc[0, 0])
+
+    assert exp == got
+
+
+# test_order_by_multi_col_descending {{{1
+def test_order_by_multi_col_descending(t_sample_sales):
+
+    exp = 404440.24
+
+    df = (t_sample_sales
+          .pipe(group_by, ['location', 'product'])
+          .pipe(summarise, TotalSales=('actual_sales', 'sum'))
+          .pipe(order_by, ['location', '-TotalSales']))
+
+    got = df.loc[('London', slice(None)), 'TotalSales'][0]
+
+    assert exp == got
+
+
+# test_order_by_multi_col_ascending_by_keyword {{{1
+def test_order_by_multi_col_ascending_by_keyword(t_sample_sales):
+
+    exp = 274674.0
+
+    df = (t_sample_sales
+          .pipe(group_by, ['location', 'product'])
+          .pipe(summarise, TotalSales=('actual_sales', 'sum'))
+          .pipe(order_by, by=['location', 'TotalSales']))
+
+    got = df.loc[('London', slice(None)), 'TotalSales'][0]
+
+    assert exp == got
+
+
+# test_order_by_multi_col_ascending_without_keyword {{{1
+def test_order_by_multi_col_ascending_without_keyword(t_sample_sales):
+
+    exp = 274674.0
+
+    df = (t_sample_sales
+          .pipe(group_by, ['location', 'product'])
+          .pipe(summarise, TotalSales=('actual_sales', 'sum'))
+          .pipe(order_by, ['location', 'TotalSales']))
+
+    got = df.loc[('London', slice(None)), 'TotalSales'][0]
+
+    assert exp == got
+
 
 # test_overlaps {{{1
 def test_overlaps():
@@ -854,11 +945,11 @@ def test_overlaps_unique_key_list():
 
 
 # test_pivot_table {{{1
-def test_pivot_table(sample_df1):
+def test_pivot_table(t_sample_data):
     """
     """
 
-    df = sample_df1
+    df = t_sample_data
 
     pv = pivot_table(df, index=['countries', 'regions'], values='values_1')
     pv.rename(columns={'values_1': 'totals'}, inplace=True)
@@ -869,11 +960,11 @@ def test_pivot_table(sample_df1):
     assert expected == actual
 
 # test_pivot_table_sort_ascending_false {{{1
-def test_pivot_table_sort_ascending_false(sample_df1):
+def test_pivot_table_sort_ascending_false(t_sample_data):
     """
     """
 
-    df = sample_df1
+    df = t_sample_data
 
     pv = pivot_table(df, index=['countries'], values='values_1')
     pv.sort_values(by='values_1', ascending=False, inplace=True)
@@ -884,12 +975,12 @@ def test_pivot_table_sort_ascending_false(sample_df1):
     assert expected == actual
 
 # test_pivot_name_error {{{1
-def test_pivot_name_error(sample_df1):
+def test_pivot_name_error(t_sample_data):
     """
     Should send log message regarding invalid key/name
     pv object should be None and generate KeyError
     """
-    df = sample_df1
+    df = t_sample_data
 
     with pytest.raises(KeyError):
         pv = pivot_table(df, index=['countries_wrong_name'], values='values_1')
@@ -897,11 +988,11 @@ def test_pivot_name_error(sample_df1):
         pv.shape
 
 # test_pivot_percent_calc {{{1
-def test_pivot_percent_calc(sample_df1):
+def test_pivot_percent_calc(t_sample_data):
     """
     """
 
-    df = sample_df1
+    df = t_sample_data
 
     pv = pivot_table(df, index=['countries', 'regions'], values='values_1')
     pv.rename(columns={'values_1': 'totals'}, inplace=True)
@@ -914,10 +1005,10 @@ def test_pivot_percent_calc(sample_df1):
     assert expected == actual
 
 # test_pivot_cum_percent_calc {{{1
-def test_pivot_cum_percent_calc(sample_df1):
+def test_pivot_cum_percent_calc(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
 
     pv = pivot_table(df, index=['countries', 'regions'], values='values_1')
     pv.rename(columns={'values_1': 'totals'}, inplace=True)
@@ -932,10 +1023,10 @@ def test_pivot_cum_percent_calc(sample_df1):
 
 
 # test_pivot_table_multi_grouper {{{1
-def test_pivot_table_multi_grouper(sample_df1):
+def test_pivot_table_multi_grouper(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
 
     p2 = pivot_table(df, index=['dates', 'order_dates',
                                 'regions', 'ids'],
@@ -946,10 +1037,10 @@ def test_pivot_table_multi_grouper(sample_df1):
 
 
 # test_pivot_table_single_grouper {{{1
-def test_pivot_table_single_grouper(sample_df1):
+def test_pivot_table_single_grouper(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
 
     p2 = pivot_table(df, index=['dates', 'regions', 'ids'],
                      freq='Q', format_date=True)
@@ -981,10 +1072,10 @@ def test_relocate_no_column(t_two_columns_five_rows):
 
 
 # test_relocate_index {{{1
-def test_relocate_index(sample_df1):
+def test_relocate_index(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = df.set_index(['countries', 'regions'])
     df = relocate(df, 'regions', loc='first', index=True)
 
@@ -1019,10 +1110,10 @@ def test_relocate_single_column_last_column(t_two_columns_five_rows):
 
 
 # test_relocate_multi_column_first {{{1
-def test_relocate_multi_column_first(sample_df1):
+def test_relocate_multi_column_first(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = relocate(df, ['dates', 'regions', 'countries'], loc='first')
 
     expected = ['dates', 'regions', 'countries', 'order_dates',
@@ -1032,10 +1123,10 @@ def test_relocate_multi_column_first(sample_df1):
     assert expected == actual
 
 # test_relocate_multi_column_last {{{1
-def test_relocate_multi_column_last(sample_df1):
+def test_relocate_multi_column_last(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = relocate(df, ['dates', 'regions', 'countries'], loc='last')
 
     expected = ['order_dates', 'ids', 'values_1', 'values_2',
@@ -1044,10 +1135,10 @@ def test_relocate_multi_column_last(sample_df1):
     assert expected == actual
 
 # test_relocate_multi_column_before {{{1
-def test_relocate_multi_column_before(sample_df1):
+def test_relocate_multi_column_before(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = relocate(df, ['dates', 'regions', 'countries'], loc='before',
                 ref_column='values_1')
 
@@ -1057,10 +1148,10 @@ def test_relocate_multi_column_before(sample_df1):
     assert expected == actual
 
 # test_relocate_multi_column_after {{{1
-def test_relocate_multi_column_after(sample_df1):
+def test_relocate_multi_column_after(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = relocate(df, ['dates', 'regions', 'countries'], loc='after',
                 ref_column='order_dates')
 
@@ -1071,10 +1162,10 @@ def test_relocate_multi_column_after(sample_df1):
 
 
 # test_relocate_multi_column_after {{{1
-def test_relocate_index_column_after(sample_df1):
+def test_relocate_index_column_after(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df = df.set_index(['countries', 'regions'])
     df = relocate(df, column='countries', loc='after', ref_column='regions')
 
@@ -1085,7 +1176,7 @@ def test_relocate_index_column_after(sample_df1):
 
 
 # test_rename {{{1
-def test_rename(sample_df1):
+def test_rename(t_sample_data):
     """
     """
 
@@ -1093,7 +1184,7 @@ def test_rename(sample_df1):
                 'regions', 'ids', 'values_1',
                 'values_2']
 
-    df = sample_df1
+    df = t_sample_data
     df = rename(df, columns={'dates': 'trans_dt'})
     actual = df.columns.to_list()
 
@@ -1101,13 +1192,13 @@ def test_rename(sample_df1):
 
 
 # test_rename_axis {{{1
-def test_rename_axis(sample_df1):
+def test_rename_axis(t_sample_data):
     """
     """
 
     expected = ['AAA', 'BBB']
 
-    df = sample_df1
+    df = t_sample_data
     df = pivot_table(df, index=['countries', 'regions'], values='values_1')
     df = rename_axis(df, mapper=('AAA', 'BBB'), axis='rows')
     actual = df.index.names
@@ -1116,10 +1207,10 @@ def test_rename_axis(sample_df1):
 
 
 # test_resample_groupby {{{1
-def test_resample_groupby(sample_df1):
+def test_resample_groupby(t_sample_data):
     """ """
 
-    df = sample_df1
+    df = t_sample_data
 
     g1 = group_by(df, by=['dates'], freq='Q').sum()
     g1 = fmt_dateidx(g1, freq='Q')
@@ -1192,10 +1283,10 @@ def test_sample_series(t_simple_series_01):
 
 
 # test_sample_dataframe {{{1
-def test_sample_dataframe(sample_df1):
+def test_sample_dataframe(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
 
     expected = (2, 7)
     actual = sample(df, random_state=42).shape
@@ -1204,9 +1295,9 @@ def test_sample_dataframe(sample_df1):
 
 
 # test_select_no_parms {{{1
-def test_select_no_parms(sample_df1):
+def test_select_no_parms(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df)
 
     expected = ['dates', 'order_dates', 'countries',
@@ -1218,9 +1309,9 @@ def test_select_no_parms(sample_df1):
 
 
 # test_select_str_with_regex {{{1
-def test_select_str_with_regex(sample_df1):
+def test_select_str_with_regex(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, 'values', regex=True)
 
     expected = ['values_1', 'values_2']
@@ -1231,9 +1322,9 @@ def test_select_str_with_regex(sample_df1):
 
 
 # test_select_slice {{{1
-def test_select_slice(sample_df1):
+def test_select_slice(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, slice('countries', 'values_1'))
 
     expected = ['countries', 'regions', 'ids', 'values_1']
@@ -1244,9 +1335,9 @@ def test_select_slice(sample_df1):
 
 
 # test_select_column_list {{{1
-def test_select_column_list(sample_df1):
+def test_select_column_list(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, ['order_dates'])
 
     expected = ['order_dates']
@@ -1256,9 +1347,9 @@ def test_select_column_list(sample_df1):
 
 
 # test_select_columns_list {{{1
-def test_select_columns_list(sample_df1):
+def test_select_columns_list(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, ['order_dates', 'countries'])
 
     expected = ['order_dates', 'countries']
@@ -1267,9 +1358,9 @@ def test_select_columns_list(sample_df1):
     assert expected == actual
 
 # test_select_column_str {{{1
-def test_select_column_str(sample_df1):
+def test_select_column_str(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, 'order_dates')
 
     expected = ['order_dates']
@@ -1280,9 +1371,9 @@ def test_select_column_str(sample_df1):
 
 
 # test_select_excluding_column_str {{{1
-def test_select_excluding_column_str(sample_df1):
+def test_select_excluding_column_str(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, '-order_dates')
 
     expected = ['dates', 'countries', 'regions',
@@ -1294,9 +1385,9 @@ def test_select_excluding_column_str(sample_df1):
 
 
 # test_select_excluding_column_list {{{1
-def test_select_excluding_column_list(sample_df1):
+def test_select_excluding_column_list(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, ['-order_dates'])
 
     expected = ['dates', 'countries', 'regions',
@@ -1308,9 +1399,9 @@ def test_select_excluding_column_list(sample_df1):
 
 
 # test_select_columns {{{1
-def test_select_columns(sample_df1):
+def test_select_columns(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
     df = select(df, ['dates', 'order_dates'])
 
     expected = ['dates', 'order_dates']
@@ -1320,9 +1411,9 @@ def test_select_columns(sample_df1):
 
 
 # test_select_invalid_column {{{1
-def test_select_invalid_column(sample_df1):
+def test_select_invalid_column(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = None
     actual = select(df, 'AAA')
@@ -1346,9 +1437,9 @@ def test_set_columns():
 
 
 # test_summarise_default{{{1
-def test_summarise_default(sample_df1):
+def test_summarise_default(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = (7, 2)
     actual = summarise(df)
@@ -1357,9 +1448,9 @@ def test_summarise_default(sample_df1):
 
 
 # test_summarise_value {{{1
-def test_summarise_value(sample_df1):
+def test_summarise_value(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = (1, )
     actual = summarise(df, {'values_1': 'sum'})
@@ -1404,7 +1495,7 @@ def test_to_tsv_with_data(sample_orders_01):
 
 
 # test_transform {{{1
-def test_transform(sample_df1):
+def test_transform(t_sample_data):
     """
 
 
@@ -1412,7 +1503,7 @@ def test_transform(sample_df1):
 
     index = ['countries', 'regions']
     cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
-    df = sample_df1[cols]
+    df = t_sample_data[cols]
 
     gx = transform(df, index=index, g_perc=('values_2', 'percent'))
     gx = transform(df, index=index, total_group_value=('values_2', 'sum'))
@@ -1426,13 +1517,13 @@ def test_transform(sample_df1):
 
 
 # test_transform_with_sort {{{1
-def test_transform_with_sort(sample_df1):
+def test_transform_with_sort(t_sample_data):
     """
     """
 
     index = ['countries', 'regions']
     cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
-    df = sample_df1[cols]
+    df = t_sample_data[cols]
 
     gx = transform(df, index=index, g_perc=('values_2', 'percent'))
     gx = transform(df, index=index, total_group_value=('values_2', 'sum'))
@@ -1446,12 +1537,12 @@ def test_transform_with_sort(sample_df1):
 
 
 # test_transform_custom_function {{{1
-def test_transform_custom_function(sample_df1):
+def test_transform_custom_function(t_sample_data):
     """
     """
     index = ['countries', 'regions']
     cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
-    df = sample_df1[cols]
+    df = t_sample_data[cols]
 
     gx = transform(df, index=index, g_perc=('values_2', 'percent'))
     gx = transform(df, index=index, total_group_value=('values_2', lambda x: x.sum()))
@@ -1465,10 +1556,10 @@ def test_transform_custom_function(sample_df1):
 
 
 # test_trim_blanks {{{1
-def test_trim_blanks(sample_df7):
+def test_trim_blanks(t_single_col_messy_text):
     """
     """
-    df = sample_df7
+    df = t_single_col_messy_text
 
     df['test_col'] = (df['test_col'].str.replace(r'(\w)\s+(\w)', r'\1 \2', regex=True)
                                     .str.title())
@@ -1488,10 +1579,10 @@ def test_trim_blanks(sample_df7):
     assert expected == actual
 
 # test_trim_blanks_duplicate_column_name {{{1
-def test_trim_blanks_duplicate_column_name(sample_df1):
+def test_trim_blanks_duplicate_column_name(t_sample_data):
     """
     """
-    df = sample_df1
+    df = t_sample_data
     df.columns = ['dates', 'order_dates', 'regions', 'regions', 'ids', 'values_1', 'values_2']
 
     df2 = trim(df)
@@ -1501,9 +1592,9 @@ def test_trim_blanks_duplicate_column_name(sample_df1):
     assert expected == actual
 
 # test_where {{{1
-def test_where(sample_df1):
+def test_where(t_sample_data):
 
-    df = sample_df1
+    df = t_sample_data
 
     expected = (1, 7)
     actual = where(df, """regions == 'East' and countries == 'Spain' and values_1 == 29""")

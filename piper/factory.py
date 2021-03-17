@@ -541,8 +541,8 @@ def get_sample_df6():
     return df, df2
 
 
-# get_sample_df7 {{{1
-def get_sample_df7():
+# single_column_dataframe_messy_text {{{1
+def single_column_dataframe_messy_text():
 
     test = ''' {"test_col": {
             "0": "First                        row",

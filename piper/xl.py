@@ -73,7 +73,7 @@ class WorkBook():
     # Create an Excel workbook, with worksheet containing
     # conditional formatting -> see ?WorkBook.add_condition for more details.
 
-    %run ../src/defaults.py
+    %%piper
     import pandas as pd
 
     data = {'Name':['Tom', 'nick', 'krish', 'jack'], 'Age':[20, 21, 19, 18]}

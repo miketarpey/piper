@@ -18,52 +18,31 @@ def sample_df4():
     return get_sample_df4()
 
 
+@pytest.fixture
+def sql():
+    return ''' select * from eudta.f0006 where rownum=1'''
+
+
 # test_read_sql_valid_info_true {{{1
 @pytest.mark.skip(reason="no way of currently testing this")
-def test_read_sql_valid_info_true():
+def test_read_sql_valid_info_true(sql):
     """
     """
     env = 'JDE9E2P'
     con, schema, schema_ctl = connect(env)
-
-    sql = ''' select * from eudta.f0006 where rownum=1'''
-    df = read_sql(sql, sql_info=False, con=con, info=True)
-
-    expected = (1, 152)
-    actual = df.shape
-    assert expected == actual
+    df = read_sql(sql, sql_info=True, con=con, info=False)
+    assert (1, 152) == df.shape
 
 
 # test_read_sql_valid_info_false
 @pytest.mark.skip(reason="no way of currently testing this")
-def test_read_sql_valid_info_false():
+def test_read_sql_valid_info_false(sql):
     """
     """
     env = 'JDE9E2P'
     con, schema, schema_ctl = connect(env)
-
-    sql = ''' select * from eudta.f0006 where rownum=1'''
-    df = read_sql(sql, sql_info=True, con=con, info=False)
-
-    expected = (1, 152)
-    actual = df.shape
-    assert expected == actual
-
-
-# test_read_sql_valid_sql_info_true
-@pytest.mark.skip(reason="no way of currently testing this")
-def test_read_sql_valid_sql_info_true():
-    """
-    """
-    env = 'JDE9E2P'
-    con, schema, schema_ctl = connect(env)
-
-    sql = ''' select * from eudta.f0006 where rownum=1'''
-    df = read_sql(sql, sql_info=True, con=con, info=True)
-
-    expected = (1, 152)
-    actual = df.shape
-    assert expected == actual
+    df = read_sql(sql, sql_info=False, con=con, info=True)
+    assert (1, 152) == df.shape
 
 
 # test_istype_int {{{1

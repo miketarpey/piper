@@ -604,20 +604,23 @@ def clean_columns(df: pd.DataFrame,
     from_char, to_char = replace_char
     columns = [x.strip().lower() for x in df.columns]
 
-    # Remove special chars
+    # Remove special chars at the beginning and end of column names
     special_chars = r'[\.\*\#\%\$\-\_]+'
     columns = [re.sub(f'^{special_chars}', '', x) for x in columns]
     columns = [re.sub(f'{special_chars}$', '', x) for x in columns]
 
-    # Any special characters in the middle of words, replace with blank
+    # Any embedded special characters in the middle of words, replace with a blank
     columns = [re.sub(f'{special_chars}', ' ', x) for x in columns]
 
-    # All special chars should now be removed, except for embedded spaces
-    # Now let's replace them with a single replacement 'to_char' value.
-    columns = [re.sub('\s+', to_char, x) for x in columns]
+    # All special chars should now be removed, except for to_char perhaps
+    # and embedded spaces.
+    columns = [re.sub(f'{to_char}+', ' ', x) for x in columns]
 
-    # lowercase as default
+    # Strip and lowercase as default
     columns = [x.strip().lower() for x in columns]
+
+    # Replace any remaining embedded blanks with single replacement 'to_char' value.
+    columns = [re.sub('\s+', to_char, x) for x in columns]
 
     columns = [re.sub(from_char, to_char, x) for x in columns]
 
@@ -2368,6 +2371,7 @@ def to_parquet(df: pd.DataFrame, *args, **kwargs) -> None:
     '''
 
     return df.to_parquet(*args, **kwargs)
+
 
 # to_excel() {{{1
 def to_excel(df: pd.DataFrame,

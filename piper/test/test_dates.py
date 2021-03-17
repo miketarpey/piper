@@ -11,6 +11,7 @@ from piper.dates import to_julian
 from piper.verbs import across
 
 
+# test_across_str_date_single_col_pd_to_datetime {{{1
 def test_across_str_date_single_col_pd_to_datetime():
     ''' '''
     test = ['30/11/2019', '29/4/2019', '30/2/2019', '28/2/2019', '2019/4/30']
@@ -26,6 +27,7 @@ def test_across_str_date_single_col_pd_to_datetime():
     assert exp.equals(got) == True
 
 
+# test_across_str_date_single_col_lambda {{{1
 def test_across_str_date_single_col_lambda():
     ''' '''
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
@@ -43,6 +45,7 @@ def test_across_str_date_single_col_lambda():
     assert exp.equals(got) == True
 
 
+# test_across_raise_column_parm_none_ValueError {{{1
 def test_across_raise_column_parm_none_ValueError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
@@ -59,6 +62,7 @@ def test_across_raise_column_parm_none_ValueError():
         got = across(got, columns=None, function=convert_date)
 
 
+# test_across_raise_function_parm_none_ValueError {{{1
 def test_across_raise_function_parm_none_ValueError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
@@ -75,6 +79,7 @@ def test_across_raise_function_parm_none_ValueError():
         got = across(got, columns='dates', function=None)
 
 
+# test_across_raise_Series_parm_TypeError {{{1
 def test_across_raise_Series_parm_TypeError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
@@ -91,6 +96,7 @@ def test_across_raise_Series_parm_TypeError():
         got = across(pd.Series(test), columns='dates', function=convert_date)
 
 
+# test_across_raise_column_parm_ValueError {{{1
 def test_across_raise_column_parm_ValueError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
@@ -107,6 +113,7 @@ def test_across_raise_column_parm_ValueError():
         got = across(got, columns='invalid', function=convert_date)
 
 
+# test_across_dataframe_single_column_with_lambda {{{1
 def test_across_dataframe_single_column_with_lambda():
 
     convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
@@ -122,6 +129,7 @@ def test_across_dataframe_single_column_with_lambda():
     assert exp.equals(got) == True
 
 
+# test_across_dataframe_multiple_columns_with_lambda {{{1
 def test_across_dataframe_multiple_columns_with_lambda():
 
     convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
@@ -138,6 +146,7 @@ def test_across_dataframe_multiple_columns_with_lambda():
     assert exp.equals(got) == True
 
 
+# test_across_dataframe_multiple_columns_raise_invalid_column {{{1
 def test_across_dataframe_multiple_columns_raise_invalid_column():
 
     convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
@@ -153,6 +162,7 @@ def test_across_dataframe_multiple_columns_raise_invalid_column():
         got = across(df, columns=['effective', 'invalid'], function=convert_date)
 
 
+# test_from_julian_jde_format {{{1
 def test_from_julian_jde_format():
 
     assert from_julian('093121') == datetime.date(1993, 5, 1)
@@ -169,6 +179,7 @@ def test_from_julian_jde_format():
     assert pd.isna(from_julian(pd.NaT)) == pd.isna(pd.NaT)
 
 
+# test_to_julian_jde_format {{{1
 def test_to_julian_jde_format():
 
     assert to_julian(pd.to_datetime('30/7/2019')) == 119211
@@ -183,6 +194,7 @@ def test_to_julian_jde_format():
     assert pd.isna(to_julian(pd.NaT)) == pd.isna(pd.NaT)
 
 
+# test_from_excel_date {{{1
 def test_from_excel_date():
 
     assert from_excel(pd.Timestamp('2014-01-01 08:00:00')) == pd.Timestamp('2014-01-01 08:00:00')
@@ -199,6 +211,7 @@ def test_from_excel_date():
 
 
 
+# test_fiscal_year {{{1
 def test_fiscal_year():
 
     assert fiscal_year(pd.Timestamp('2014-01-01')) == 'FY 2013/2014'
