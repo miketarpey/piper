@@ -8,10 +8,10 @@ from piper.dates import from_julian
 from piper.dates import fiscal_year
 from piper.dates import from_excel
 from piper.dates import to_julian
-from piper.dates import apply_date
+from piper.verbs import across
 
 
-def test_apply_date_str_date_single_col_pd_to_datetime():
+def test_across_str_date_single_col_pd_to_datetime():
     ''' '''
     test = ['30/11/2019', '29/4/2019', '30/2/2019', '28/2/2019', '2019/4/30']
     got = pd.DataFrame(test, columns=['dates'])
@@ -21,12 +21,12 @@ def test_apply_date_str_date_single_col_pd_to_datetime():
     exp = pd.DataFrame(exp, columns=['dates'])
     exp.dates = exp.dates.astype('datetime64[ns]')
 
-    got = apply_date(got, 'dates', pd.to_datetime, format='%d/%m/%Y', errors='coerce')
+    got = across(got, 'dates', pd.to_datetime, format='%d/%m/%Y', errors='coerce')
 
     assert exp.equals(got) == True
 
 
-def test_apply_date_str_date_single_col_lambda():
+def test_across_str_date_single_col_lambda():
     ''' '''
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
@@ -38,12 +38,12 @@ def test_apply_date_str_date_single_col_lambda():
     exp = pd.DataFrame(exp, columns=['dates'])
     exp.dates = exp.dates.astype('datetime64[ns]')
 
-    got = apply_date(got, 'dates', convert_date)
+    got = across(got, 'dates', convert_date)
 
     assert exp.equals(got) == True
 
 
-def test_apply_date_raise_column_parm_none_ValueError():
+def test_across_raise_column_parm_none_ValueError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
@@ -56,10 +56,10 @@ def test_apply_date_raise_column_parm_none_ValueError():
     exp.dates = exp.dates.astype('datetime64[ns]')
 
     with pytest.raises(ValueError):
-        got = apply_date(got, columns=None, function=convert_date)
+        got = across(got, columns=None, function=convert_date)
 
 
-def test_apply_date_raise_function_parm_none_ValueError():
+def test_across_raise_function_parm_none_ValueError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
@@ -72,10 +72,10 @@ def test_apply_date_raise_function_parm_none_ValueError():
     exp.dates = exp.dates.astype('datetime64[ns]')
 
     with pytest.raises(ValueError):
-        got = apply_date(got, columns='dates', function=None)
+        got = across(got, columns='dates', function=None)
 
 
-def test_apply_date_raise_Series_parm_TypeError():
+def test_across_raise_Series_parm_TypeError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
@@ -88,10 +88,10 @@ def test_apply_date_raise_Series_parm_TypeError():
     exp.dates = exp.dates.astype('datetime64[ns]')
 
     with pytest.raises(TypeError):
-        got = apply_date(pd.Series(test), columns='dates', function=convert_date)
+        got = across(pd.Series(test), columns='dates', function=convert_date)
 
 
-def test_apply_date_raise_column_parm_ValueError():
+def test_across_raise_column_parm_ValueError():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
@@ -104,10 +104,10 @@ def test_apply_date_raise_column_parm_ValueError():
     exp.dates = exp.dates.astype('datetime64[ns]')
 
     with pytest.raises(ValueError):
-        got = apply_date(got, columns='invalid', function=convert_date)
+        got = across(got, columns='invalid', function=convert_date)
 
 
-def test_apply_date_dataframe_single_column_with_lambda():
+def test_across_dataframe_single_column_with_lambda():
 
     convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
 
@@ -117,12 +117,12 @@ def test_apply_date_dataframe_single_column_with_lambda():
     exp = df.copy(deep=True)
     exp.effective = exp.effective.apply(convert_date)
 
-    got = apply_date(df, columns='effective', function=convert_date)
+    got = across(df, columns='effective', function=convert_date)
 
     assert exp.equals(got) == True
 
 
-def test_apply_date_dataframe_multiple_columns_with_lambda():
+def test_across_dataframe_multiple_columns_with_lambda():
 
     convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
 
@@ -133,12 +133,12 @@ def test_apply_date_dataframe_multiple_columns_with_lambda():
     exp.effective = exp.effective.apply(convert_date)
     exp.expired = exp.expired.apply(convert_date)
 
-    got = apply_date(df, columns=['effective', 'expired'], function=convert_date)
+    got = across(df, columns=['effective', 'expired'], function=convert_date)
 
     assert exp.equals(got) == True
 
 
-def test_apply_date_dataframe_multiple_columns_raise_invalid_column():
+def test_across_dataframe_multiple_columns_raise_invalid_column():
 
     convert_date = lambda x: x.strftime('%b %-d, %Y') if not x is pd.NaT else x
 
@@ -150,7 +150,7 @@ def test_apply_date_dataframe_multiple_columns_raise_invalid_column():
     exp.expired = exp.expired.apply(convert_date)
 
     with pytest.raises(ValueError):
-        got = apply_date(df, columns=['effective', 'invalid'], function=convert_date)
+        got = across(df, columns=['effective', 'invalid'], function=convert_date)
 
 
 def test_from_julian_jde_format():

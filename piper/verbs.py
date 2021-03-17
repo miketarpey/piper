@@ -184,6 +184,95 @@ def add_xl_formula(df: pd.DataFrame,
     return df
 
 
+# across {{{1
+def across(df: pd.DataFrame,
+               columns: Union[str, List[str]],
+               function: Callable,
+               apply_values: bool = True,
+               *args, **kwargs) -> pd.DataFrame:
+    ''' Apply a function across multiple columns
+
+    Usage example
+    -------------
+    %%piper
+    sample_data()
+    >> across(['dates', 'order_dates'], to_julian)
+    >> head()
+
+    |   dates |   order_dates | countries   | regions   | ids   |   values_1 |   values_2 |
+    |--------:|--------------:|:------------|:----------|:------|-----------:|-----------:|
+    |  120001 |        120007 | Italy       | East      | A     |        311 |         26 |
+    |  120002 |        120008 | Portugal    | South     | D     |        150 |        375 |
+    |  120003 |        120009 | Spain       | East      | A     |        396 |         88 |
+    |  120004 |        120010 | Italy       | East      | B     |        319 |        233 |
+
+
+    %%piper
+    sample_data()
+    >> across(['dates', 'order_dates'], fiscal_year, year_only=True)
+    >> head()
+
+    | dates    | order_dates   | countries   | regions   | ids   |   values_1 |   values_2 |
+    |:---------|:--------------|:------------|:----------|:------|-----------:|-----------:|
+    | FY 19/20 | FY 19/20      | Italy       | East      | A     |        311 |         26 |
+    | FY 19/20 | FY 19/20      | Portugal    | South     | D     |        150 |        375 |
+    | FY 19/20 | FY 19/20      | Spain       | East      | A     |        396 |         88 |
+    | FY 19/20 | FY 19/20      | Italy       | East      | B     |        319 |        233 |
+
+
+    Parameters
+    ----------
+    df : pandas dataframe
+
+    columns : column(s) to apply function
+
+    function : function to be called.
+
+    apply_values : Default True.
+        True - function assumes that it should be applied to each Series row values.
+        False - function assumes called function applied at Series 'object' level.
+
+
+    Return
+    ------
+    A pandas dataframe
+    '''
+    if columns is None:
+        raise ValueError('Please specify function to apply')
+
+    if isinstance(df, pd.Series):
+        raise TypeError('Please specify DataFrame object')
+
+    if function is None:
+        raise ValueError('Please specify function to apply')
+
+    if isinstance(columns, str):
+        if columns not in df.columns:
+            raise ValueError(f'column {columns} not found')
+
+    if isinstance(columns, list):
+        for col in columns:
+            if col not in df.columns:
+                raise ValueError(f'column {col} not found')
+
+    if isinstance(columns, str):
+        df[columns] = df[columns].apply(function, *args, **kwargs)
+
+    # For multiple columns, does the user want to:
+
+    # 1. Apply the function to the Series values
+    if apply_values:
+        if isinstance(columns, list):
+            for col in columns:
+                df[col] = df[col].apply(function, *args, **kwargs)
+
+    # 2. Access the Series vectorized functions (e.g. str, astype etc.)
+    else:
+        df[columns] = df[columns].apply(function, *args, **kwargs)
+
+    return df
+
+
 # assign() {{{1
 def assign(df: pd.DataFrame,
            *args,
@@ -260,7 +349,7 @@ def assign(df: pd.DataFrame,
     | Saturday | Italy    | East   | B  |     319 |     233 | tsaE    |   3190 |   58.25 | 291.25 |
 
     %%piper
-    get_sample_sales()
+    sample_sales()
     >> select()
     >> assign(month_plus_one = lambda x: x.month + pd.Timedelta(1, 'D'),
               alternative_text_formula = "x.actual_sales * .2")
@@ -289,7 +378,9 @@ def assign(df: pd.DataFrame,
 
                     kwargs[keyword] = function
 
-    return df.assign(*args, **kwargs)
+    df = df.assign(*args, **kwargs)
+
+    return df
 
 
 # columns() {{{1
@@ -853,7 +944,7 @@ def flatten_cols(df: pd.DataFrame,
 
     %%piper
 
-    get_sample_data()
+    sample_data()
     >> group_by(['countries', 'regions'])
     >> summarise(totalval1=('values_1', 'sum'))
     >> assign(mike='x.totalval1 * 50', eoin='x.totalval1 * 100')
@@ -967,7 +1058,7 @@ def group_by(df: pd.DataFrame,
     ```python
     %%piper
 
-    get_sample_data()
+    sample_data()
     >> where("ids == 'A'")
     >> where("values_1 > 300 & countries.isin(['Italy', 'Spain'])")
     >> group_by(['countries', 'regions'])
@@ -1213,10 +1304,10 @@ def memory(df: pd.DataFrame) -> pd.DataFrame:
     Usage example
     -------------
     ```python
-    from piper.factory import get_sample_sales
+    from piper.factory import sample_sales
     from piper.verbs import memory
     import piper
-    memory(get_sample_sales())
+    memory(sample_sales())
     ```
     >> Dataframe consumes 0.03 Mb
 
@@ -1281,7 +1372,7 @@ def order_by(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     ```python
     %%piper
 
-    get_sample_data()
+    sample_data()
     >> group_by(['countries', 'regions'])
     >> summarise(totalval1=('values_1', 'sum'))
     >> group_calc(index='countries')
@@ -1556,7 +1647,7 @@ def relocate(df: pd.DataFrame,
     -------------
     ```python
     %%piper
-    get_sample_sales()
+    sample_sales()
     >> pd.DataFrame.set_index(['location', 'product'])
     >> relocate(column='location', loc='after', ref_column='product', index=True)
     >> head()
@@ -1654,7 +1745,7 @@ def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     -------------
     ```python
     %%piper
-    get_sample_sales()
+    sample_sales()
     >> rename(columns={'product': 'item'})
     ```
 
@@ -1687,7 +1778,7 @@ def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     ```python
     %%piper
 
-    get_sample_sales()
+    sample_sales()
     >> pivot_table(index=['location', 'product'], values='target_sales')
     >> rename_axis(('AAA', 'BBB'), axis='rows')
     >> head()
@@ -2052,7 +2143,7 @@ def summarise(df: pd.DataFrame,
     If only the dataframe is passed, the function will
     do a 'count' and 'sum' of all columns. See also info().
 
-    %piper get_sample_sales() >> summarise()
+    %piper sample_sales() >> summarise()
 
     | names         |   n |        sum |
     |:--------------|----:|-----------:|
@@ -2079,7 +2170,7 @@ def summarise(df: pd.DataFrame,
     # just state the function name
 
     %%piper
-    get_sample_sales() >>
+    sample_sales() >>
     group_by('product') >>
     summarise(totval1=('target_sales', sum),
               totval2=('actual_sales', 'sum'))
@@ -2087,7 +2178,7 @@ def summarise(df: pd.DataFrame,
 
     # Syntax 2: column_name = pd.NamedAgg('existing_column', function)
     %%piper
-    get_sample_sales() >>
+    sample_sales() >>
     group_by('product') >>
     summarise(totval1=(pd.NamedAgg('target_sales', 'sum')),
               totval2=(pd.NamedAgg('actual_sales', 'sum')))
@@ -2096,14 +2187,14 @@ def summarise(df: pd.DataFrame,
     # Syntax 3: {'existing_column': function}
                 {'existing_column': [function1, function2]}
     %%piper
-    get_sample_sales()
+    sample_sales()
     >> group_by('product')
     >> summarise({'target_sales':['sum', 'mean']})
 
     # Syntax 4: 'existing_column': lambda x: x+1
     # Example below identifies unique products sold by location.
     %%piper
-    get_sample_sales() >>
+    sample_sales() >>
     group_by('location') >>
     summarise({'product': lambda x: set(x.tolist())}) >>
     # explode('product')
@@ -2323,7 +2414,7 @@ def transform(df: pd.DataFrame,
 
     ```python
     %%piper
-    get_sample_data() >>
+    sample_data() >>
     group_by(['countries', 'regions']) >>
     summarise(TotSales1=('values_1', 'sum'))
     ```
@@ -2343,7 +2434,7 @@ def transform(df: pd.DataFrame,
 
     ```python
     %%piper
-    get_sample_data() >>
+    sample_data() >>
     group_by(['countries', 'regions']) >>
     summarise(TotSales1=('values_1', 'sum')) >>
     transform(index='countries', g_percent=('TotSales1', 'percent')) >>

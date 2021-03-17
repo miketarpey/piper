@@ -150,8 +150,8 @@ def read_csvs(source='inputs/', glob_pattern='*.csv', sep=',', strip_blanks=True
     '''
     dataframes = []
 
-    for file_ in list_files(source, glob_pattern=glob_pattern, as_posix=True):
-        dx = pd.read_csv(file_, sep=sep)
+    for file_ in list_files(source, glob_pattern=glob_pattern, as_posix=False):
+        dx = pd.read_csv(file_.as_posix(), sep=sep)
 
         if strip_blanks:
             dx = trim(dx)
@@ -162,7 +162,7 @@ def read_csvs(source='inputs/', glob_pattern='*.csv', sep=',', strip_blanks=True
             dx = clean_columns(dx)
 
         if include_file:
-            dx['filename'] = file_
+            dx['filename'] = file_.name
 
         dataframes.append(dx)
 

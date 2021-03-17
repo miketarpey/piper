@@ -1,13 +1,13 @@
 import logging
-import re
 import pandas as pd
-from os.path import split, abspath, dirname, join
+import re
+import xlsxwriter
 from IPython.display import display, HTML
 from copy import deepcopy
+from os.path import split, abspath, dirname, join
 from piper.configure import get_config
-from piper.io import _get_qual_file
 from piper.io import _file_with_ext
-import xlsxwriter
+from piper.io import _get_qual_file
 from xlsxwriter.utility import xl_col_to_name
 from xlsxwriter.utility import xl_rowcol_to_cell
 
@@ -121,6 +121,7 @@ class WorkBook():
             logger.info('<< mult-sheet mode >>')
             self._save_xl(sheets)
 
+
     def _save_xl(self, sheets=None):
         ''' Save multiple Excel sheets in one WorkBook.
         Simplified Excel workbook object for quick creation & manipulation
@@ -142,6 +143,7 @@ class WorkBook():
                 self.add_sheet(dataframe, sheet_name=sheet)
 
         self.close()
+
 
     def add_sheet(self, dataframe=None, sheet_name='**auto', table=True,
                   header=True, index=False, startrow=0, startcol=0,
@@ -245,34 +247,12 @@ class WorkBook():
                 options.update({'style': table_style, 'autofilter': True})
                 ws.add_table(sheet_range, options)
 
-        # TODO::
-        # Include code below to allow user(s) to 'manually' write
-        # excel worksheet data for greater control of formatting.
-        #
-        # # Write header
-        # for col_num, value in enumerate(dataframe.columns.values):
-        #     ws.write(0, col_num, value, self.styles.get('header'))
-
-        # # Write detail
-        # for row_no, row in enumerate(dataframe.iterrows()):
-        #     offset = row_no + 1
-        #     for col_no, col in enumerate(list(row)[1]):
-        #         data_type = dataframe[dataframe.columns[col_no]].dtype
-        #         if data_type == 'object' or str(data_type)[0:3] == 'int':
-        #             style = 'sheet_default'
-        #             ws.write(offset, col_no, col, self.styles.get(style))
-        #         elif data_type == 'datetime64[ns]':
-        #             style = 'date_dmy2'
-        #             ws.write(offset, col_no, col, self.styles.get(style))
-        #         else:
-        #             style = 'price2'
-        #             ws.write(offset, col_no, col, self.styles.get(style))
-
         # (Optionally) create sheet to store SQL
         if sql not in (None, ''):
             self.add_sql_sheet(sheet_name=sheet_name, sql=sql)
 
         return ws
+
 
     def add_sql_sheet(self, sheet_name=None, sql=None):
         ''' Add worksheet containing SQL statement(s) used '''
@@ -287,6 +267,7 @@ class WorkBook():
         logger.info(f'Sheet: (SQL) {sheet_name}')
 
         return ws
+
 
     def get_range(self, sheet_name, column_range=None,
                   startrow=0, startcol=0, cond_override=False):
@@ -345,6 +326,7 @@ class WorkBook():
 
         logger.debug(f'Range ref: {range_ref}')
         return range_ref
+
 
     def add_format(self, worksheet=None, column_attr=None):
         ''' Add worksheet column format (rule)
@@ -421,6 +403,7 @@ class WorkBook():
         elif isinstance(column_attr, dict):
             self._set_format(worksheet, column_attr)
 
+
     @staticmethod
     def get_default_format(df):
         ''' For given dataframe, calculate default format.
@@ -466,6 +449,7 @@ class WorkBook():
 
         return default_setup
 
+
     def _set_format(self, worksheet, column_attr):
         ''' Set column format attributes for specified worksheet
 
@@ -499,6 +483,7 @@ class WorkBook():
 
         if width is not None and format_style is not None:
             worksheet.set_column(column_str, width=width, cell_format=style)
+
 
     def add_condition(self, worksheet=None, condition=None):
         ''' Add worksheet conditional format (rule)
@@ -604,6 +589,7 @@ class WorkBook():
             column_range = get_attribute(worksheet, condition, 'range')
             worksheet.conditional_format(column_range, condition)
 
+
     def get_metadata(self, meta_file=None):
         ''' Get XL metadata '''
 
@@ -615,6 +601,7 @@ class WorkBook():
         xl_meta = get_config(config['excel']['meta'], info=False)
 
         return xl_meta
+
 
     @staticmethod
     def _calc_width(df):
@@ -639,10 +626,12 @@ class WorkBook():
 
         return widths['max_']
 
+
     @staticmethod
     def show_themes():
         ''' Show/List themes '''
         return ', '.join(WorkBook.get_themes())
+
 
     @staticmethod
     def get_themes():
@@ -657,9 +646,11 @@ class WorkBook():
 
         return themes
 
+
     def show_styles(self):
         ''' Show/List internal styles '''
         return self.styles.keys()
+
 
     def get_styles(self, file_name=None):
         ''' Retrieve dictionary of styles allowing easy access
@@ -683,6 +674,7 @@ class WorkBook():
         styles = {**styles, **default}
 
         return styles
+
 
     def close(self):
         ''' close (save) workbook '''
