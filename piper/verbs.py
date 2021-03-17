@@ -326,7 +326,7 @@ def assign(df: pd.DataFrame,
     ```python
     %%piper --dot
 
-    df
+    sample_data()
     .. assign(**{'reversed': 'x.regions.apply(lambda x: x[::-1])',
                  'v1_x_10': 'x.values_1 * 10',
                  'v2_div_4': lambda x: x.values_2 / 4,
@@ -605,10 +605,16 @@ def clean_columns(df: pd.DataFrame,
     columns = [x.strip().lower() for x in df.columns]
 
     # Remove special chars
-    special_chars = r'[\*\#\%\$\-\_]+'
+    special_chars = r'[\.\*\#\%\$\-\_]+'
     columns = [re.sub(f'^{special_chars}', '', x) for x in columns]
     columns = [re.sub(f'{special_chars}$', '', x) for x in columns]
-    columns = [re.sub(f'{special_chars}', to_char, x) for x in columns]
+
+    # Any special characters in the middle of words, replace with blank
+    columns = [re.sub(f'{special_chars}', ' ', x) for x in columns]
+
+    # All special chars should now be removed, except for embedded spaces
+    # Now let's replace them with a single replacement 'to_char' value.
+    columns = [re.sub('\s+', to_char, x) for x in columns]
 
     # lowercase as default
     columns = [x.strip().lower() for x in columns]
