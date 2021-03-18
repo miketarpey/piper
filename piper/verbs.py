@@ -186,9 +186,9 @@ def add_xl_formula(df: pd.DataFrame,
 
 # across {{{1
 def across(df: pd.DataFrame,
-               columns: Union[str, List[str]],
-               function: Callable,
-               apply_values: bool = True,
+               columns: Union[str, Tuple[str], List[str]] = None,
+               function: Callable = None,
+               series_obj: bool = False,
                *args, **kwargs) -> pd.DataFrame:
     ''' Apply a function across multiple columns
 
@@ -222,24 +222,21 @@ def across(df: pd.DataFrame,
 
     Parameters
     ----------
-    df : pandas dataframe
+    df: pandas dataframe
 
-    columns : column(s) to apply function
+    columns: column(s) to apply function
 
-    function : function to be called.
+    function: function to be called.
 
-    apply_values : Default True.
-        True - function assumes that it should be applied to each Series row values.
-        False - function assumes called function applied at Series 'object' level.
+    series_obj: Default is True
+        True - function applied at Series or (DataFrame) 'object' level.
+        False - function applied to each Series row values.
 
 
     Return
     ------
     A pandas dataframe
     '''
-    if columns is None:
-        raise ValueError('Please specify function to apply')
-
     if isinstance(df, pd.Series):
         raise TypeError('Please specify DataFrame object')
 
@@ -250,25 +247,53 @@ def across(df: pd.DataFrame,
         if columns not in df.columns:
             raise ValueError(f'column {columns} not found')
 
+    if isinstance(columns, tuple):
+        columns = df.loc[:, slice(*columns)].columns.tolist()
+
     if isinstance(columns, list):
         for col in columns:
             if col not in df.columns:
                 raise ValueError(f'column {col} not found')
 
     if isinstance(columns, str):
-        df[columns] = df[columns].apply(function, *args, **kwargs)
 
-    # For multiple columns, does the user want to:
+        # If not series function (to be applied to series values)
+        if not series_obj:
+            df[columns] = df[columns].apply(function, *args, **kwargs)
+        else:
+            df[[columns]] = df[[columns]].apply(function, *args, **kwargs)
 
-    # 1. Apply the function to the Series values
-    if apply_values:
+    try:
+        # No columns -> Apply with context of ALL dataframe columns
+        if columns is None:
+            df = df.apply(function, *args, **kwargs)
+
+            return df
+
+        # Specified group of columns to update.
         if isinstance(columns, list):
-            for col in columns:
-                df[col] = df[col].apply(function, *args, **kwargs)
 
-    # 2. Access the Series vectorized functions (e.g. str, astype etc.)
-    else:
-        df[columns] = df[columns].apply(function, *args, **kwargs)
+            # Apply function to each columns 'values'
+            if not series_obj:
+                for col in columns:
+                    df[col] = df[col].apply(function, *args, **kwargs)
+
+            # No, user wants to use/access pandas Series object attributes
+            # e.g. str, astype etc.
+            else:
+                df[columns] = df[columns].apply(function, *args, **kwargs)
+
+    except ValueError as e:
+        logger.info(e)
+        msg = 'Are you trying to work with pandas Series values(s)? Try series_obj=False'
+        logger.info(msg)
+        return None
+
+    except AttributeError as e:
+        logger.info(e)
+        msg = 'Are you trying to work with pandas Series object(s)? Try series_obj=True'
+        logger.info(msg)
+        return None
 
     return df
 
@@ -276,7 +301,7 @@ def across(df: pd.DataFrame,
 # assign() {{{1
 def assign(df: pd.DataFrame,
            *args,
-           str_to_lambdas: bool = True,
+           lambda_str: bool = False,
            lambda_var: str = 'x',
            info: bool = False,
            **kwargs) -> pd.DataFrame:
@@ -287,7 +312,9 @@ def assign(df: pd.DataFrame,
 
     Parameters
     ----------
-    str_to_lambdas: boolean - default is False.
+    lambda_str: boolean - default is False. Treat string as a the 'body'
+        of a lambda function. Assign function will convert the string
+        to a lambda before passing to pd.DataFrame.assign()
 
     lambda_var: str - default is 'x'.
 
@@ -369,10 +396,10 @@ def assign(df: pd.DataFrame,
     '''
     if kwargs:
         for keyword, value in kwargs.items():
-            if str_to_lambdas:
+            if lambda_str:
                 if isinstance(value, str):
-                    lambda_str = f"lambda {lambda_var}: " + value
-                    function = eval(lambda_str)
+                    text = f"lambda {lambda_var}: " + value
+                    function = eval(text)
                     if info:
                         logger.info(f'keyword {keyword} = {lambda_str}')
 
@@ -791,6 +818,63 @@ def drop(df: pd.DataFrame,
     A pandas DataFrame
     '''
     return df.drop(*args, **kwargs)
+
+
+def drop_columns(df: pd.DataFrame,
+                 value: Union[str, int, float] = None) -> pd.DataFrame:
+    ''' drop columns containing blanks or zeros
+
+    Usage example
+    -------------
+    %%piper
+
+    pd.read_excel(xl_file, sheet_name='CLM extract')
+    >> clean_columns()
+    >> memory()
+    >> trim()
+    >> drop_columns(value=0)
+    >> drop_columns()
+    >> memory()
+    >> across(columns=('ioupmj', 'iou5dj'), function=from_julian)
+    >> across(columns='iommej', function=from_julian)
+    >> memory()
+    >> sample(10)
+
+
+    Parameters
+    ----------
+    df: pandas dataframe
+
+    value: For each dataframe column, if the specified value
+        is present within EVERY row, drop the column.
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    if value is None:
+        value = "''"
+
+    if isinstance(value, int) or isinstance(value, float):
+        columns_to_check = df.select_dtypes(include='number').columns
+    else:
+        columns_to_check = df.select_dtypes(exclude='number').columns
+
+    cols = []
+    for col in df.columns:
+
+        if col not in columns_to_check:
+            cols.append(col)
+        else:
+            # If not all records equal the value passed, keep column
+            keep = df.query(f"{col} != {value}").shape[0] == df.shape[0]
+            if keep:
+                cols.append(col)
+
+    df = df[cols]
+
+    return df
 
 
 # duplicated() {{{1
@@ -1930,8 +2014,8 @@ def select(df: pd.DataFrame,
     select(df, ['-column_name', '-other_column'])
 
     # select column range from column up to and including the 'to' column.
-    # This is achieved by passing a 'slice' -> e.g. slice('from_col', 'to_col')
-    select(df, slice('title', 'isbn'))
+    # This is achieved by passing a 'tuple' -> e.g. ('from_col', 'to_col')
+    select(df, ('title', 'isbn'))
 
     # select using a regex string
     select(df, 'value') -> select fields containing 'value'
@@ -1964,8 +2048,8 @@ def select(df: pd.DataFrame,
         if expr is None:
             return df
 
-        if isinstance(expr, slice):
-            return df.loc[:, expr]
+        if isinstance(expr, tuple):
+            return df.loc[:, slice(*expr)]
 
         if isinstance(expr, str):
 
@@ -2397,7 +2481,7 @@ def to_excel(df: pd.DataFrame,
     -------
     A pandas DataFrame
     '''
-    kwargs['filename'] = file_name
+    kwargs['file_name'] = file_name
     kwargs['sheets'] = df
 
     WorkBook(*args, **kwargs)

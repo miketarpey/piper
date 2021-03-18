@@ -318,14 +318,14 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
 
     return_type - (str) options are:
 
-                        'list_frames' - (default) return a list of sheet dataframes
+                        'list_frames' - (default) return a list of dataframes
 
                         'list' - return list of sheet names
 
                         'dict_frames' - return a dictionary containing:
                                         sheet_name: dataframe
 
-                        'consolidate' - return consolidated sheets in ONE dataframe
+                        'combine' - return consolidated sheets in ONE dataframe
 
                         'metadata' - return dataframe containing filename, sheet, rows, cols
 
@@ -352,7 +352,7 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
                     logger.info(f'sheet: {sheet}, (rows, cols) {dx.shape}')
 
                 if return_type == 'list_frames' or \
-                   return_type == 'consolidate':
+                   return_type == 'combine':
                     dataframes.append(dx)
 
                 elif return_type == 'dataframes':
@@ -365,7 +365,7 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
         return df_meta['sheet_name'].tolist()
     elif return_type == 'dict_frames':
         return dataframes_dict
-    if return_type == 'consolidate':
+    if return_type == 'combine':
         df = pd.concat(dataframes)
         return df
     elif return_type == 'metadata':

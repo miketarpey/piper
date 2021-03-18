@@ -1325,7 +1325,7 @@ def test_select_str_with_regex(t_sample_data):
 def test_select_slice(t_sample_data):
 
     df = t_sample_data
-    df = select(df, slice('countries', 'values_1'))
+    df = select(df, ('countries', 'values_1'))
 
     expected = ['countries', 'regions', 'ids', 'values_1']
 

@@ -362,5 +362,3 @@ def to_julian(greg_date: Union[str, int], format: str = None):
         century_prefix = str(greg_date.year)[:2]
         century_prefix = str(int(century_prefix) - 19)
         return int(century_prefix+greg_date.strftime('%y%j'))
-
-

@@ -46,7 +46,7 @@ def test_across_str_date_single_col_lambda():
 
 
 # test_across_raise_column_parm_none_ValueError {{{1
-def test_across_raise_column_parm_none_ValueError():
+def test_across_raise_column_parm_none():
 
     convert_date = lambda x: pd.to_datetime(x, dayfirst=True, format='%d%m%Y', errors='coerce')
 
@@ -58,8 +58,9 @@ def test_across_raise_column_parm_none_ValueError():
     exp = pd.DataFrame(exp, columns=['dates'])
     exp.dates = exp.dates.astype('datetime64[ns]')
 
-    with pytest.raises(ValueError):
-        got = across(got, columns=None, function=convert_date)
+    got = across(got, columns=None, function=convert_date)
+
+    assert exp.equals(got) == True
 
 
 # test_across_raise_function_parm_none_ValueError {{{1
