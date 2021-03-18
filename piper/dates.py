@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from datetime import date
 from time import strptime
+import re
 
 from typing import (
     Any,
@@ -182,6 +183,9 @@ def from_excel(excel_date: Union[str, float, int, pd.Timestamp]) -> pd.Timestamp
         return excel_date
 
     if isinstance(excel_date, str):
+
+        if re.search(r'[\\\/\-]', excel_date):
+            return excel_date
 
         if len(excel_date) == 0:
             return excel_date

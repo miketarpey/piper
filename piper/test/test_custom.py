@@ -1,4 +1,4 @@
-from piper.series_functions import ratio
+from piper.custom import ratio
 import pandas as pd
 import numpy as np
 

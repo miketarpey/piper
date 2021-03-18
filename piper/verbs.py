@@ -2405,7 +2405,7 @@ def to_excel(df: pd.DataFrame,
 
 # transform() {{{1
 def transform(df: pd.DataFrame,
-              index: Union[str, List[str]],
+              index: Union[str, List[str]] = None,
               **kwargs) -> pd.DataFrame:
     ''' <*> Add a group calculation to grouped DataFrame
 

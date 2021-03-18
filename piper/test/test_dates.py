@@ -204,6 +204,8 @@ def test_from_excel_date():
     assert from_excel('44001') == pd.Timestamp('2020-06-19 00:00:00')
     assert from_excel(43141) == pd.Timestamp('2018-02-10 00:00:00')
     assert from_excel('43962') == pd.Timestamp('2020-05-11 00:00:00')
+    assert from_excel('43962') == pd.Timestamp('2020-05-11 00:00:00')
+    assert from_excel('03/30/2013') == '03/30/2013'
     assert from_excel('') == ''
     assert from_excel(0) == 0
     assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)

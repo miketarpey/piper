@@ -351,7 +351,8 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
                 if info:
                     logger.info(f'sheet: {sheet}, (rows, cols) {dx.shape}')
 
-                if return_type == 'list_frames':
+                if return_type == 'list_frames' or \
+                   return_type == 'consolidate':
                     dataframes.append(dx)
 
                 elif return_type == 'dataframes':
