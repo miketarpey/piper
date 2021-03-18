@@ -6,7 +6,7 @@ from .verbs import *
 from .factory import *
 from .io import *
 from .xl import *
-from .dates import *
+from .custom import *
 from .pandas import *
 import numpy as np
 import pandas as pd
