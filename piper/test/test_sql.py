@@ -117,7 +117,7 @@ def test_get_sql_text_with_single_int_values(get_config,
             and integer = 20 '''
 
     variables = get_config.get('variables')
-    actual = _get_sql_text(get_test_text_single_values, variables, debug=True)
+    actual = _get_sql_text(get_test_text_single_values, variables, debug=False)
 
     assert expected == actual
 
@@ -135,7 +135,7 @@ def test_get_sql_text_with_list_values(get_config,
             where hcucc in ('2018', '2019') '''
 
     variables = get_config.get('variables')
-    actual = _get_sql_text(get_test_text_list_values, variables, debug=True)
+    actual = _get_sql_text(get_test_text_list_values, variables, debug=False)
 
     assert expected == actual
 
@@ -202,7 +202,7 @@ def test_get_sql_text_with_file(get_config, create_sql_file):
             where hcucc in ('2018', '2019') '''
 
     variables = get_config.get('variables')
-    actual = get_sql_text(join(directory, 'temp_sql.sql'), variables, debug=True)
+    actual = get_sql_text(join(directory, 'temp_sql.sql'), variables, debug=False)
 
     assert expected == actual
 
@@ -229,6 +229,5 @@ def test_get_sql_text_with_text(get_config):
             where hcucc in ({list_values}) '''
 
     variables = get_config.get('variables')
-    actual = get_sql_text(text, variables, debug=True)
-
+    actual = get_sql_text(text, variables, debug=False)
     assert expected == actual

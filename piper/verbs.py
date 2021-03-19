@@ -192,11 +192,46 @@ def across(df: pd.DataFrame,
                *args, **kwargs) -> pd.DataFrame:
     ''' Apply a function across multiple columns
 
+    Across allows you to apply a function across a number of columns in one
+    statement. Functions can be applied on series values.
+
+    The syntax/order for apply such functions is:
+    ```python
+    across(df, ['column1', 'column2', 'column3'], function)
+    ```
+
+    The equivalent in pandas would be:
+    ```python
+    df['column'].apply(function)
+    df['column2'].apply(function)
+    df['column3'].apply(function)
+    ```
+
+    You can also work with Series object functions by passing keyword
+    series_obj=True. In Pandas, if you wanted to change the dtype of a column
+    you would use something like:
+
+    ```python
+    df['col'] = df['col'].astype(float)
+    df['col2'] = df['col2'].astype(float)
+    df['col3'] = df['col3'].astype(float)
+    ```
+
+    The equivalent with across would be:
+    ```python
+    df = across(df, ['col', 'col2', 'col3'], function=lambda x: x.astype(float))
+    ```
+
     Usage example
     -------------
+    ```python
     %%piper
     sample_data()
     >> across(['dates', 'order_dates'], to_julian)
+
+    # Alternative syntax, passing a lambda...
+    >> across(['order_dates', 'dates'], function=lambda x: to_julian(x), series_obj=False)
+
     >> head()
 
     |   dates |   order_dates | countries   | regions   | ids   |   values_1 |   values_2 |
@@ -205,8 +240,9 @@ def across(df: pd.DataFrame,
     |  120002 |        120008 | Portugal    | South     | D     |        150 |        375 |
     |  120003 |        120009 | Spain       | East      | A     |        396 |         88 |
     |  120004 |        120010 | Italy       | East      | B     |        319 |        233 |
+    ```
 
-
+    ```python
     %%piper
     sample_data()
     >> across(['dates', 'order_dates'], fiscal_year, year_only=True)
@@ -218,13 +254,29 @@ def across(df: pd.DataFrame,
     | FY 19/20 | FY 19/20      | Portugal    | South     | D     |        150 |        375 |
     | FY 19/20 | FY 19/20      | Spain       | East      | A     |        396 |         88 |
     | FY 19/20 | FY 19/20      | Italy       | East      | B     |        319 |        233 |
+    ```
+
+    Accessing Series object methods - by passing series_obj=True you can also
+    manipulate series object and string vectorized functions (e.g. pd.Series.str.replace())
+
+    ```python
+    %%piper
+    sample_data()
+    >> across(columns='values_1', function=lambda x: x.astype(int), series_obj=True)
+    >> across(columns=['values_1'], function=lambda x: x.astype(int), series_obj=True)
+    ```
 
 
     Parameters
     ----------
     df: pandas dataframe
 
-    columns: column(s) to apply function
+    columns: column(s) to apply function.
+
+        If a list is provided, only the columns listed are affected by the function.
+
+        If a tuple is supplied, the first and second values will correspond to
+        the from and to column(s) range used to apply the function to.
 
     function: function to be called.
 
@@ -285,15 +337,13 @@ def across(df: pd.DataFrame,
 
     except ValueError as e:
         logger.info(e)
-        msg = 'Are you trying to work with pandas Series values(s)? Try series_obj=False'
-        logger.info(msg)
-        return None
+        msg = 'Are you trying to apply a function working with Series values(s)? Try series_obj=False'
+        raise ValueError(msg)
 
     except AttributeError as e:
         logger.info(e)
-        msg = 'Are you trying to work with pandas Series object(s)? Try series_obj=True'
-        logger.info(msg)
-        return None
+        msg = 'Are you trying to apply a function using Series object(s)? Try series_obj=True'
+        raise AttributeError(msg)
 
     return df
 
@@ -352,7 +402,6 @@ def assign(df: pd.DataFrame,
 
     ```python
     %%piper --dot
-
     sample_data()
     .. assign(**{'reversed': 'x.regions.apply(lambda x: x[::-1])',
                  'v1_x_10': 'x.values_1 * 10',
@@ -361,7 +410,7 @@ def assign(df: pd.DataFrame,
                  'ref': lambda x: x.v2_div_4 * 5,
                  'values_1': 'x.values_1.astype(int)',
                  'values_2': 'x.values_2.astype(int)',
-                 'ids': lambda x: x.ids.astype('category')})
+                 'ids': lambda x: x.ids.astype('category')}, lambda_str=True)
     .. pd.DataFrame.astype({'values_1': float, 'values_2': float})
     .. relocate('dow', 'after', 'dates')
     .. select(['-dates', '-order_dates'])
@@ -820,26 +869,18 @@ def drop(df: pd.DataFrame,
     return df.drop(*args, **kwargs)
 
 
+# drop_columns() {{{1
 def drop_columns(df: pd.DataFrame,
                  value: Union[str, int, float] = None) -> pd.DataFrame:
     ''' drop columns containing blanks or zeros
 
     Usage example
     -------------
+    ```python
     %%piper
-
-    pd.read_excel(xl_file, sheet_name='CLM extract')
-    >> clean_columns()
-    >> memory()
-    >> trim()
-    >> drop_columns(value=0)
+    dummy_dataframe()
     >> drop_columns()
-    >> memory()
-    >> across(columns=('ioupmj', 'iou5dj'), function=from_julian)
-    >> across(columns='iommej', function=from_julian)
-    >> memory()
-    >> sample(10)
-
+    ```
 
     Parameters
     ----------
@@ -847,6 +888,9 @@ def drop_columns(df: pd.DataFrame,
 
     value: For each dataframe column, if the specified value
         is present within EVERY row, drop the column.
+
+        Default is None which will drop a column if it contains
+        blanks in every row.
 
 
     Returns
@@ -885,7 +929,7 @@ def duplicated(df: pd.DataFrame,
                column: str = 'duplicate',
                loc: str = 'first',
                ref_column: str = None,
-               unique_only: bool = False) -> pd.DataFrame:
+               duplicates: bool = False) -> pd.DataFrame:
     ''' <*> locate duplicate data
 
     Usage example
@@ -897,45 +941,38 @@ def duplicated(df: pd.DataFrame,
     duplicated_fields = ['bgy56icnt', 'bgz56ccode']
     df = duplicated(df[duplicated_fields],
                     subset=duplicated_fields,
-                    keep='first',
-                    sort=True,
-                    column='dupe',
-                    loc='first')
+                    keep='first', sort=True)
     df
     ```
-    |    | dupe   | bgy56icnt   |   bgz56ccode |
-    |---:|:-------|:------------|-------------:|
-    |  0 | False  | BE          |     46065502 |
-    |  1 | True   | BE          |     46065502 |
-    |  2 | True   | BE          |     46065502 |
-    |  3 | False  | BE          |     46065798 |
-    |  4 | False  | BE          |     46066013 |
+    | duplicate| bgy56icnt   |   bgz56ccode |
+    |:---------|:------------|-------------:|
+    | False    | BE          |     46065502 |
+    | True     | BE          |     46065502 |
+    | True     | BE          |     46065502 |
+    | False    | BE          |     46065798 |
+    | False    | BE          |     46066013 |
 
 
     Parameters
     ----------
     df : pandas dataframe
 
-    subset : column label or sequence of labels, required
-             Only consider certain columns for identifying duplicates
-             Default None - consider ALL dataframe columns
+    subset: column label or sequence of labels, required
+        Only consider certain columns for identifying duplicates
+        Default None - consider ALL dataframe columns
 
-    keep : {‘first’, ‘last’, False}, default ‘first’
-            first : Mark duplicates as True except for the first occurrence.
-            last : Mark duplicates as True except for the last occurrence.
-            False : Mark all duplicates as True.
+    keep: {‘first’, ‘last’, False}, default ‘first’
+        first : Mark duplicates as True except for the first occurrence.
+        last : Mark duplicates as True except for the last occurrence.
+        False : Mark all duplicates as True.
 
-    sort : True, False
-           if True sort returned dataframe using subset fields as key
+    sort: True, False
+        if True sort returned dataframe using subset fields as key
 
-    column : insert a column name identifying whether duplicate (True/False)
-            , default 'duplicate'
+    column: insert a column name identifying whether duplicate
+        (True/False), default 'duplicate'
 
-    loc : str - Position to insert duplicated column indicator.
-                'first', 'last', 'before', 'after',
-                default='first'
-
-    ref_column = None
+    duplicates: Default True. Return only duplicate key rows
 
 
     Returns
@@ -947,16 +984,10 @@ def duplicated(df: pd.DataFrame,
     if subset is None:
         subset = dx.columns.tolist()
 
-    duplicate_rows = dx.duplicated(subset, keep=keep)
+    dx[column] = dx.duplicated(subset, keep=keep)
 
-    if column is not None:
-        dx[column] = duplicate_rows
-
-        if loc is not None:
-           dx = relocate(dx, column=column, loc=loc, ref_column=ref_column)
-
-    if unique_only:
-        dx = dx[~duplicate_rows]
+    if duplicates:
+        dx = dx[dx[column]]
 
     if sort:
         dx = dx.sort_values(subset)
@@ -1096,7 +1127,8 @@ def fmt_dateidx(df: pd.DataFrame,
 
     Usage example
     -------------
-
+    ```python
+    ```
 
     Parameters
     ----------
@@ -1663,6 +1695,32 @@ def overlaps(df: pd.DataFrame,
     merged[overlaps] = merged[overlaps].fillna(False)
 
     return merged
+
+
+# pivot_longer() {{{1
+def pivot_longer(df: pd.DataFrame,
+          *args,
+          **kwargs) -> pd.DataFrame:
+    ''' <*> pivot dataframe wide to long
+
+    This is a wrapper function rather than using e.g. df.melt()
+    For details of args, kwargs - see help(pd.DataFrame.melt)
+
+
+    Parameters
+    ----------
+    df: dataframe
+
+    *args: arguments for wrapped function
+
+    **kwargs: keyword-parameters for wrapped function
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    return df.melt(*args, **kwargs)
 
 
 # pivot_table() {{{1
@@ -2262,35 +2320,45 @@ def summarise(df: pd.DataFrame,
     # be quoted like 'sum', 'mean', 'count', 'nunique' or
     # just state the function name
 
+    ```python
     %%piper
     sample_sales() >>
     group_by('product') >>
     summarise(totval1=('target_sales', sum),
               totval2=('actual_sales', 'sum'))
+    ```
 
 
     # Syntax 2: column_name = pd.NamedAgg('existing_column', function)
+    ```python
     %%piper
     sample_sales() >>
     group_by('product') >>
     summarise(totval1=(pd.NamedAgg('target_sales', 'sum')),
               totval2=(pd.NamedAgg('actual_sales', 'sum')))
+    ```
 
 
     # Syntax 3: {'existing_column': function}
                 {'existing_column': [function1, function2]}
+
+    ```python
     %%piper
     sample_sales()
     >> group_by('product')
     >> summarise({'target_sales':['sum', 'mean']})
+    ```
 
     # Syntax 4: 'existing_column': lambda x: x+1
     # Example below identifies unique products sold by location.
+
+    ```python
     %%piper
     sample_sales() >>
     group_by('location') >>
     summarise({'product': lambda x: set(x.tolist())}) >>
     # explode('product')
+    ```
 
     '''
     # If nothing passed to summarise - return a count and sum of all columns

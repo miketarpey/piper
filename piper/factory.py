@@ -561,3 +561,25 @@ def single_column_dataframe_messy_text():
     df = pd.DataFrame(json.loads(test))
 
     return df
+
+
+# dummy_dataframe {{{1
+def dummy_dataframe(rows: int = 5, cols:int = 5) -> pd.DataFrame:
+    '''
+    Create a dummy dataframe with blank and zero values.
+    Used for testing drop_columns()
+
+    Usage
+    -----
+    dummy_dataframe(rows=5, cols=5)
+
+    '''
+    zeros = pd.Series(np.zeros(rows).astype(int))
+    blanks = pd.Series(['' for x in range(1, rows+1)])
+
+    dummy_zero_cols = {f'zero_{x}': zeros for x in range(1, cols+1)}
+    dummy_blank_cols = {f'blank_{x}': blanks for x in range(1, cols+1)}
+
+    dummy_zero_cols.update(**dummy_blank_cols)
+
+    return pd.DataFrame(dummy_zero_cols)

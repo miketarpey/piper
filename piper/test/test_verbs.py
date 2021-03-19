@@ -1,5 +1,6 @@
 from piper.pandas import read_csv
 from piper.verbs import add_xl_formula
+from piper.verbs import across
 from piper.verbs import adorn
 from piper.verbs import assign
 from piper.verbs import clean_columns
@@ -8,6 +9,7 @@ from piper.verbs import combine_header_rows
 from piper.verbs import count
 from piper.verbs import distinct
 from piper.verbs import drop
+from piper.verbs import drop_columns
 from piper.verbs import duplicated
 from piper.verbs import explode
 from piper.verbs import flatten_cols
@@ -35,6 +37,7 @@ from piper.verbs import tail
 from piper.verbs import to_tsv
 from piper.verbs import trim
 from piper.verbs import where
+from piper.custom import to_julian
 from piper.factory import bad_quality_orders
 from piper.factory import sample_data
 from piper.factory import sample_sales
@@ -45,11 +48,13 @@ from piper.factory import get_sample_df5
 from piper.factory import get_sample_df6
 from piper.factory import single_column_dataframe_messy_text
 from piper.factory import simple_series_01
+from piper.factory import dummy_dataframe
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
 import random
 import numpy as np
 import pandas as pd
+from pandas.api.types import is_float_dtype
 import pytest
 
 # sample_orders_01 {{{1
@@ -58,7 +63,7 @@ def sample_orders_01():
     return bad_quality_orders()
 
 
-# sample_sales {{{1
+# t_sample_sales {{{1
 @pytest.fixture
 def t_sample_sales():
     return sample_sales()
@@ -100,6 +105,12 @@ def t_single_col_messy_text():
     return single_column_dataframe_messy_text()
 
 
+# t_dummy_dataframe {{{1
+@pytest.fixture
+def t_dummy_dataframe():
+    return dummy_dataframe()
+
+
 # sample_s1 {{{1
 @pytest.fixture
 def t_simple_series_01():
@@ -117,6 +128,62 @@ def get_column_list():
                    'Price%  ', 'Currency$']
 
     return column_list
+
+
+# test_across_single_column_series_object_function {{{1
+def test_across_single_column_series_object_function(t_sample_data):
+
+    df = t_sample_data
+
+    df = across(df, columns='values_1',
+                function= lambda x: x.astype(float),
+                series_obj=True)
+
+    assert pd.api.types.is_float_dtype(df.values_1)
+
+
+# test_across_list_column_series_object_function {{{1
+def test_across_list_column_series_object_function(t_sample_data):
+
+    df = t_sample_data
+
+    df = across(df, columns=['values_1'],
+                function= lambda x: x.astype(float),
+                series_obj=True)
+
+    assert pd.api.types.is_float_dtype(df.values_1)
+
+
+# test_across_list_column_not_series_object {{{1
+def test_across_list_column_not_series_object(t_sample_data):
+
+    df = t_sample_data
+
+    df = across(df, columns=['order_dates', 'dates'],
+                function=lambda x: to_julian(x), series_obj=False)
+
+    assert df.loc[360, 'dates'] == 120361
+
+
+# test_across_list_column_not_series_raise_error {{{1
+def test_across_list_column_not_series_raise_error(t_sample_data):
+
+    df = t_sample_data
+
+    with pytest.raises(ValueError):
+        df = across(df, columns=['order_dates', 'dates'],
+                    function=lambda x: to_julian(x), series_obj=True)
+
+
+# test_across_list_column_series_values_raise_attr_error {{{1
+def test_across_list_column_series_values_raise_attr_error(t_sample_data):
+
+    df = t_sample_data
+
+    with pytest.raises(AttributeError):
+        across(df, columns=['values_1', 'values_2'],
+                function=lambda x: x.astype(int), series_obj=False)
+
 
 # test_add_xl_formula {{{1
 def test_add_xl_formula(t_two_columns_five_rows):
@@ -239,7 +306,7 @@ def test_assign_with_str_formulas(t_sample_data):
     df = where(df, "ids == 'A'")
     df = where(df, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
     df = assign(df, new_field='x.countries.str[:3]+x.regions',
-                       another='3*x.values_1')
+                       another='3*x.values_1', lambda_str=True, info=True)
 
     expected = ['dates', 'order_dates', 'countries',
                 'regions', 'ids', 'values_1',
@@ -566,6 +633,18 @@ def test_drop(t_sample_data):
     assert expected == actual
 
 
+# test_drop_columns {{{1
+def test_drop_columns(t_dummy_dataframe):
+    """
+    """
+    df = t_dummy_dataframe
+
+    expected = (5, 5)
+    actual = drop_columns(df).shape
+
+    assert expected == actual
+
+
 # test_duplicated {{{1
 def test_duplicated(sample_df5):
     """
@@ -573,81 +652,28 @@ def test_duplicated(sample_df5):
     df = sample_df5
 
     duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-    df2 = duplicated(df[duplicated_fields],
-                     subset=duplicated_fields,
-                     keep='first',
-                     sort=True,
-                     column='dupe',
-                     loc='first')
+    df2 = duplicated(df[duplicated_fields], subset=duplicated_fields,
+                     keep='first', sort=True)
 
     expected = 2  # Duplicate records
-    actual = df2.dupe.value_counts()[1]
+    actual = df2.duplicate.value_counts()[1]
     assert expected == actual
 
-# test_duplicated_first_position {{{1
-def test_duplicated_first_position(sample_df5):
+
+# test_duplicated_duplicates_only {{{1
+def test_duplicated_duplicates_only(sample_df5):
     """
     """
     df = sample_df5
 
     duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-    df2 = duplicated(df[duplicated_fields],
-                     subset=duplicated_fields,
-                     keep='first',
-                     sort=True,
-                     column='dupe',
-                     loc='first')
+    df2 = duplicated(df[duplicated_fields], subset=duplicated_fields,
+                     keep='first', duplicates=True, sort=True)
 
-    expected = 'dupe'
-    actual = df2.columns.tolist()[0]
+    expected = (2, 3)
+    actual = df2.shape
     assert expected == actual
 
-# test_duplicated_last_position {{{1
-def test_duplicated_last_position(sample_df5):
-    """
-    """
-    df = sample_df5
-
-    duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-    df2 = duplicated(df[duplicated_fields],
-                     subset=duplicated_fields,
-                     keep='first',
-                     sort=True,
-                     column='dupe',
-                     loc='last')
-
-    expected = 'dupe'
-    actual = df2.columns.tolist()[-1]
-    assert expected == actual
-
-# test_duplicated_inplace_true {{{1
-def test_duplicated_inplace_true(sample_df5):
-    """
-    """
-    df = sample_df5
-
-    duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-
-    duplicated(df[duplicated_fields],
-            subset=duplicated_fields,
-            keep='first', sort=True,
-            column='dupe',
-            loc='first')
-
-    assert_frame_equal(df, df.copy(deep=True))
-
-# test_duplicated_data_raise_col_position_error {{{1
-def test_duplicated_data_raise_col_position_error(sample_df5):
-    """
-    """
-    df = sample_df5
-    duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-
-    with pytest.raises(Exception):
-        assert duplicated(df[duplicated_fields],
-                          subset=duplicated_fields, keep='first',
-                          sort=True, insert_column=True,
-                          column_name='dupe', column_pos=6) is None
 
 # test_explode {{{1
 def test_explode(t_sample_data):
