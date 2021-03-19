@@ -231,8 +231,8 @@ def test_adorn_row_with_ignore_row_index(t_sample_data):
 
     df = t_sample_data
     df = group_by(df, ['countries'])
-    df = summarise(df, total=('values_1', 'sum'))
-    df = adorn(df, axis = 'row', ignore_row_index=True)
+    df = summarise(df, total=('values_1', 'sum')).reset_index()
+    df = adorn(df, axis = 'row', ignore_index=True)
 
     expected = 'All'
     actual = df.iloc[df.shape[0]-1, 0]

@@ -36,26 +36,10 @@ def adorn(df: pd.DataFrame,
           fillna: Union[str, int] = '',
           col_row_name: str = 'All',
           axis: Union [int, str] = 0,
-          ignore_row_index: bool = False) -> pd.DataFrame:
+          ignore_index: bool = False) -> pd.DataFrame:
     ''' <*> add totals to a dataframe
     Based on R janitor package function add row and/or column totals to a
     dataframe.
-
-
-    Parameters
-    ----------
-    df - Pandas dataframe
-
-    fillna - fill NaN values (default is '')
-
-    col_row_name - name of row/column title (default 'Total')
-
-    axis - axis to apply total (values: 0 or 'row', 1 or 'column')
-           To apply totals to both axes - use 'both'.
-           (default is 0)
-
-    ignore_row_index - when concatenating totals, ignore index in both dataframes.
-                       (default is False)
 
     Usage example
     -------------
@@ -84,11 +68,33 @@ def adorn(df: pd.DataFrame,
     | Women's Clothing    |  70229 |   61419 |   22203 |  22217 | 176068 |
     | All                 | 167763 |  138700 |   59315 |  61476 | 427254 |
 
+
+    Parameters
+    ----------
+    df - Pandas dataframe
+
+    columns: columns to be considered on the totals row.
+        Default None - All columns considered.
+
+    fillna: fill NaN values (default is '')
+
+    col_row_name: name of row/column title (default 'Total')
+
+    axis: axis to apply total (values: 0 or 'row', 1 or 'column')
+        To apply totals to both axes - use 'both'. (default is 0)
+
+    ignore_index: when concatenating totals, ignore index in both dataframes.
+        (default is False)
+
+
+    Returns
+    -------
+    A pandas DataFrame with additional totals row and/or column total.
+
     '''
     # ROW:
     if axis == 0 or axis == 'row' or axis == 'both':
 
-        totals = {}
         if columns is None:
             numeric_columns = df.select_dtypes(include='number').columns
         else:
@@ -97,26 +103,26 @@ def adorn(df: pd.DataFrame,
             else:
                 numeric_columns = columns
 
-        for column in numeric_columns:
-            totals[column] = df[column].sum()
+        totals = {col: df[col].sum() for col in numeric_columns}
 
-        if ignore_row_index:
-            totals = pd.DataFrame(totals, index=range(1))
-            df = pd.concat([df, totals], axis=0, ignore_index=ignore_row_index)
-            df.iloc[-1, 0] = col_row_name
+        index_length = len(df.index.names)
+        if index_length == 1:
+            row_total = pd.DataFrame(totals, index=[col_row_name])
+            df = pd.concat([df, row_total], axis=0, ignore_index=ignore_index)
+            if ignore_index:
+                # Place row total name column before first numeric column
+                first_col = df.select_dtypes(include='number').columns[0]
+                first_pos = df.columns.get_loc(first_col)
+                if first_pos >= 1:
+                    tot_colpos = first_pos - 1
+                    df.iloc[-1, tot_colpos] = col_row_name
         else:
+            total_row = ['' for _ in df.index.names]
+            total_row[index_length - 1] = col_row_name
+            index = tuple(total_row)
 
-            # If single index, return that else return a tuple of the
-            # combined multi-index(key)
-            index_length = len(df.index.names)
-            if index_length == 1:
-                total_row = [col_row_name]
-            else:
-                total_row = ['' for _ in df.index.names]
-                total_row[index_length - 1] = col_row_name
-
-            totals = pd.DataFrame(totals, index=total_row)
-            df = pd.concat([df, totals], axis=0, ignore_index=ignore_row_index)
+            for col, total in totals.items():
+                df.loc[index, col] = total
 
     # COLUMN: Sum numeric column(s) and concatenate result to dataframe
     if axis == 1 or axis == 'column' or axis == 'both':
@@ -136,6 +142,7 @@ def adorn(df: pd.DataFrame,
         df = df.fillna(fillna)
 
     return df
+
 
 # add_xl_formula() {{{1
 def add_xl_formula(df: pd.DataFrame,
@@ -600,16 +607,17 @@ def count(df: pd.DataFrame,
     -------
     A pandas dataframe
     '''
+    # NOTE:: pd.groupby by default does not count nans!
     try:
         if isinstance(columns, str):
-            p1 = df.groupby(columns).agg(totals=(columns, 'count'))
+            p1 = df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: np.count_nonzero(x)))
         elif isinstance(df, pd.Series):
             new_df = df.to_frame()
             columns = new_df.columns.tolist()[0]
-            p1 = new_df.groupby(columns).agg(totals=(columns, 'count'))
+            p1 = new_df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: np.count_nonzero(x)))
         elif isinstance(df, pd.DataFrame):
             if columns is not None:
-                p1 = df.groupby(columns).agg(totals=(columns[0], 'count'))
+                p1 = df.groupby(columns, dropna=False).agg(totals=(columns[0], lambda x: np.count_nonzero(x)))
             else:
                 p1 = df.count().to_frame()
 
@@ -642,7 +650,7 @@ def count(df: pd.DataFrame,
                 cols.append('%')
 
             p1 = adorn(p1, columns=cols, col_row_name='Total',
-                       ignore_row_index=reset_index)
+                       ignore_index=reset_index)
 
     return p1
 
