@@ -29,17 +29,16 @@ def sample_data(start: int = 2020,
                 seed: int = 30) -> pd.DataFrame:
     ''' TEST - Regions, countries, dates, values
 
-    Usage example
-    -------------
+    Examples
+    --------
     get_sample_data().head()
 
-    | dates      | order_dates| countries| regions| ids|values_1 |values_2 |
-    |:-----------|:-----------|:---------|:-------|:---|--------:|--------:|
-    | 2020-01-01 | 2020-01-07 | Italy    | East   | A  |     311 |      26 |
-    | 2020-01-02 | 2020-01-08 | Portugal | South  | D  |     150 |     375 |
-    | 2020-01-03 | 2020-01-09 | Spain    | East   | A  |     396 |      88 |
-    | 2020-01-04 | 2020-01-10 | Italy    | East   | B  |     319 |     233 |
-    | 2020-01-05 | 2020-01-11 | Italy    | East   | D  |     261 |     187 |
+    dates       order_dates countries regions idsvalues_1 values_2
+    2020-01-01  2020-01-07  Italy     East    A       311       26
+    2020-01-02  2020-01-08  Portugal  South   D       150      375
+    2020-01-03  2020-01-09  Spain     East    A       396       88
+    2020-01-04  2020-01-10  Italy     East    B       319      233
+    2020-01-05  2020-01-11  Italy     East    D       261      187
 
 
     Parameters
@@ -100,31 +99,34 @@ def sample_data(start: int = 2020,
 def sample_sales(number_of_rows: int = 200,
                  year: int = 2021,
                  seed: int = 42) -> pd.DataFrame:
-    ''' TEST - Generate sales product data
+    ''' Generate sales product data
 
     location, product, month, target_sales,
     target_profit, actual_sales, actual profit.
 
-    Example
-    -------
-    get_sample_sales().head()
+    Examples
+    --------
 
-    | location| product   | month     |target_sales |target_profit |actual_sales |actual_profit |
-    |:--------|:----------|:----------|------------:|-------------:|------------:|-------------:|
-    | London  | Beachwear | 2021-01-01|       31749 |      1904.94 |     29209.1 |      1752.54 |
-    | London  | Beachwear | 2021-01-01|       37833 |      6053.28 |     34049.7 |      5447.95 |
-    | London  | Jeans     | 2021-01-01|       29485 |      4127.9  |     31549   |      4416.85 |
-    | London  | Jeans     | 2021-01-01|       37524 |      3752.4  |     40901.2 |      4090.12 |
-    | London  | Sportswear| 2021-01-01|       27216 |      4354.56 |     29121.1 |      4659.38 |
+    .. code-block::
+
+        get_sample_sales().head()
+
+        | location| product   | month     |target_sales |target_profit |actual_sales |actual_profit |
+        | London  | Beachwear | 2021-01-01|       31749 |      1904.94 |     29209.1 |      1752.54 |
+        | London  | Beachwear | 2021-01-01|       37833 |      6053.28 |     34049.7 |      5447.95 |
+        | London  | Jeans     | 2021-01-01|       29485 |      4127.9  |     31549   |      4416.85 |
+        | London  | Jeans     | 2021-01-01|       37524 |      3752.4  |     40901.2 |      4090.12 |
+        | London  | Sportswear| 2021-01-01|       27216 |      4354.56 |     29121.1 |      4659.38 |
 
 
     Parameters
     ----------
-    number_of_rows - int - number of records/rows required.
-
-    year - int - sales year to generate data for.
-
-    seed: int - random seed, default 42
+    number_of_rows
+        number of records/rows required.
+    year
+        sales year to generate data for.
+    seed
+        random seed, default 42
 
 
     Returns
@@ -179,37 +181,39 @@ def sample_matrix(size: Tuple = (5, 5),
     Draw random samples from a normal (Gaussian) distribution.
     (Uses np.random.normal)
 
-    Example
-    -------
-    df = sample_data()
+    Examples
+    --------
+    .. code-block::
 
-    |    |        a |        b |         c |        d |         e |
-    |---:|---------:|---------:|----------:|---------:|----------:|
-    |  0 |  28.2635 |  58.5958 | -37.7419  |  43.1493 |  30.6003  |
-    |  1 |  68.6657 | 133.374  |  -4.08528 |  30.1512 |  74.854   |
-    |  2 |  20.979  | 206.842  |  25.84    |  54.9084 | -40.8005  |
-    |  3 |  80.6453 |  98.5271 |  19.2099  |  93.3201 |  -2.92593 |
-    |  4 | -31.4728 |  50.5013 | -46.5339  | -27.3093 |  80.5112  |
+        df = sample_matrix()
+        head(df, output=print)
 
+                a       b       c       d       e
+        0  14.967   8.617  16.477  25.230   7.658
+        1   7.659  25.792  17.674   5.305  15.426
+        2   5.366   5.343  12.420  -9.133  -7.249
+        3   4.377  -0.128  13.142   0.920  -4.123
+        4  24.656   7.742  10.675  -4.247   4.556
 
     Parameters
     ----------
-    size: tuple - row and column size required.
+    size
+        tuple - (row, column) size required.
 
-    loc : float or array_like of floats
-    Mean ("centre") of the distribution.
+    loc
+        float or array_like of floats. Mean ("centre") of the distribution.
 
-    scale : float or array_like of floats
-    Standard deviation (spread or "width") of the distribution.
-    Must be non-negative.
+    scale
+        float or array_like of floats. Standard deviation (spread or "width") of
+        the distribution. Must be non-negative.
 
-    lowercase_cols: boolean - alphabetical column names are lowercase
-    by default. False - uppercase column names
+    lowercase_cols
+        Alphabetical column names are lowercase by default.
 
 
     Returns
     -------
-    pd.DataFrame
+    a pandas DataFrame
     '''
     if seed:
         np.random.seed(seed)
@@ -234,12 +238,11 @@ def generate_periods(year: int = 2021,
                      seed: int = 42) -> pd.DataFrame:
     ''' Generate random effective and expired period pair values
 
-    Usage example
-    -------------
+    Examples
+    --------
     head(generate_periods(year=2022, rows=5))
 
     | effective   | expired    |
-    |:------------|:-----------|
     | 2022-07-07  | 2022-07-15 |
     | 2022-04-26  | 2022-05-01 |
     | 2022-11-19  | 2022-11-23 |
@@ -569,8 +572,8 @@ def dummy_dataframe(rows: int = 5, cols:int = 5) -> pd.DataFrame:
     Create a dummy dataframe with blank and zero values.
     Used for testing drop_columns()
 
-    Usage
-    -----
+    Examples
+    --------
     dummy_dataframe(rows=5, cols=5)
 
     '''

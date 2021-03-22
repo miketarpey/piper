@@ -17,6 +17,7 @@ def test_parser_single_statement():
     assert expected == actual
 
 
+# test_parser_two_statements {{{1
 def test_parser_two_statements():
     """
     """
@@ -84,5 +85,3 @@ def test_join_function_parms_multi_parms():
     actual = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
 
     assert expected == actual
-
-

@@ -24,7 +24,7 @@ from piper.verbs import left_join
 from piper.verbs import outer_join
 from piper.verbs import overlaps
 from piper.verbs import order_by
-from piper.verbs import pivot_table
+from piper.verbs import pivot_wider
 from piper.verbs import relocate
 from piper.verbs import rename
 from piper.verbs import rename_axis
@@ -970,14 +970,14 @@ def test_overlaps_unique_key_list():
     assert expected == actual.shape
 
 
-# test_pivot_table {{{1
-def test_pivot_table(t_sample_data):
+# test_pivot_wider {{{1
+def test_pivot_wider(t_sample_data):
     """
     """
 
     df = t_sample_data
 
-    pv = pivot_table(df, index=['countries', 'regions'], values='values_1')
+    pv = pivot_wider(df, index=['countries', 'regions'], values='values_1')
     pv.rename(columns={'values_1': 'totals'}, inplace=True)
 
     expected = 6507.9683290565645
@@ -985,14 +985,14 @@ def test_pivot_table(t_sample_data):
 
     assert expected == actual
 
-# test_pivot_table_sort_ascending_false {{{1
-def test_pivot_table_sort_ascending_false(t_sample_data):
+# test_pivot_wider_sort_ascending_false {{{1
+def test_pivot_wider_sort_ascending_false(t_sample_data):
     """
     """
 
     df = t_sample_data
 
-    pv = pivot_table(df, index=['countries'], values='values_1')
+    pv = pivot_wider(df, index=['countries'], values='values_1')
     pv.sort_values(by='values_1', ascending=False, inplace=True)
 
     expected = (8, 1)
@@ -1009,7 +1009,7 @@ def test_pivot_name_error(t_sample_data):
     df = t_sample_data
 
     with pytest.raises(KeyError):
-        pv = pivot_table(df, index=['countries_wrong_name'], values='values_1')
+        pv = pivot_wider(df, index=['countries_wrong_name'], values='values_1')
         pv.sort_values(by='values_1', ascending=False, inplace=True)
         pv.shape
 
@@ -1020,7 +1020,7 @@ def test_pivot_percent_calc(t_sample_data):
 
     df = t_sample_data
 
-    pv = pivot_table(df, index=['countries', 'regions'], values='values_1')
+    pv = pivot_wider(df, index=['countries', 'regions'], values='values_1')
     pv.rename(columns={'values_1': 'totals'}, inplace=True)
     pv.sort_values(by='totals', ascending=False, inplace=True)
     pv['%'] = pv.totals.apply(lambda x: x*100/pv.totals.sum())
@@ -1036,7 +1036,7 @@ def test_pivot_cum_percent_calc(t_sample_data):
     """
     df = t_sample_data
 
-    pv = pivot_table(df, index=['countries', 'regions'], values='values_1')
+    pv = pivot_wider(df, index=['countries', 'regions'], values='values_1')
     pv.rename(columns={'values_1': 'totals'}, inplace=True)
     pv.sort_values(by='totals', ascending=False, inplace=True)
     pv['%'] = pv.totals.apply(lambda x: x*100/pv.totals.sum())
@@ -1048,13 +1048,13 @@ def test_pivot_cum_percent_calc(t_sample_data):
     assert expected == actual
 
 
-# test_pivot_table_multi_grouper {{{1
-def test_pivot_table_multi_grouper(t_sample_data):
+# test_pivot_wider_multi_grouper {{{1
+def test_pivot_wider_multi_grouper(t_sample_data):
     """
     """
     df = t_sample_data
 
-    p2 = pivot_table(df, index=['dates', 'order_dates',
+    p2 = pivot_wider(df, index=['dates', 'order_dates',
                                 'regions', 'ids'],
                                 freq='Q',
                                 format_date=True)
@@ -1062,13 +1062,13 @@ def test_pivot_table_multi_grouper(t_sample_data):
     assert p2.loc[('Mar 2020', 'Mar 2020', 'East', 'A'), 'values_1'] > 0
 
 
-# test_pivot_table_single_grouper {{{1
-def test_pivot_table_single_grouper(t_sample_data):
+# test_pivot_wider_single_grouper {{{1
+def test_pivot_wider_single_grouper(t_sample_data):
     """
     """
     df = t_sample_data
 
-    p2 = pivot_table(df, index=['dates', 'regions', 'ids'],
+    p2 = pivot_wider(df, index=['dates', 'regions', 'ids'],
                      freq='Q', format_date=True)
 
     assert p2.loc[('Mar 2020', 'East', 'A'), 'values_1'] > 0
@@ -1225,7 +1225,7 @@ def test_rename_axis(t_sample_data):
     expected = ['AAA', 'BBB']
 
     df = t_sample_data
-    df = pivot_table(df, index=['countries', 'regions'], values='values_1')
+    df = pivot_wider(df, index=['countries', 'regions'], values='values_1')
     df = rename_axis(df, mapper=('AAA', 'BBB'), axis='rows')
     actual = df.index.names
 

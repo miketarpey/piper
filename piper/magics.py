@@ -1,6 +1,5 @@
+from IPython.core.magic import line_cell_magic, Magics, magics_class
 from IPython.core import magic_arguments
-from IPython.core.magic import line_magic, cell_magic, line_cell_magic, Magics, magics_class
-from IPython import get_ipython
 from piper.text import pipe_parser
 import logging
 
@@ -18,6 +17,7 @@ class PipeMagic(Magics):
     @magic_arguments.argument('--r', '-r', action='store_true', help='pipe_symbol magrittr R version')
     @magic_arguments.argument('--dot', '-e', action='store_true', help='pipe_symbol ".."')
     def piper(self, line='', cell=None):
+        ''' Piper line and cell magic '''
 
         info, debug = False, False
         pipe_symbol = '>>'
@@ -40,30 +40,26 @@ class PipeMagic(Magics):
                 pipe_symbol = '..'
 
             cell_value, execute = pipe_parser(cell, pipe_symbol=pipe_symbol, info=info, debug=debug)
-            return run_cmd(execute, cell_value)
+            return self.run_cmd(execute, cell_value)
         else:
             if line.strip() != '':
                 line_value, execute = pipe_parser(line, pipe_symbol=pipe_symbol, info=info, debug=debug)
-                return run_cmd(execute, line_value)
+                return self.run_cmd(execute, line_value)
 
             return line
 
 
-# run_cmd {{{1
-def run_cmd(execute, cell_value, env_variables=None):
-    '''
-    '''
-    if env_variables is None:
-        env_variables = get_ipython().user_ns
+    # run_cmd {{{1
+    def run_cmd(self, execute, cell_value, env_variables=None):
+        ''' Execute or evaluate the line or cell contents '''
 
-    try:
-        result = execute(cell_value, env_variables)
-        return result
-    except Exception as e:
-        logger.info(f'Use %piper/%%piper --info to see rendered pandas pipe statement')
-        logger.info(e)
+        if env_variables is None:
+            env_variables = get_ipython().user_ns
 
+        try:
+            result = execute(cell_value, env_variables)
+            return result
+        except Exception as e:
+            logger.info(f'Use %piper/%%piper --info to see rendered pandas pipe statement')
+            logger.info(e)
 
-# Register magics
-ip = get_ipython()
-ip.register_magics(PipeMagic)

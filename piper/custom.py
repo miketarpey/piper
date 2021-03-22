@@ -34,8 +34,8 @@ def fiscal_year(date: Union[pd.Timestamp],
 
     Used with pd.Series date objects to obtain Fiscal Year information.
 
-    Usage example
-    -------------
+    Examples
+    --------
     assert fiscal_year(pd.Timestamp('2014-01-01')) == 'FY 2013/2014'
     assert fiscal_year(pd.to_datetime('2014-01-01')) == 'FY 2013/2014'
 
@@ -45,7 +45,6 @@ def fiscal_year(date: Union[pd.Timestamp],
     assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)
     assert pd.isna(from_excel(pd.NaT)) == pd.isna(pd.NaT)
 
-    -----------
     df = pd.DataFrame()
     df['Date'] = pd.date_range('2020-01-01', periods=12, freq='M')
     df['Date'] = df['Date'].apply(fiscal_year)
@@ -90,8 +89,8 @@ def from_julian(julian: Union[str, int],
     # https://docs.oracle.com/cd/E26228_01/doc.93/e21961/julian_date_conv.htm#WEAWX259
     # http://nimishprabhu.com/the-mystery-of-jde-julian-date-format-solved.html
 
-    Usage example
-    -------------
+    Examples
+    --------
     %%piper
 
     sample_sales()
@@ -100,13 +99,12 @@ def from_julian(julian: Union[str, int],
     >> across('month', to_julian)
     >> head(5)
 
-    | location| product   | month |target_sales |actual_sales |
-    |:--------|:----------|------:|------------:|------------:|
-    | London  | Beachwear |121001 |       31749 |     29209.1 |
-    | London  | Beachwear |121001 |       37833 |     34049.7 |
-    | London  | Jeans     |121001 |       29485 |     31549   |
-    | London  | Jeans     |121001 |       37524 |     40901.2 |
-    | London  | Sportswear|121001 |       27216 |     29121.1 |
+      location  product     month  target_sales  actual_sales
+      London    Beachwear  121001         31749       29209.1
+      London    Beachwear  121001         37833       34049.7
+      London    Jeans      121001         29485       31549
+      London    Jeans      121001         37524       40901.2
+      London    Sportswear 121001         27216       29121.1
 
     Parameters
     ----------
@@ -156,8 +154,8 @@ def from_excel(excel_date: Union[str, float, int, pd.Timestamp]) -> pd.Timestamp
 
     Converts excel serial format to pandas Timestamp object
 
-    Usage example
-    -------------
+    Examples
+    --------
     assert from_excel(pd.Timestamp('2014-01-01 08:00:00')) == pd.Timestamp('2014-01-01 08:00:00')
     assert from_excel('41640.3333') == pd.Timestamp('2014-01-01 08:00:00')
     assert from_excel(41640.3333) == pd.Timestamp('2014-01-01 08:00:00')
@@ -226,40 +224,44 @@ def ratio(value1: Union[int, float, pd.Series],
 
     Passes back np.inf value for 'divide by zero' use case.
 
-    Usage example
-    -------------
-    s1 = pd.Series([10, 20, 30])
-    s2 = pd.Series([1.3, 5.4, 3])
-    ratio(s1, s2)
 
-    |    |     0 |
-    |---:|------:|
-    |  0 |  7.69 |
-    |  1 |  3.70 |
+    Examples
+    --------
+    .. code-block::
 
-    %%piper
+        s1 = pd.Series([10, 20, 30])
+        s2 = pd.Series([1.3, 5.4, 3])
+        ratio(s1, s2)
 
-    sample_sales()
-    >> select(['-target_profit', '-actual_profit'])
-    >> assign(std_ratio = lambda x: x.actual_sales / x.target_sales)
-    >> assign(ratio = lambda x: ratio(x.actual_sales, x.target_sales,
-                                      percent=True, format=True, precision=4))
-    >> head(10)
+                   0
+           0    7.69
+           1    3.70
 
-    | location| product   | month     |target_sales |actual_sales |std_ratio | ratio  |
-    |:--------|:----------|:----------|------------:|------------:|---------:|:-------|
-    | London  | Beachwear | 2021-01-01|       31749 |     29209.1 |     0.92 | 92.0%  |
-    | London  | Beachwear | 2021-01-01|       37833 |     34049.7 |     0.9  | 90.0%  |
-    | London  | Jeans     | 2021-01-01|       29485 |     31549   |     1.07 | 107.0% |
-    | London  | Jeans     | 2021-01-01|       37524 |     40901.2 |     1.09 | 109.0% |
-    | London  | Sportswear| 2021-01-01|       27216 |     29121.1 |     1.07 | 107.0% |
+    .. code-block::
+
+        %%piper
+
+        sample_sales()
+        >> select(['-target_profit', '-actual_profit'])
+        >> assign(std_ratio = lambda x: x.actual_sales / x.target_sales)
+        >> assign(ratio = lambda x: ratio(x.actual_sales, x.target_sales,
+                                          percent=True, format=True, precision=4))
+        >> head(10)
+
+        location  product     month      target_sales  actual_sales  std_ratio   ratio
+        London    Beachwear   2021-01-01        31749       29209.1       0.92   92.0%
+        London    Beachwear   2021-01-01        37833       34049.7       0.9    90.0%
+        London    Jeans       2021-01-01        29485       31549         1.07   107.0%
+        London    Jeans       2021-01-01        37524       40901.2       1.09   109.0%
+        London    Sportswear  2021-01-01        27216       29121.1       1.07   107.0%
 
 
     Parameters
     ----------
-    value1: integer, float, or pd.Series
-
-    value2: integer, float, or pd.Series
+    value1
+        integer, float, or pd.Series
+    value2
+        integer, float, or pd.Series
 
 
     Returns
@@ -312,8 +314,8 @@ def to_julian(greg_date: Union[str, int], format: str = None):
     # https://docs.oracle.com/cd/E26228_01/doc.93/e21961/julian_date_conv.htm#WEAWX259
     # http://nimishprabhu.com/the-mystery-of-jde-julian-date-format-solved.html
 
-    Usage example
-    -------------
+    Examples
+    --------
     %%piper
 
     sample_sales()
@@ -324,13 +326,12 @@ def to_julian(greg_date: Union[str, int], format: str = None):
     # >> across('month', from_julian)
     >> head(5)
 
-    | location| product   | month    |target_sales |actual_sales |
-    |:--------|:----------|---------:|------------:|------------:|
-    | London  | Beachwear |2021-01-01|       31749 |     29209.1 |
-    | London  | Beachwear |2021-01-01|       37833 |     34049.7 |
-    | London  | Jeans     |2021-01-01|       29485 |     31549   |
-    | London  | Jeans     |2021-01-01|       37524 |     40901.2 |
-    | London  | Sportswear|2021-01-01|       27216 |     29121.1 |
+      location  product     month     target_sales  actual_sales
+      London    Beachwear  2021-01-01        31749       29209.1
+      London    Beachwear  2021-01-01        37833       34049.7
+      London    Jeans      2021-01-01        29485       31549
+      London    Jeans      2021-01-01        37524       40901.2
+      London    Sportswear 2021-01-01        27216       29121.1
 
 
     Parameters
@@ -338,8 +339,8 @@ def to_julian(greg_date: Union[str, int], format: str = None):
     greg_date : gregorian format date (string)
 
 
-    Return
-    ------
+    Returns
+    -------
     JDE Julian formatted string
     '''
     if greg_date in (np.NAN, pd.NaT, None, ''):

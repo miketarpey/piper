@@ -30,6 +30,178 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 
+# across {{{1
+def across(df: pd.DataFrame,
+               columns: Union[str, Tuple[str], List[str]] = None,
+               function: Callable = None,
+               series_obj: bool = False,
+               *args, **kwargs) -> pd.DataFrame:
+    '''Apply a function across multiple columns
+
+    Across allows you to apply a function across a number of columns in one
+    statement. Functions can be applied to series values (via apply()) or access
+    pd.Series object methods.
+
+    In pandas, to apply the same function (on a Series/columns' values) you
+    would normally do something like this:
+
+    .. code-block::
+
+        df['column'].apply(function)
+        df['column2'].apply(function)
+        df['column3'].apply(function)
+
+    Piper equivalent would be:
+
+    .. code-block::
+
+        across(df, ['column1', 'column2', 'column3'], function)
+
+    You can also work with Series object functions by passing keyword
+    series_obj=True. In Pandas, if you wanted to change the dtype of a column
+    you would use something like:
+
+    .. code-block::
+
+        df['col'] = df['col'].astype(float)
+        df['col2'] = df['col2'].astype(float)
+        df['col3'] = df['col3'].astype(float)
+
+    The equivalent with across would be:
+
+    .. code-block::
+
+        df = across(df, ['col', 'col2', 'col3'], function=lambda x: x.astype(float))
+
+
+    Parameters
+    ----------
+    df
+        pandas dataframe
+    columns
+        column(s) to apply function.
+        - If a list is provided, only the columns listed are affected by the function.
+        - If a tuple is supplied, the first and second values will correspond to
+        the from and to column(s) range used to apply the function to.
+    function
+        function to be called.
+    series_obj
+        Default is True.
+        True - Function applied at Series or (DataFrame) 'object' level.
+        False - Function applied to each Series row values.
+
+
+    Returns
+    -------
+    A pandas dataframe
+
+
+    Examples
+    --------
+    See below, example apply a function applied to each of the columns row
+    values.
+
+    .. code-block:: python
+
+        %%piper
+        sample_data()
+        across(['dates', 'order_dates'], to_julian)
+
+        # Alternative syntax, passing a lambda...
+        across(['order_dates', 'dates'], function=lambda x: to_julian(x), series_obj=False)
+
+        head()
+
+            dates     order_dates   countries     regions     ids       values_1     values_2
+           120001          120007   Italy         East        A              311           26
+           120002          120008   Portugal      South       D              150          375
+           120003          120009   Spain         East        A              396           88
+           120004          120010   Italy         East        B              319          233
+
+
+    .. code-block:: python
+
+        %%piper
+        sample_data()
+        >> across(['dates', 'order_dates'], fiscal_year, year_only=True)
+        >> head()
+
+          dates      order_dates     countries     regions     ids       values_1     values_2
+          FY 19/20   FY 19/20        Italy         East        A              311           26
+          FY 19/20   FY 19/20        Portugal      South       D              150          375
+          FY 19/20   FY 19/20        Spain         East        A              396           88
+          FY 19/20   FY 19/20        Italy         East        B              319          233
+
+    Accessing Series object methods - by passing series_obj=True you can also
+    manipulate series object and string vectorized functions (e.g. pd.Series.str.replace())
+
+    .. code-block:: python
+
+        %%piper
+        sample_data()
+        >> across(columns='values_1', function=lambda x: x.astype(int), series_obj=True)
+        >> across(columns=['values_1'], function=lambda x: x.astype(int), series_obj=True)
+
+    '''
+    if isinstance(df, pd.Series):
+        raise TypeError('Please specify DataFrame object')
+
+    if function is None:
+        raise ValueError('Please specify function to apply')
+
+    if isinstance(columns, str):
+        if columns not in df.columns:
+            raise ValueError(f'column {columns} not found')
+
+    if isinstance(columns, tuple):
+        columns = df.loc[:, slice(*columns)].columns.tolist()
+
+    if isinstance(columns, list):
+        for col in columns:
+            if col not in df.columns:
+                raise ValueError(f'column {col} not found')
+
+    if isinstance(columns, str):
+
+        # If not series function (to be applied to series values)
+        if not series_obj:
+            df[columns] = df[columns].apply(function, *args, **kwargs)
+        else:
+            df[[columns]] = df[[columns]].apply(function, *args, **kwargs)
+
+    try:
+        # No columns -> Apply with context of ALL dataframe columns
+        if columns is None:
+            df = df.apply(function, *args, **kwargs)
+
+            return df
+
+        # Specified group of columns to update.
+        if isinstance(columns, list):
+
+            # Apply function to each columns 'values'
+            if not series_obj:
+                for col in columns:
+                    df[col] = df[col].apply(function, *args, **kwargs)
+
+            # No, user wants to use/access pandas Series object attributes
+            # e.g. str, astype etc.
+            else:
+                df[columns] = df[columns].apply(function, *args, **kwargs)
+
+    except ValueError as e:
+        logger.info(e)
+        msg = 'Are you trying to apply a function working with Series values(s)? Try series_obj=False'
+        raise ValueError(msg)
+
+    except AttributeError as e:
+        logger.info(e)
+        msg = 'Are you trying to apply a function using Series object(s)? Try series_obj=True'
+        raise AttributeError(msg)
+
+    return df
+
+
 # adorn() {{{1
 def adorn(df: pd.DataFrame,
           columns: Union[str, list] = None,
@@ -37,54 +209,54 @@ def adorn(df: pd.DataFrame,
           col_row_name: str = 'All',
           axis: Union [int, str] = 0,
           ignore_index: bool = False) -> pd.DataFrame:
-    ''' <*> add totals to a dataframe
+    '''add totals to a dataframe
     Based on R janitor package function add row and/or column totals to a
     dataframe.
 
-    Usage example
-    -------------
-    ```python
-    import pandas as pd
-    from piper.pandas import *
+    Examples
+    --------
+    .. code-block::
 
-    url = 'https://github.com/datagy/pivot_table_pandas/raw/master/sample_pivot.xlsx'
-    df = pd.read_excel(url, parse_dates=['Date'])
-    head(df)
+        import pandas as pd
+        from piper.pandas import *
 
-    Date        Region          	  Type     Units   	Sales
-    2020-07-11  East    Children's Clothing 	18.0      306
-    2020-09-23  North   Children's Clothing 	14.0      448
+        url = 'https://github.com/datagy/pivot_table_pandas/raw/master/sample_pivot.xlsx'
+        df = pd.read_excel(url, parse_dates=['Date'])
+        head(df)
 
-    g1 = df.groupby(['Type', 'Region']).agg(TotalSales=('Sales', 'sum')).unstack()
-    g1 = adorn(g1, axis='both').astype(int)
-    g1 = flatten_cols(g1, remove_prefix='TotalSales')
-    g1
-    ```
+        Date        Region          	  Type     Units   	Sales
+        2020-07-11  East    Children's Clothing 	18.0      306
+        2020-09-23  North   Children's Clothing 	14.0      448
 
-    |                     |   East |   North |   South |   West |    All |
-    |:--------------------|-------:|--------:|--------:|-------:|-------:|
-    | Children's Clothing |  45849 |   37306 |   18570 |  20182 | 121907 |
-    | Men's Clothing      |  51685 |   39975 |   18542 |  19077 | 129279 |
-    | Women's Clothing    |  70229 |   61419 |   22203 |  22217 | 176068 |
-    | All                 | 167763 |  138700 |   59315 |  61476 | 427254 |
+        g1 = df.groupby(['Type', 'Region']).agg(TotalSales=('Sales', 'sum')).unstack()
+        g1 = adorn(g1, axis='both').astype(int)
+        g1 = flatten_cols(g1, remove_prefix='TotalSales')
+        g1
+
+                                  East     North     South     West      All
+          Children's Clothing    45849     37306     18570    20182   121907
+          Men's Clothing         51685     39975     18542    19077   129279
+          Women's Clothing       70229     61419     22203    22217   176068
+          All                   167763    138700     59315    61476   427254
 
 
     Parameters
     ----------
-    df - Pandas dataframe
-
-    columns: columns to be considered on the totals row.
-        Default None - All columns considered.
-
-    fillna: fill NaN values (default is '')
-
-    col_row_name: name of row/column title (default 'Total')
-
-    axis: axis to apply total (values: 0 or 'row', 1 or 'column')
+    df
+        Pandas dataframe
+    columns
+        columns to be considered on the totals row. Default None - All columns
+        considered.
+    fillna
+        fill NaN values (default is '')
+    col_row_name
+        name of row/column title (default 'Total')
+    axis
+        axis to apply total (values: 0 or 'row', 1 or 'column')
         To apply totals to both axes - use 'both'. (default is 0)
-
-    ignore_index: when concatenating totals, ignore index in both dataframes.
-        (default is False)
+    ignore_index
+        default False. When concatenating totals, ignore index in both
+        dataframes.
 
 
     Returns
@@ -150,7 +322,7 @@ def add_xl_formula(df: pd.DataFrame,
                    formula: str = '=CONCATENATE(A{row}, B{row}, C{row})',
                    offset: int = 2) -> pd.DataFrame:
 
-    ''' <*> add Excel (xl) formula column
+    '''add Excel (xl) formula column
 
     Parameters
     ----------
@@ -168,12 +340,12 @@ def add_xl_formula(df: pd.DataFrame,
     offset : starting row value, default = 2 (resultant xl sheet includes headers)
 
 
-    Usage example
-    -------------
-    ```python
-    formula = '=CONCATENATE(A{row}, B{row}, C{row})'
-    add_xl_formula(df, column_name='X7', formula=formula)
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        formula = '=CONCATENATE(A{row}, B{row}, C{row})'
+        add_xl_formula(df, column_name='X7', formula=formula)
 
 
     Returns
@@ -191,170 +363,6 @@ def add_xl_formula(df: pd.DataFrame,
     return df
 
 
-# across {{{1
-def across(df: pd.DataFrame,
-               columns: Union[str, Tuple[str], List[str]] = None,
-               function: Callable = None,
-               series_obj: bool = False,
-               *args, **kwargs) -> pd.DataFrame:
-    ''' Apply a function across multiple columns
-
-    Across allows you to apply a function across a number of columns in one
-    statement. Functions can be applied on series values.
-
-    The syntax/order for apply such functions is:
-    ```python
-    across(df, ['column1', 'column2', 'column3'], function)
-    ```
-
-    The equivalent in pandas would be:
-    ```python
-    df['column'].apply(function)
-    df['column2'].apply(function)
-    df['column3'].apply(function)
-    ```
-
-    You can also work with Series object functions by passing keyword
-    series_obj=True. In Pandas, if you wanted to change the dtype of a column
-    you would use something like:
-
-    ```python
-    df['col'] = df['col'].astype(float)
-    df['col2'] = df['col2'].astype(float)
-    df['col3'] = df['col3'].astype(float)
-    ```
-
-    The equivalent with across would be:
-    ```python
-    df = across(df, ['col', 'col2', 'col3'], function=lambda x: x.astype(float))
-    ```
-
-    Usage example
-    -------------
-    ```python
-    %%piper
-    sample_data()
-    >> across(['dates', 'order_dates'], to_julian)
-
-    # Alternative syntax, passing a lambda...
-    >> across(['order_dates', 'dates'], function=lambda x: to_julian(x), series_obj=False)
-
-    >> head()
-
-    |   dates |   order_dates | countries   | regions   | ids   |   values_1 |   values_2 |
-    |--------:|--------------:|:------------|:----------|:------|-----------:|-----------:|
-    |  120001 |        120007 | Italy       | East      | A     |        311 |         26 |
-    |  120002 |        120008 | Portugal    | South     | D     |        150 |        375 |
-    |  120003 |        120009 | Spain       | East      | A     |        396 |         88 |
-    |  120004 |        120010 | Italy       | East      | B     |        319 |        233 |
-    ```
-
-    ```python
-    %%piper
-    sample_data()
-    >> across(['dates', 'order_dates'], fiscal_year, year_only=True)
-    >> head()
-
-    | dates    | order_dates   | countries   | regions   | ids   |   values_1 |   values_2 |
-    |:---------|:--------------|:------------|:----------|:------|-----------:|-----------:|
-    | FY 19/20 | FY 19/20      | Italy       | East      | A     |        311 |         26 |
-    | FY 19/20 | FY 19/20      | Portugal    | South     | D     |        150 |        375 |
-    | FY 19/20 | FY 19/20      | Spain       | East      | A     |        396 |         88 |
-    | FY 19/20 | FY 19/20      | Italy       | East      | B     |        319 |        233 |
-    ```
-
-    Accessing Series object methods - by passing series_obj=True you can also
-    manipulate series object and string vectorized functions (e.g. pd.Series.str.replace())
-
-    ```python
-    %%piper
-    sample_data()
-    >> across(columns='values_1', function=lambda x: x.astype(int), series_obj=True)
-    >> across(columns=['values_1'], function=lambda x: x.astype(int), series_obj=True)
-    ```
-
-
-    Parameters
-    ----------
-    df: pandas dataframe
-
-    columns: column(s) to apply function.
-
-        If a list is provided, only the columns listed are affected by the function.
-
-        If a tuple is supplied, the first and second values will correspond to
-        the from and to column(s) range used to apply the function to.
-
-    function: function to be called.
-
-    series_obj: Default is True
-        True - function applied at Series or (DataFrame) 'object' level.
-        False - function applied to each Series row values.
-
-
-    Return
-    ------
-    A pandas dataframe
-    '''
-    if isinstance(df, pd.Series):
-        raise TypeError('Please specify DataFrame object')
-
-    if function is None:
-        raise ValueError('Please specify function to apply')
-
-    if isinstance(columns, str):
-        if columns not in df.columns:
-            raise ValueError(f'column {columns} not found')
-
-    if isinstance(columns, tuple):
-        columns = df.loc[:, slice(*columns)].columns.tolist()
-
-    if isinstance(columns, list):
-        for col in columns:
-            if col not in df.columns:
-                raise ValueError(f'column {col} not found')
-
-    if isinstance(columns, str):
-
-        # If not series function (to be applied to series values)
-        if not series_obj:
-            df[columns] = df[columns].apply(function, *args, **kwargs)
-        else:
-            df[[columns]] = df[[columns]].apply(function, *args, **kwargs)
-
-    try:
-        # No columns -> Apply with context of ALL dataframe columns
-        if columns is None:
-            df = df.apply(function, *args, **kwargs)
-
-            return df
-
-        # Specified group of columns to update.
-        if isinstance(columns, list):
-
-            # Apply function to each columns 'values'
-            if not series_obj:
-                for col in columns:
-                    df[col] = df[col].apply(function, *args, **kwargs)
-
-            # No, user wants to use/access pandas Series object attributes
-            # e.g. str, astype etc.
-            else:
-                df[columns] = df[columns].apply(function, *args, **kwargs)
-
-    except ValueError as e:
-        logger.info(e)
-        msg = 'Are you trying to apply a function working with Series values(s)? Try series_obj=False'
-        raise ValueError(msg)
-
-    except AttributeError as e:
-        logger.info(e)
-        msg = 'Are you trying to apply a function using Series object(s)? Try series_obj=True'
-        raise AttributeError(msg)
-
-    return df
-
-
 # assign() {{{1
 def assign(df: pd.DataFrame,
            *args,
@@ -362,30 +370,31 @@ def assign(df: pd.DataFrame,
            lambda_var: str = 'x',
            info: bool = False,
            **kwargs) -> pd.DataFrame:
-    ''' <*> Assign new columns to a DataFrame.
+    '''Assign new columns to a DataFrame.
 
     Returns a new object with all original columns in addition to new ones.
     Existing columns that are re-assigned will be overwritten.
 
     Parameters
     ----------
-    lambda_str: boolean - default is False. Treat string as a the 'body'
-        of a lambda function. Assign function will convert the string
-        to a lambda before passing to pd.DataFrame.assign()
-
-    lambda_var: str - default is 'x'.
-
-    info: boolean - default is False.
+    lambda_str
+        Default is False. Treat string as a the 'body' of a lambda function.
+        Assign function will convert the string to a lambda before passing to
+        pd.DataFrame.assign()
+    lambda_var
+        Default is 'x'.
+    info
+        Default is False.
         if True - output contents of kwargs where keyword value is being
         converted from string to lambda function. (For debug purposes)
+    **kwargs
+        dict of {str: callable or Series}
 
-    **kwargs : dict of {str: callable or Series}
-        The column names are keywords. If the values are
-        callable, they are computed on the DataFrame and
-        assigned to the new columns. The callable must not
-        change input DataFrame (though pandas doesn't check it).
-        If the values are not callable, (e.g. a Series, scalar, or array),
-        they are simply assigned.
+        The column names are keywords. If the values are callable, they are
+        computed on the DataFrame and assigned to the new columns. The callable
+        must not change input DataFrame (though pandas doesn't check it). If the
+        values are not callable, (e.g. a Series, scalar, or array), they are
+        simply assigned.
 
 
     Returns
@@ -402,52 +411,51 @@ def assign(df: pd.DataFrame,
     columns in 'df'; items are computed and assigned into 'df' in order.
 
 
-    Usage example
-    -------------
+    Examples
+    --------
     You can create a dictionary of column names to corresponding functions,
     then pass the dictionary to the assign function as shown below:
 
-    ```python
-    %%piper --dot
-    sample_data()
-    .. assign(**{'reversed': 'x.regions.apply(lambda x: x[::-1])',
-                 'v1_x_10': 'x.values_1 * 10',
-                 'v2_div_4': lambda x: x.values_2 / 4,
-                 'dow': lambda x: x.dates.dt.day_name(),
-                 'ref': lambda x: x.v2_div_4 * 5,
-                 'values_1': 'x.values_1.astype(int)',
-                 'values_2': 'x.values_2.astype(int)',
-                 'ids': lambda x: x.ids.astype('category')}, lambda_str=True)
-    .. pd.DataFrame.astype({'values_1': float, 'values_2': float})
-    .. relocate('dow', 'after', 'dates')
-    .. select(['-dates', '-order_dates'])
-    .. head()
-    ```
+    .. code-block::
 
-    | dow      | countries| regions| ids|values_1 |values_2 | reversed|v1_x_10 |v2_div_4 |    ref |
-    |:---------|:---------|:-------|:---|--------:|--------:|:--------|-------:|--------:|-------:|
-    | Wednesday| Italy    | East   | A  |     311 |      26 | tsaE    |   3110 |    6.5  |  32.5  |
-    | Thursday | Portugal | South  | D  |     150 |     375 | htuoS   |   1500 |   93.75 | 468.75 |
-    | Friday   | Spain    | East   | A  |     396 |      88 | tsaE    |   3960 |   22    | 110    |
-    | Saturday | Italy    | East   | B  |     319 |     233 | tsaE    |   3190 |   58.25 | 291.25 |
+        %%piper --dot
+        sample_data()
+        .. assign(**{'reversed': 'x.regions.apply(lambda x: x[::-1])',
+                     'v1_x_10': 'x.values_1 * 10',
+                     'v2_div_4': lambda x: x.values_2 / 4,
+                     'dow': lambda x: x.dates.dt.day_name(),
+                     'ref': lambda x: x.v2_div_4 * 5,
+                     'values_1': 'x.values_1.astype(int)',
+                     'values_2': 'x.values_2.astype(int)',
+                     'ids': lambda x: x.ids.astype('category')}, lambda_str=True)
+        .. pd.DataFrame.astype({'values_1': float, 'values_2': float})
+        .. relocate('dow', 'after', 'dates')
+        .. select(['-dates', '-order_dates'])
+        .. head()
 
-    %%piper
-    sample_sales()
-    >> select()
-    >> assign(month_plus_one = lambda x: x.month + pd.Timedelta(1, 'D'),
-              alternative_text_formula = "x.actual_sales * .2")
+          dow        countries  regions  ids values_1  values_2   reversed v1_x_10  v2_div_4      ref
+          Wednesday  Italy      East     A        311        26   tsaE        3110      6.5     32.5
+          Thursday   Portugal   South    D        150       375   htuoS       1500     93.75   468.75
+          Friday     Spain      East     A        396        88   tsaE        3960     22      110
+          Saturday   Italy      East     B        319       233   tsaE        3190     58.25   291.25
 
-    ---
-    assign(profit_sales = 'x.actual_profit - x.actual_sales',
-           month_value = "x.month.dt.month",
-           product_added = "x['product'] + ', TEST'",
-           salesthing = "x.target_sales.sum()", info=False)
+    .. code-block::
 
-    ---
-    Alternative, use standard lambda convention
-    assign(adast = lambda x: x.adast.astype('category'),
-           adcrcd = lambda x: x.adcrcd.astype('category'),
-           aduom = lambda x: x.aduom.astype('category'))
+        %%piper
+        sample_sales()
+        >> select()
+        >> assign(month_plus_one = lambda x: x.month + pd.Timedelta(1, 'D'),
+                  alternative_text_formula = "x.actual_sales * .2")
+
+        assign(profit_sales = 'x.actual_profit - x.actual_sales',
+               month_value = "x.month.dt.month",
+               product_added = "x['product'] + ', TEST'",
+               salesthing = "x.target_sales.sum()", info=False)
+
+        Alternative, use standard lambda convention
+        assign(adast = lambda x: x.adast.astype('category'),
+               adcrcd = lambda x: x.adcrcd.astype('category'),
+               aduom = lambda x: x.aduom.astype('category'))
 
     '''
     if kwargs:
@@ -470,50 +478,50 @@ def assign(df: pd.DataFrame,
 def columns(df: pd.DataFrame,
             regex: str = None,
             astype: str = 'list') -> Union[str, list, dict, pd.Series, pd.DataFrame]:
-    ''' <*> show dataframe column information
+    '''show dataframe column information
 
     This function is useful reviewing or manipulating column(s)
 
-    Usage example
-    -------------
-    ```python
-    import numpy as np
-    import pandas as pd
-    from pandas._testing import assert_frame_equal
+    Examples
+    --------
+    .. code-block::
 
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
+        import numpy as np
+        import pandas as pd
+        from pandas._testing import assert_frame_equal
 
-    region_list = ['East', 'West', 'North', 'South']
-    s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
+        id_list = ['A', 'B', 'C', 'D', 'E']
+        s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
 
-    df = pd.concat([s1, s2], axis=1)
+        region_list = ['East', 'West', 'North', 'South']
+        s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
 
-    expected = ['ids', 'regions']
-    actual = columns(df, astype='list')
-    assert expected == actual
+        df = pd.concat([s1, s2], axis=1)
 
-    expected = {'ids': 'ids', 'regions': 'regions'}
-    actual = columns(df, astype='dict')
-    assert expected == actual
+        expected = ['ids', 'regions']
+        actual = columns(df, astype='list')
+        assert expected == actual
 
-    expected = pd.DataFrame(['ids', 'regions'], columns=['column_names'])
-    actual = columns(df, astype='dataframe')
-    assert_frame_equal(expected, actual)
+        expected = {'ids': 'ids', 'regions': 'regions'}
+        actual = columns(df, astype='dict')
+        assert expected == actual
 
-    expected = "['ids', 'regions']"
-    actual = columns(df, astype='text')
-    assert expected == actual
-    ```
+        expected = pd.DataFrame(['ids', 'regions'], columns=['column_names'])
+        actual = columns(df, astype='dataframe')
+        assert_frame_equal(expected, actual)
+
+        expected = "['ids', 'regions']"
+        actual = columns(df, astype='text')
+        assert expected == actual
 
     Parameters
     ----------
-    df : dataframe
-
-    regex : regular expression to 'filter' list of returned columns
-            default, None
-
-    astype : default - list. See return options below
+    df
+        dataframe
+    regex
+        regular expression to 'filter' list of returned columns default, None
+    astype
+        default - list. See return options below
 
 
     Returns
@@ -551,56 +559,58 @@ def count(df: pd.DataFrame,
           totals: bool = False,
           sort_values: bool = False,
           reset_index: bool = False):
-    ''' <*> show column/category/factor frequency
+    '''show column/category/factor frequency
 
     For selected column or multi-index show the frequency count, frequency %,
     cum frequency %. Also provides optional totals.
 
-    Usage example
-    -------------
-    ```python
-    import numpy as np
-    import pandas as pd
-    from piper.verbs import count
+    Examples
+    --------
+    .. code-block::
 
-    np.random.seed(42)
+        import numpy as np
+        import pandas as pd
+        from piper.verbs import count
 
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
-    s2 = pd.Series(np.random.randint(1, 10, s1.shape[0]), name='values')
-    df = pd.concat([s1, s2], axis=1)
+        np.random.seed(42)
 
-    count(df.ids)
-    ```
+        id_list = ['A', 'B', 'C', 'D', 'E']
+        s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
+        s2 = pd.Series(np.random.randint(1, 10, s1.shape[0]), name='values')
+        df = pd.concat([s1, s2], axis=1)
 
-    | ids   |   n |   % |   cum % |
-    |:------|----:|----:|--------:|
-    | E     |   3 |  60 |      60 |
-    | C     |   1 |  20 |      80 |
-    | D     |   1 |  20 |     100 |
+        count(df.ids)
+        count(df, 'ids')
+        count(df, ['ids'])
+
+          ids       n     %     cum %
+          E         3    60        60
+          C         1    20        80
+          D         1    20       100
 
 
     Parameters
     ----------
-    df : dataframe reference
-
-    columns: dataframe columns/index to be used in groupby function
-
-    totals_name: name of total column, default 'n'
-
-    percent: provide % total, default True
-
-    cum_percent: provide cum % total, default True
-
-    threshold: filter cum_percent by this value, default 100
-
-    round = round decimals, default 2
-
-    totals: add total column, default False
-
-    sort_values: default False, None means use index sort
-
-    reset_index: default False
+    df
+        dataframe reference
+    columns
+        dataframe columns/index to be used in groupby function
+    totals_name
+        name of total column, default 'n'
+    percent
+        provide % total, default True
+    cum_percent
+        provide cum % total, default True
+    threshold
+        filter cum_percent by this value, default 100
+    round
+        round decimals, default 2
+    totals
+        add total column, default False
+    sort_values
+        default False, None means use index sort
+    reset_index
+        default False
 
 
     Returns
@@ -659,26 +669,26 @@ def count(df: pd.DataFrame,
 def clean_columns(df: pd.DataFrame,
                   replace_char: tuple = (' ', '_'),
                   title: bool = False) -> pd.DataFrame:
-    ''' <*> Clean column names, strip blanks, lowercase, snake_case.
+    '''Clean column names, strip blanks, lowercase, snake_case.
 
     Also removes awkward characters to allow for easier manipulation.
     (optionally 'title' each column name.)
 
-    Usage example
-    -------------
-    ```python
-    df = clean_columns(df, replace_char=('_', ' '))
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        df = clean_columns(df, replace_char=('_', ' '))
 
 
     Parameters
     ----------
-    df : dataframe
-
-    replace_char : a tuple giving the 'from' and 'to' characters
-                   to be replaced, default (' ', '_')
-
-    title : default False. If True, titleize column values
+    df
+        pandas dataframe
+    replace_char
+        default (' ', '_'). A tuple giving the 'from' and 'to' characters to be replaced
+    title
+        default False. If True, titleize column values
 
 
     Returns
@@ -723,47 +733,51 @@ def combine_header_rows(df: pd.DataFrame,
                         delimitter: str = ' ',
                         title: bool = True,
                         infer_objects: bool = True) -> pd.DataFrame:
-    ''' <*> Combine 1 or more header rows across into one.
+    '''Combine 1 or more header rows across into one.
 
     Optionally, infers remaining data column data types.
 
-    Usage example
-    -------------
+    Examples
+    --------
+    .. code-block::
 
-    | A     | B      |
-    |:------|:-------|
-    | Order | Order  |
-    | Qty   | Number |
-    | 10    | 12345  |
-    | 40    | 12346  |
+        data = {'A': ['Customer', 'id', 48015346, 49512432],
+                'B': ['Order', 'Number', 'DE-12345', 'FR-12346'],
+                'C': [np.nan, 'Qty', 10, 40],
+                'D': ['Item', 'Number', 'SW-10-2134', 'YH-22-2030'],
+                'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
 
-    ```python
-    data = {'A': ['Order', 'Qty', 10, 40],
-            'B': ['Order', 'Number', 12345, 12346]}
-    df = pd.DataFrame(data)
-    df = combine_header_rows(df)
-    df
-    ```
+        df = pd.DataFrame(data)
+        df
 
-    |   Order Qty |   Order Number |
-    |------------:|---------------:|
-    |          10 |          12345 |
-    |          40 |          12346 |
+               A          B          C     D            E
+           0   Customer   Order      nan   Item         nan
+           1   id         Number     Qty   Number       Description
+           2   48015346   DE-12345   10    SW-10-2134   Screwdriver Set
+           3   49512432   FR-12346   40    YH-22-2030   Workbench
+
+        df.iloc[0] = df.iloc[0].ffill()
+        df = combine_header_rows(df)
+        df
+              Customer Id   Order Number Order Qty   Item Number  Item Description
+           2     48015346   DE-12345            10   SW-10-2134   Screwdriver Set
+           3     49512432   FR-12346            40   YH-22-2030   Workbench
+
 
     Parameters
     ----------
-    df: dataframe
-
-    start: int, starting row - default 0
-
-    end: int, ending row to combine, - default 1
-
-    delimitter: str, character to be used to 'join' row values together.
-                default is ' '
-
-    title : default False. If True, titleize column values
-
-    infer_objects : default True. Infer data type of resultant dataframe
+    df
+        dataframe
+    start
+        starting row - default 0
+    end
+        ending row to combine, - default 1
+    delimitter
+        character to be used to 'join' row values together. default is ' '
+    title
+        default False. If True, titleize column values
+    infer_objects
+        default True. Infer data type of resultant dataframe
 
 
     Returns
@@ -795,36 +809,36 @@ def distinct(df: pd.DataFrame,
              *args,
              shape: bool = False,
              **kwargs) -> pd.DataFrame:
-    ''' <*> select distinct/unique rows
+    '''select distinct/unique rows
 
     This is a wrapper function rather than using e.g. df.distinct()
     For details of args, kwargs - see help(pd.DataFrame.distinct)
 
-    Usage example
-    -------------
-    ```python
-    from piper.verbs import select, distinct
-    from piper.test.factory import get_sample_df1
+    Examples
+    --------
+    .. code-block::
 
-    df = get_sample_df1()
-    df = select(df, ['countries', 'regions', 'ids'])
-    df = distinct(df, 'ids', shape=False)
+        from piper.verbs import select, distinct
+        from piper.test.factory import get_sample_df1
 
-    expected = (5, 3)
-    actual = df.shape
-    ```
+        df = get_sample_df1()
+        df = select(df, ['countries', 'regions', 'ids'])
+        df = distinct(df, 'ids', shape=False)
+
+        expected = (5, 3)
+        actual = df.shape
 
 
     Parameters
     ----------
-    df: dataframe
-
-    shape : default True
-        show shape information as a logger.info() message
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    shape
+        default True. Show shape information as a logger.info() message
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -843,31 +857,32 @@ def distinct(df: pd.DataFrame,
 def drop(df: pd.DataFrame,
          *args,
          **kwargs) -> pd.DataFrame:
-    ''' <*> drop column(s)
+    '''drop column(s)
 
     This is a wrapper function rather than using e.g. df.drop()
     For details of args, kwargs - see help(pd.DataFrame.drop)
 
-    Usage example
-    -------------
-    ```python
-    df <- pd.read_csv('inputs/export.dsv', sep='\t')
-    >> clean_columns()
-    >> trim()
-    >> assign(adast = lambda x: x.adast.astype('category'),
-              adcrcd = lambda x: x.adcrcd.astype('category'),
-              aduom = lambda x: x.aduom.astype('category'))
-    >> drop(columns='adcrcd_1')
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        df <- pd.read_csv('inputs/export.dsv', sep='\t')
+        >> clean_columns()
+        >> trim()
+        >> assign(adast = lambda x: x.adast.astype('category'),
+                  adcrcd = lambda x: x.adcrcd.astype('category'),
+                  aduom = lambda x: x.aduom.astype('category'))
+        >> drop(columns='adcrcd_1')
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -882,23 +897,24 @@ def drop_columns(df: pd.DataFrame,
                  value: Union[str, int, float] = None) -> pd.DataFrame:
     ''' drop columns containing blanks or zeros
 
-    Usage example
-    -------------
-    ```python
-    %%piper
-    dummy_dataframe()
-    >> drop_columns()
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        %%piper
+        dummy_dataframe()
+        >> drop_columns()
 
     Parameters
     ----------
-    df: pandas dataframe
+    df
+        pandas dataframe
+    value
+        For each dataframe column, if the specified value is present within
+        EVERY row, drop the column.
 
-    value: For each dataframe column, if the specified value
-        is present within EVERY row, drop the column.
-
-        Default is None which will drop a column if it contains
-        blanks in every row.
+        Default is None which will drop a column if it contains blanks in every
+        row.
 
 
     Returns
@@ -938,49 +954,48 @@ def duplicated(df: pd.DataFrame,
                loc: str = 'first',
                ref_column: str = None,
                duplicates: bool = False) -> pd.DataFrame:
-    ''' <*> locate duplicate data
+    '''locate duplicate data
 
-    Usage example
-    -------------
-    ```python
-    from piper.test.factory import get_sample_df5
-    df = get_sample_df5()
+    Examples
+    --------
+    .. code-block::
 
-    duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-    df = duplicated(df[duplicated_fields],
-                    subset=duplicated_fields,
-                    keep='first', sort=True)
-    df
-    ```
-    | duplicate| bgy56icnt   |   bgz56ccode |
-    |:---------|:------------|-------------:|
-    | False    | BE          |     46065502 |
-    | True     | BE          |     46065502 |
-    | True     | BE          |     46065502 |
-    | False    | BE          |     46065798 |
-    | False    | BE          |     46066013 |
+        from piper.test.factory import get_sample_df5
+        df = get_sample_df5()
+
+        duplicated_fields = ['bgy56icnt', 'bgz56ccode']
+        df = duplicated(df[duplicated_fields],
+                        subset=duplicated_fields,
+                        keep='first', sort=True)
+        df
+          duplicate  bgy56icnt       bgz56ccode
+          False      BE                46065502
+          True       BE                46065502
+          True       BE                46065502
+          False      BE                46065798
+          False      BE                46066013
 
 
     Parameters
     ----------
-    df : pandas dataframe
-
-    subset: column label or sequence of labels, required
+    df
+        pandas dataframe
+    subset
+        column label or sequence of labels, required
         Only consider certain columns for identifying duplicates
         Default None - consider ALL dataframe columns
-
-    keep: {‘first’, ‘last’, False}, default ‘first’
+    keep
+        {‘first’, ‘last’, False}, default ‘first’
         first : Mark duplicates as True except for the first occurrence.
         last : Mark duplicates as True except for the last occurrence.
         False : Mark all duplicates as True.
-
-    sort: True, False
-        if True sort returned dataframe using subset fields as key
-
-    column: insert a column name identifying whether duplicate
+    sort
+        If True sort returned dataframe using subset fields as key
+    column
+        Insert a column name identifying whether duplicate
         (True/False), default 'duplicate'
-
-    duplicates: Default True. Return only duplicate key rows
+    duplicates
+        Default True. Return only duplicate key rows
 
 
     Returns
@@ -1007,52 +1022,51 @@ def duplicated(df: pd.DataFrame,
 def explode(df: pd.DataFrame,
             *args,
             **kwargs) -> pd.DataFrame:
-    ''' <*> Transform list-like column values to rows
+    '''Transform list-like column values to rows
 
     This is a wrapper function rather than using e.g. df.drop()
     For details of args, kwargs - see help(pd.DataFrame.drop)
 
-    Usage example
-    -------------
-    ```python
-    from piper.test.factory import get_sample_df1
+    Examples
+    --------
+    .. code-block::
 
-    df = get_sample_df1()
-    df = group_by(df, 'countries')
-    df = summarise(df, ids=('ids', set))
-    df.head()
-    ```
+        from piper.test.factory import get_sample_df1
 
-    | countries   | ids                       |
-    |:------------|:--------------------------|
-    | Italy       | {'B', 'C', 'D', 'A', 'E'} |
-    | Portugal    | {'B', 'C', 'A', 'D', 'E'} |
-    | Spain       | {'B', 'C', 'D', 'A', 'E'} |
-    | Switzerland | {'B', 'C', 'A', 'D', 'E'} |
-    | Sweden      | {'B', 'C', 'A', 'D', 'E'} |
+        df = get_sample_df1()
+        df = group_by(df, 'countries')
+        df = summarise(df, ids=('ids', set))
+        df.head()
 
-    ```python
-    explode(df, 'ids').head(8)
-    ```
+          countries     ids
+          Italy         {'B', 'C', 'D', 'A', 'E'}
+          Portugal      {'B', 'C', 'A', 'D', 'E'}
+          Spain         {'B', 'C', 'D', 'A', 'E'}
+          Switzerland   {'B', 'C', 'A', 'D', 'E'}
+          Sweden        {'B', 'C', 'A', 'D', 'E'}
 
-    | countries   | ids   |
-    |:------------|:------|
-    | Italy       | B     |
-    | Italy       | C     |
-    | Italy       | D     |
-    | Italy       | A     |
-    | Italy       | E     |
-    | Portugal    | B     |
-    | Portugal    | C     |
-    | Portugal    | A     |
+    .. code-block::
 
-    Parameters
+        explode(df, 'ids').head(8)
+
+          countries     ids
+          Italy         B
+          Italy         C
+          Italy         D
+          Italy         A
+          Italy         E
+          Portugal      B
+          Portugal      C
+          Portugal      A
+
+        Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1067,36 +1081,37 @@ def explode(df: pd.DataFrame,
 def flatten_cols(df: pd.DataFrame,
                  join_char: str = '_',
                  remove_prefix=None) -> pd.DataFrame:
-    ''' <*> Flatten multi-index column headings
+    '''Flatten multi-index column headings
 
-    Usage example
-    -------------
-    ```python
-    from piper.defaults import *
+    Examples
+    --------
+    .. code-block::
 
-    %%piper
+        from piper.defaults import *
 
-    sample_data()
-    >> group_by(['countries', 'regions'])
-    >> summarise(totalval1=('values_1', 'sum'))
-    >> assign(mike='x.totalval1 * 50', eoin='x.totalval1 * 100')
-    >> transform()
-    >> order_by(['countries', '-g%'])
-    >> unstack()
-    >> flatten_cols(remove_prefix='mike|eoin|totalval1')
-    >> reset_index()
-    >> set_index('countries')
-    >> head()
-    ```
+        %%piper
+
+        sample_data()
+        >> group_by(['countries', 'regions'])
+        >> summarise(totalval1=('values_1', 'sum'))
+        >> assign(mike='x.totalval1 * 50', eoin='x.totalval1 * 100')
+        >> transform()
+        >> order_by(['countries', '-g%'])
+        >> unstack()
+        >> flatten_cols(remove_prefix='mike|eoin|totalval1')
+        >> reset_index()
+        >> set_index('countries')
+        >> head()
 
 
     Parameters
     ----------
-    df: pd.DataFrame - dataframe
-
-    join_char: delimitter joining 'prefix' value(s) to be removed.
-
-    remove_prefix: string(s) (delimitted by pipe '|')
+    df
+        pd.DataFrame - dataframe
+    join_char
+        delimitter joining 'prefix' value(s) to be removed.
+    remove_prefix
+        string(s) (delimitted by pipe '|')
         e.g. ='mike|eoin|totalval1'
 
 
@@ -1128,23 +1143,22 @@ def flatten_cols(df: pd.DataFrame,
 # fmt_dateidx() {{{1
 def fmt_dateidx(df: pd.DataFrame,
                 freq: str = 'D') -> pd.DataFrame:
-    ''' <*> format dataframe datelike index
+    '''format dataframe datelike index
 
     Checks if dataframe index contains a date-like grouper object.
     If so, applies the 'frequency' string given.
 
-    Usage example
-    -------------
-    ```python
-    ```
+    Examples
+    --------
 
     Parameters
     ----------
-    df: dataframe
-
-    freq: Default 'd' (days)
-    See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
-    for list of valid frequency strings.
+    df
+        dataframe
+    freq
+        Default 'd' (days)
+        See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+        for list of valid frequency strings.
 
 
     Returns
@@ -1173,7 +1187,7 @@ def group_by(df: pd.DataFrame,
              *args,
              freq: str = 'D',
              **kwargs) -> pd.DataFrame.groupby:
-    ''' <*> Group by dataframe
+    '''Group by dataframe
 
     This is a wrapper function rather than using e.g. df.groupby()
     For details of args, kwargs - see help(pd.DataFrame.groupby)
@@ -1186,28 +1200,29 @@ def group_by(df: pd.DataFrame,
     for list of valid frequency strings.
 
 
-    Usage example
-    -------------
-    ```python
-    %%piper
+    Examples
+    --------
+    .. code-block::
 
-    sample_data()
-    >> where("ids == 'A'")
-    >> where("values_1 > 300 & countries.isin(['Italy', 'Spain'])")
-    >> group_by(['countries', 'regions'])
-    >> summarise(total_values_1=pd.NamedAgg('values_1', 'sum'))
-    ```
+        %%piper
+
+        sample_data()
+        >> where("ids == 'A'")
+        >> where("values_1 > 300 & countries.isin(['Italy', 'Spain'])")
+        >> group_by(['countries', 'regions'])
+        >> summarise(total_values_1=pd.NamedAgg('values_1', 'sum'))
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    freq: Default 'd' (days)
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    freq
+        Default 'd' (days)
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1231,25 +1246,31 @@ def group_by(df: pd.DataFrame,
 
 
 # head() {{{1
-def head(df: pd.DataFrame, n: int = 4, shape: bool = True) -> pd.DataFrame:
-    ''' <*> Show first n records
-    Like the corresponding R function, displays the first n records.
-    Alternative to df.head()
+def head(df: pd.DataFrame, n: int = 4, shape: bool = True, rst: bool = False) -> pd.DataFrame:
+    '''
+    Show first n records of a dataframe.
 
-    Usage example
-    -------------
-    ```python
-    head(df)
-    ```
+    Like the corresponding R function, displays the first n records.
+    Alternative to using df.head()
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        head(df)
 
 
     Parameters
     ----------
-    df : pandas dataframe
-
-    n : number of rows to display, default n=4
-
-    shape: True, show shape information
+    df
+        pandas dataframe
+    n Default n=4
+        number of rows to display, default n=4
+    shape Default True
+        Show shape information
+    rst Default False
+        If True, output dataframe rows in RST markdown format
 
 
     Returns
@@ -1259,6 +1280,10 @@ def head(df: pd.DataFrame, n: int = 4, shape: bool = True) -> pd.DataFrame:
     if shape:
         _shape(df)
 
+    if rst:
+        print(df.head(n=n).to_markdown(tablefmt='rst', floatfmt=".0f"))
+        return
+
     return df.head(n=n)
 
 
@@ -1267,41 +1292,39 @@ def info(df,
          n_dupes: bool = False,
          fillna: bool = False,
          memory_info: bool = True) -> pd.DataFrame:
-    ''' <*> show dataframe meta data
+    '''show dataframe meta data
     Provides a summary of the structure of the dataframe data.
 
-    Usage example
-    -------------
-    ```python
-    import numpy as np
-    import pandas as pd
-    from piper.verbs import info
+    Examples
+    --------
+    .. code-block::
 
-    np.random.seed(42)
+        import numpy as np
+        import pandas as pd
+        from piper.verbs import info
 
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
-    s2 = pd.Series(np.random.randint(1, 10, s1.shape[0]), name='values')
-    df = pd.concat([s1, s2], axis=1)
+        np.random.seed(42)
 
-    |    | columns   | type   |   n |   isna |   isnull |   unique |
-    |---:|:----------|:-------|----:|-------:|---------:|---------:|
-    |  0 | ids       | object |   5 |      0 |        0 |        3 |
-    |  1 | values    | int64  |   5 |      0 |        0 |        4 |
-    ```
+        id_list = ['A', 'B', 'C', 'D', 'E']
+        s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
+        s2 = pd.Series(np.random.randint(1, 10, s1.shape[0]), name='values')
+        df = pd.concat([s1, s2], axis=1)
+
+               columns     type       n     isna     isnull     unique
+           0   ids         object     5        0          0          3
+           1   values      int64      5        0          0          4
 
 
     Parameters
     ----------
-    df: a pandas dataframe
-
-    n_dupes: column showing the numbers of groups of duplicate records
-             default: False
-
-    fillna: filter out only columns which contain nulls/np.nan
-            default: False
-
-    memory: If True, show dataframe memory consumption in mb
+    df
+        a pandas dataframe
+    n_dupes
+        default False. Column showing the numbers of groups of duplicate records
+    fillna
+        default: False. Filter out only columns which contain nulls/np.nan
+    memory
+        If True, show dataframe memory consumption in mb
 
 
     Returns
@@ -1335,46 +1358,47 @@ def info(df,
 
 # inner_join() {{{1
 def inner_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    ''' <*> inner_join => df (All) | df2 (All) matching records only
+    '''inner_join => df (All) | df2 (All) matching records only
 
     This is a wrapper function rather than using e.g. df.merge(how='inner')
     For details of args, kwargs - see help(pd.DataFrame.merge)
 
-    Usage example
-    -------------
-    ```python
-    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
-                  'Status': ['A', 'C', 'A', 'A', 'P'],
-                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
-    orders = pd.DataFrame(order_data)
+    Examples
+    --------
+    .. code-block::
 
-    status_data = {'Status': ['A', 'C', 'P'],
-                   'description': ['Active', 'Closed', 'Pending']}
-    statuses = pd.DataFrame(status_data)
+        order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                      'Status': ['A', 'C', 'A', 'A', 'P'],
+                      'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+        orders = pd.DataFrame(order_data)
 
-    order_types_data = {'Type_': ['SA', 'SO'],
-                        'description': ['Sales Order', 'Standing Order'],
-                        'description_2': ['Arbitrary desc', 'another one']}
-    types_ = pd.DataFrame(order_types_data)
+        status_data = {'Status': ['A', 'C', 'P'],
+                       'description': ['Active', 'Closed', 'Pending']}
+        statuses = pd.DataFrame(status_data)
 
-    %%piper
-    orders >> inner_join(types_, suffixes=('_orders', '_types'))
-    ```
+        order_types_data = {'Type_': ['SA', 'SO'],
+                            'description': ['Sales Order', 'Standing Order'],
+                            'description_2': ['Arbitrary desc', 'another one']}
+        types_ = pd.DataFrame(order_types_data)
 
-    |   OrderNo | Status   | Type_   | description    | description_2   |
-    |----------:|:---------|:--------|:---------------|:----------------|
-    |      1001 | A        | SO      | Standing Order | another one     |
-    |      1003 | A        | SO      | Standing Order | another one     |
-    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
+        %%piper
+        orders >> inner_join(types_, suffixes=('_orders', '_types'))
+
+        |   OrderNo | Status   | Type_   | description    | description_2   |
+        |----------:|:---------|:--------|:---------------|:----------------|
+        |      1001 | A        | SO      | Standing Order | another one     |
+        |      1003 | A        | SO      | Standing Order | another one     |
+        |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1389,39 +1413,39 @@ def inner_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
 
 # left_join() {{{1
 def left_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    ''' <*> left_join => df (All) | df2 (All/na) df always returned
+    '''left_join => df (All) | df2 (All/na) df always returned
 
     This is a wrapper function rather than using e.g. df.merge(how='left')
     For details of args, kwargs - see help(pd.DataFrame.merge)
 
-    Usage example
-    -------------
-    ```python
-    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
-                  'Status': ['A', 'C', 'A', 'A', 'P'],
-                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
-    orders = pd.DataFrame(order_data)
+    Examples
+    --------
+    .. code-block::
 
-    status_data = {'Status': ['A', 'C', 'P'],
-                   'description': ['Active', 'Closed', 'Pending']}
-    statuses = pd.DataFrame(status_data)
+        order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                      'Status': ['A', 'C', 'A', 'A', 'P'],
+                      'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+        orders = pd.DataFrame(order_data)
 
-    order_types_data = {'Type_': ['SA', 'SO'],
-                        'description': ['Sales Order', 'Standing Order'],
-                        'description_2': ['Arbitrary desc', 'another one']}
-    types_ = pd.DataFrame(order_types_data)
+        status_data = {'Status': ['A', 'C', 'P'],
+                       'description': ['Active', 'Closed', 'Pending']}
+        statuses = pd.DataFrame(status_data)
 
-    %%piper
-    orders >> left_join(types_, suffixes=('_orders', '_types'))
-    ```
+        order_types_data = {'Type_': ['SA', 'SO'],
+                            'description': ['Sales Order', 'Standing Order'],
+                            'description_2': ['Arbitrary desc', 'another one']}
+        types_ = pd.DataFrame(order_types_data)
 
-    |   OrderNo | Status   | Type_   | description    | description_2   |
-    |----------:|:---------|:--------|:---------------|:----------------|
-    |      1001 | A        | SO      | Standing Order | another one     |
-    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
-    |      1003 | A        | SO      | Standing Order | another one     |
-    |      1004 | A        | DA      | nan            | nan             |
-    |      1005 | P        | DD      | nan            | nan             |
+        %%piper
+        orders >> left_join(types_, suffixes=('_orders', '_types'))
+
+        |   OrderNo | Status   | Type_   | description    | description_2   |
+        |----------:|:---------|:--------|:---------------|:----------------|
+        |      1001 | A        | SO      | Standing Order | another one     |
+        |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
+        |      1003 | A        | SO      | Standing Order | another one     |
+        |      1004 | A        | DA      | nan            | nan             |
+        |      1005 | P        | DD      | nan            | nan             |
 
     '''
     kwargs['how'] = 'left'
@@ -1432,22 +1456,23 @@ def left_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
 
 # memory() {{{1
 def memory(df: pd.DataFrame) -> pd.DataFrame:
-    ''' <*> show dataframe consumed memory (mb)
+    '''show dataframe consumed memory (mb)
 
-    Usage example
-    -------------
-    ```python
-    from piper.factory import sample_sales
-    from piper.verbs import memory
-    import piper
-    memory(sample_sales())
-    ```
-    >> Dataframe consumes 0.03 Mb
+    Examples
+    --------
+    .. code-block::
+
+        from piper.factory import sample_sales
+        from piper.verbs import memory
+        import piper
+        memory(sample_sales())
+        >> Dataframe consumes 0.03 Mb
 
 
     Parameters
     ----------
-    df: a pandas dataframe
+    df
+        pandas dataframe
 
 
     Returns
@@ -1465,13 +1490,14 @@ def memory(df: pd.DataFrame) -> pd.DataFrame:
 
 # non_alpha() {{{1
 def non_alpha(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
-    ''' <*> check for non-alphanumeric characters
+    '''check for non-alphanumeric characters
 
     Parameters
     ----------
-    df : pandas dataframe
-
-    col_name : name of column to be checked
+    df
+        pandas dataframe
+    col_name
+        name of column to be checked
 
 
     Returns
@@ -1489,7 +1515,7 @@ def non_alpha(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
 
 # order_by() {{{1
 def order_by(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    ''' <*> order/sequence dataframe
+    '''order/sequence dataframe
 
     @__TODO__ Review mypy validation rules and update if required
 
@@ -1497,41 +1523,43 @@ def order_by(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     For details of args, kwargs - see help(pd.DataFrame.sort_values)
 
     The first argument and/or keyword 'by' is checked to see:
-    - for each specified column value:
+
+    - For each specified column value
       If it starts with a minus sign, assume ascending=False
 
-    Usage example
-    -------------
-    ```python
-    %%piper
+    Examples
+    --------
+    .. code-block::
 
-    sample_data()
-    >> group_by(['countries', 'regions'])
-    >> summarise(totalval1=('values_1', 'sum'))
-    >> group_calc(index='countries')
-    >> order_by(['countries', '-group%'])
-    >> head(8)
-    ```
+        %%piper
 
-    |                      |   totalval1 |   group% |
-    |:---------------------|------------:|---------:|
-    | ('France', 'West')   |        4861 |    42.55 |
-    | ('France', 'North')  |        2275 |    19.91 |
-    | ('France', 'East')   |        2170 |    19    |
-    | ('France', 'South')  |        2118 |    18.54 |
-    | ('Germany', 'North') |        2239 |    30.54 |
-    | ('Germany', 'East')  |        1764 |    24.06 |
-    | ('Germany', 'South') |        1753 |    23.91 |
-    | ('Germany', 'West')  |        1575 |    21.48 |
+        sample_data()
+        >> group_by(['countries', 'regions'])
+        >> summarise(totalval1=('values_1', 'sum'))
+        >> group_calc(index='countries')
+        >> order_by(['countries', '-group%'])
+        >> head(8)
+
+        |                      |   totalval1 |   group% |
+        |:---------------------|------------:|---------:|
+        | ('France', 'West')   |        4861 |    42.55 |
+        | ('France', 'North')  |        2275 |    19.91 |
+        | ('France', 'East')   |        2170 |    19    |
+        | ('France', 'South')  |        2118 |    18.54 |
+        | ('Germany', 'North') |        2239 |    30.54 |
+        | ('Germany', 'East')  |        1764 |    24.06 |
+        | ('Germany', 'South') |        1753 |    23.91 |
+        | ('Germany', 'West')  |        1575 |    21.48 |
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1580,39 +1608,40 @@ def order_by(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
 
 # outer_join() {{{1
 def outer_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    ''' <*> outer_join => df (All/na) | df2 (All/na) All rows returned
+    '''outer_join => df (All/na) | df2 (All/na) All rows returned
 
     This is a wrapper function rather than using e.g. df.merge(how='outer')
     For details of args, kwargs - see help(pd.DataFrame.merge)
 
-    Usage example
-    -------------
-    ```python
-    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
-                  'Status': ['A', 'C', 'A', 'A', 'P'],
-                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
-    orders = pd.DataFrame(order_data)
+    Examples
+    --------
+    .. code-block::
 
-    status_data = {'Status': ['A', 'C', 'P'],
-                   'description': ['Active', 'Closed', 'Pending']}
-    statuses = pd.DataFrame(status_data)
+        order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                      'Status': ['A', 'C', 'A', 'A', 'P'],
+                      'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+        orders = pd.DataFrame(order_data)
 
-    order_types_data = {'Type_': ['SA', 'SO'],
-                        'description': ['Sales Order', 'Standing Order'],
-                        'description_2': ['Arbitrary desc', 'another one']}
-    types_ = pd.DataFrame(order_types_data)
+        status_data = {'Status': ['A', 'C', 'P'],
+                       'description': ['Active', 'Closed', 'Pending']}
+        statuses = pd.DataFrame(status_data)
 
-    %%piper
-    orders >> outer_join(types_, suffixes=('_orders', '_types'))
-    ```python
+        order_types_data = {'Type_': ['SA', 'SO'],
+                            'description': ['Sales Order', 'Standing Order'],
+                            'description_2': ['Arbitrary desc', 'another one']}
+        types_ = pd.DataFrame(order_types_data)
 
-    |   OrderNo | Status   | Type_   | description    | description_2   |
-    |----------:|:---------|:--------|:---------------|:----------------|
-    |      1001 | A        | SO      | Standing Order | another one     |
-    |      1003 | A        | SO      | Standing Order | another one     |
-    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
-    |      1004 | A        | DA      | nan            | nan             |
-    |      1005 | P        | DD      | nan            | nan             |
+        %%piper
+        orders >> outer_join(types_, suffixes=('_orders', '_types'))
+
+    .. code-block::
+
+            OrderNo   Status     Type_     description      description_2
+               1001   A          SO        Standing Order   another one
+               1003   A          SO        Standing Order   another one
+               1002   C          SA        Sales Order      Arbitrary desc
+               1004   A          DA        nan              nan
+               1005   P          DD        nan              nan
     '''
     kwargs['how'] = 'outer'
     logger.debug(f"{kwargs}")
@@ -1626,42 +1655,38 @@ def overlaps(df: pd.DataFrame,
              start: str = 'effective',
              end: str = 'expiry',
              overlaps: str = 'overlaps') -> pd.DataFrame:
-    ''' <*> Analyse dataframe rows with overlapping date periods
+    '''Analyse dataframe rows with overlapping date periods
 
-    Usage example
-    -------------
-    ```python
-    data = {'prices': [100, 200, 300],
-            'contract': ['A', 'B', 'A'],
-            'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
-            'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
+    Examples
+    --------
+    .. code-block::
 
-    df = pd.DataFrame(data)
-    overlaps(df, start='effective', end='expired', unique_key='contract')
-    ```
+        data = {'prices': [100, 200, 300],
+                'contract': ['A', 'B', 'A'],
+                'effective': ['2020-01-01', '2020-03-03', '2020-05-30'],
+                'expired': ['2020-12-31', '2021-04-30', '2022-04-01']}
 
-    |    |   prices | contract   | effective   | expired    | overlaps   |
-    |---:|---------:|:-----------|:------------|:-----------|:-----------|
-    |  0 |      100 | A          | 2020-01-01  | 2020-12-31 | True       |
-    |  1 |      200 | B          | 2020-03-03  | 2021-04-30 | False      |
-    |  2 |      300 | A          | 2020-05-30  | 2022-04-01 | True       |
+        df = pd.DataFrame(data)
+        overlaps(df, start='effective', end='expired', unique_key='contract')
+
+                 prices   contract     effective     expired      overlaps
+           0        100   A            2020-01-01    2020-12-31   True
+           1        200   B            2020-03-03    2021-04-30   False
+           2        300   A            2020-05-30    2022-04-01   True
 
 
     Parameters
     ----------
-    df : dataframe
-
-    unique_key: (str, list)
+    df
+        dataframe
+    unique_key
         column(s) that uniquely identify rows
-
-    start:
+    start
         column that defines start/effective date, default 'effective_date'
-
-    end:
+    end
         column that defines end/expired date, default 'expiry_date'
-
-    overlaps: str - default 'overlaps'
-        name of overlapping column containing True/False values
+    overlaps
+        default 'overlaps'. Name of overlapping column containing True/False values
 
 
     Returns
@@ -1709,7 +1734,7 @@ def overlaps(df: pd.DataFrame,
 def pivot_longer(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
-    ''' <*> pivot dataframe wide to long
+    '''pivot dataframe wide to long
 
     This is a wrapper function rather than using e.g. df.melt()
     For details of args, kwargs - see help(pd.DataFrame.melt)
@@ -1717,11 +1742,12 @@ def pivot_longer(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1731,47 +1757,48 @@ def pivot_longer(df: pd.DataFrame,
     return df.melt(*args, **kwargs)
 
 
-# pivot_table() {{{1
-def pivot_table(df: pd.DataFrame,
+# pivot_wider() {{{1
+def pivot_wider(df: pd.DataFrame,
                 *args,
                 freq: str = 'M',
                 format_date: bool = False,
                 **kwargs) -> pd.DataFrame:
-    ''' <*> create Excel like pivot table
+    '''create Excel like pivot table
 
     This is a wrapper function rather than using e.g. df.pivot_table()
     For details of args, kwargs - see help(pd.DataFrame.pivot_table)
 
-    Usage example
-    -------------
-    ```python
-    from piper.verbs import pivot_table
-    from piper.test.factory import get_sample_df1
-    import piper.defaults
+    Examples
+    --------
+    .. code-block::
 
-    df = get_sample_df1()
+        from piper.verbs import pivot_wider
+        from piper.test.factory import get_sample_df1
+        import piper.defaults
 
-    index=['dates', 'order_dates', 'regions', 'ids']
-    pvt = pivot_table(df, index=index, freq='Q', format_date=True)
-    pvt.head()
-    ```
+        df = get_sample_df1()
 
-    |                                       |   values_1 |   values_2 |
-    |:--------------------------------------|-----------:|-----------:|
-    | ('Mar 2020', 'Mar 2020', 'East', 'A') |    227.875 |     184.25 |
-    | ('Mar 2020', 'Mar 2020', 'East', 'B') |    203.2   |     168    |
-    | ('Mar 2020', 'Mar 2020', 'East', 'C') |    126     |     367    |
-    | ('Mar 2020', 'Mar 2020', 'East', 'D') |    125.667 |     259    |
-    | ('Mar 2020', 'Mar 2020', 'East', 'E') |    194     |     219    |
+        index=['dates', 'order_dates', 'regions', 'ids']
+        pvt = pivot_wider(df, index=index, freq='Q', format_date=True)
+        pvt.head()
+
+        |                                       |   values_1 |   values_2 |
+        |:--------------------------------------|-----------:|-----------:|
+        | ('Mar 2020', 'Mar 2020', 'East', 'A') |    227.875 |     184.25 |
+        | ('Mar 2020', 'Mar 2020', 'East', 'B') |    203.2   |     168    |
+        | ('Mar 2020', 'Mar 2020', 'East', 'C') |    126     |     367    |
+        | ('Mar 2020', 'Mar 2020', 'East', 'D') |    125.667 |     259    |
+        | ('Mar 2020', 'Mar 2020', 'East', 'E') |    194     |     219    |
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1799,18 +1826,18 @@ def relocate(df: pd.DataFrame,
              loc: str = 'last',
              ref_column: str = None,
              index: bool = False) -> pd.DataFrame:
-    ''' <*> move column(s) in a dataframe
+    '''move column(s) in a dataframe
     Based on the corresponding R function - relocate
 
-    Usage example
-    -------------
-    ```python
-    %%piper
-    sample_sales()
-    >> pd.DataFrame.set_index(['location', 'product'])
-    >> relocate(column='location', loc='after', ref_column='product', index=True)
-    >> head()
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        %%piper
+        sample_sales()
+        >> pd.DataFrame.set_index(['location', 'product'])
+        >> relocate(column='location', loc='after', ref_column='product', index=True)
+        >> head()
 
     **NOTE**
     If you omit the keyword parameters, it probably 'reads' better ;)
@@ -1819,16 +1846,17 @@ def relocate(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    column: column name(s) to be moved
-
-    loc: default -'last'. The relative location to move the column(s) to.
+    df
+        dataframe
+    column
+        column name(s) to be moved
+    loc
+        default -'last'. The relative location to move the column(s) to.
         Valid values are: 'first', 'last', 'before', 'after'.
-
-    ref_column: = Default - None. Reference column
-
-    index: default is False (column). If True, then the column(s) being moved are
+    ref_column
+        Default - None. Reference column
+    index
+        default is False (column). If True, then the column(s) being moved are
         considered to be row indexes.
 
 
@@ -1895,27 +1923,28 @@ def relocate(df: pd.DataFrame,
 
 # rename() {{{1
 def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
-    ''' <*> rename dataframe col(s)
+    '''rename dataframe col(s)
     This is a wrapper function rather than using e.g. df.rename()
 
     For details of args, kwargs - see help(pd.DataFrame.rename)
 
-    Usage example
-    -------------
-    ```python
-    %%piper
-    sample_sales()
-    >> rename(columns={'product': 'item'})
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        %%piper
+        sample_sales()
+        >> rename(columns={'product': 'item'})
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1927,38 +1956,39 @@ def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
 
 # rename_axis() {{{1
 def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
-    ''' <*> rename dataframe axis
+    '''rename dataframe axis
     This is a wrapper function rather than using e.g. df.rename_axis()
 
     For details of args, kwargs - see help(pd.DataFrame.rename_axis)
 
-    Usage example
-    -------------
-    ```python
-    %%piper
+    Examples
+    --------
+    .. code-block::
 
-    sample_sales()
-    >> pivot_table(index=['location', 'product'], values='target_sales')
-    >> rename_axis(('AAA', 'BBB'), axis='rows')
-    >> head()
-    ```
+        %%piper
 
-    |                          |   target_sales |
-    |    AAA          BBB      |                |
-    |:-------------------------|---------------:|
-    | ('London', 'Beachwear')  |        31379.8 |
-    | ('London', 'Footwear')   |        27302.6 |
-    | ('London', 'Jeans')      |        28959.8 |
-    | ('London', 'Sportswear') |        29466.4 |
+        sample_sales()
+        >> pivot_wider(index=['location', 'product'], values='target_sales')
+        >> rename_axis(('AAA', 'BBB'), axis='rows')
+        >> head()
+
+        |                          |   target_sales |
+        |    AAA          BBB      |                |
+        |:-------------------------|---------------:|
+        | ('London', 'Beachwear')  |        31379.8 |
+        | ('London', 'Footwear')   |        27302.6 |
+        | ('London', 'Jeans')      |        28959.8 |
+        | ('London', 'Sportswear') |        29466.4 |
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -1971,37 +2001,36 @@ def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
 
 # right_join() {{{1
 def right_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    ''' <*> right_join => df (All/na) | df2 (All) df2 always returned
+    '''right_join => df (All/na) | df2 (All) df2 always returned
 
     This is a wrapper function rather than using e.g. df.merge(how='right')
     For details of args, kwargs - see help(pd.DataFrame.merge)
 
-    Usage example
-    -------------
-    ```python
-    order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
-                  'Status': ['A', 'C', 'A', 'A', 'P'],
-                  'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
-    orders = pd.DataFrame(order_data)
+    Examples
+    --------
+    .. code-block::
 
-    status_data = {'Status': ['A', 'C', 'P'],
-                   'description': ['Active', 'Closed', 'Pending']}
-    statuses = pd.DataFrame(status_data)
+        order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
+                      'Status': ['A', 'C', 'A', 'A', 'P'],
+                      'Type_': ['SO', 'SA', 'SO', 'DA', 'DD']}
+        orders = pd.DataFrame(order_data)
 
-    order_types_data = {'Type_': ['SA', 'SO'],
-                        'description': ['Sales Order', 'Standing Order'],
-                        'description_2': ['Arbitrary desc', 'another one']}
-    types_ = pd.DataFrame(order_types_data)
+        status_data = {'Status': ['A', 'C', 'P'],
+                       'description': ['Active', 'Closed', 'Pending']}
+        statuses = pd.DataFrame(status_data)
 
-    %%piper
-    orders >> right_join(types_, suffixes=('_orders', '_types'))
-    ```
+        order_types_data = {'Type_': ['SA', 'SO'],
+                            'description': ['Sales Order', 'Standing Order'],
+                            'description_2': ['Arbitrary desc', 'another one']}
+        types_ = pd.DataFrame(order_types_data)
 
-    |   OrderNo | Status   | Type_   | description    | description_2   |
-    |----------:|:---------|:--------|:---------------|:----------------|
-    |      1002 | C        | SA      | Sales Order    | Arbitrary desc  |
-    |      1001 | A        | SO      | Standing Order | another one     |
-    |      1003 | A        | SO      | Standing Order | another one     |
+        %%piper
+        orders >> right_join(types_, suffixes=('_orders', '_types'))
+
+            OrderNo   Status     Type_     description      description_2
+               1002   C          SA        Sales Order      Arbitrary desc
+               1001   A          SO        Standing Order   another one
+               1003   A          SO        Standing Order   another one
 
     '''
     kwargs['how'] = 'right'
@@ -2016,27 +2045,28 @@ def sample(df: pd.DataFrame,
            shape: bool = True,
            *args,
            **kwargs):
-    ''' <*> show sample data
+    '''show sample data
     This is a wrapper function rather than using e.g. df.sample()
 
     For details of args, kwargs - see help(pd.DataFrame.sample)
 
-    Usage example
-    -------------
-    ```python
-    sample(df)
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        sample(df)
 
 
     Parameters
     ----------
-    df : dataframe
-
-    shape : show shape information as a logger.info() message
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    shape
+        show shape information as a logger.info() message
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2057,51 +2087,53 @@ def sample(df: pd.DataFrame,
 def select(df: pd.DataFrame,
            expr: str = None,
            regex: bool = False) -> pd.DataFrame:
-    ''' <*> select dataframe columns
+    '''select dataframe columns
     Based on select() function from R tidyverse.
 
     Given dataframe, select column names
 
-    Usage examples
-    --------------
-    ```python
-    select(df) # select ALL columns
+    Examples
+    --------
+    .. code-block::
 
-    # select column column listed
-    select(df, 'column_name')
+        select(df) # select ALL columns
 
-    # select columns listed
-    select(df, ['column_name', 'other_column'])
+        # select column column listed
+        select(df, 'column_name')
 
-    # select ALL columns EXCEPT the column listed (identified by - minus sign prefix)
-    select(df, '-column_name')
+        # select columns listed
+        select(df, ['column_name', 'other_column'])
 
-    # select ALL columns EXCEPT the column specified with a minus sign within the list
-    select(df, ['-column_name', '-other_column'])
+        # select ALL columns EXCEPT the column listed (identified by - minus sign prefix)
+        select(df, '-column_name')
 
-    # select column range from column up to and including the 'to' column.
-    # This is achieved by passing a 'tuple' -> e.g. ('from_col', 'to_col')
-    select(df, ('title', 'isbn'))
+        # select ALL columns EXCEPT the column specified with a minus sign within the list
+        select(df, ['-column_name', '-other_column'])
 
-    # select using a regex string
-    select(df, 'value') -> select fields containing 'value'
-    select(df, '^value') -> select fields starting with 'value'
-    select(df, 'value$') -> select fields ending with 'value'
-    ```
+        # select column range from column up to and including the 'to' column.
+        # This is achieved by passing a 'tuple' -> e.g. ('from_col', 'to_col')
+        select(df, ('title', 'isbn'))
+
+        # select using a regex string
+        select(df, 'value') -> select fields containing 'value'
+        select(df, '^value') -> select fields starting with 'value'
+        select(df, 'value$') -> select fields ending with 'value'
 
 
     Parameters
     ----------
-    df: dataframe
+    df
+        dataframe
+    expr
+        default None
+        str - single column (in quotes)
+        list -> list of column names (in quotes)
 
-    expr : default None
-           str - single column (in quotes)
-           list -> list of column names (in quotes)
+        NOTE: prefixing column name with a minus sign filters out the column
+        from returned list of columns
+    regex
+        default False. If True, treat column string as a regex
 
-           NOTE: prefixing column name with a minus sign
-                 filters out the column from returned list of columns
-
-    regex : default False. If True, treat column string as a regex
 
     Returns
     -------
@@ -2156,13 +2188,14 @@ def select(df: pd.DataFrame,
 # set_columns() {{{1
 def set_columns(df: pd.DataFrame,
                 columns: Union[str, Any] = None) -> pd.DataFrame:
-    ''' <*> set dataframe column names
+    '''set dataframe column names
 
     Parameters
     ----------
-    df: dataframe
-
-    columns: column(s) values to be changed in referenced dataframe
+    df
+        dataframe
+    columns
+        column(s) values to be changed in referenced dataframe
 
 
     Returns
@@ -2178,29 +2211,30 @@ def set_columns(df: pd.DataFrame,
 def where(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
-    ''' <*> where/filter dataframe rows
+    '''where/filter dataframe rows
 
     This is a wrapper function rather than using e.g. df.query()
     For details of args, kwargs - see help(pd.DataFrame.query)
 
-    Usage example
-    -------------
-    ```python
-    (select(customers)
-     .pipe(clean_columns)
-     .pipe(select, ['client_code', 'establishment_type', 'address_1', 'address_2', 'town'])
-     .pipe(where, 'establishment_type != 91')
-     .pipe(where, "town != 'LISBOA' & establishment_type != 91"))
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        (select(customers)
+         .pipe(clean_columns)
+         .pipe(select, ['client_code', 'establishment_type', 'address_1', 'address_2', 'town'])
+         .pipe(where, 'establishment_type != 91')
+         .pipe(where, "town != 'LISBOA' & establishment_type != 91"))
 
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2223,7 +2257,7 @@ def where(df: pd.DataFrame,
 def reset_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
-    ''' <*> reset_index dataframe
+    '''reset_index dataframe
 
     This is a wrapper function rather than using e.g. df.reset_index()
     For details of args, kwargs - see help(pd.DataFrame.reset_index)
@@ -2231,11 +2265,12 @@ def reset_index(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2249,7 +2284,7 @@ def reset_index(df: pd.DataFrame,
 def set_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
-    ''' <*> set_index dataframe
+    '''set_index dataframe
 
     This is a wrapper function rather than using e.g. df.set_index()
     For details of args, kwargs - see help(pd.DataFrame.set_index)
@@ -2257,11 +2292,12 @@ def set_index(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2275,7 +2311,7 @@ def set_index(df: pd.DataFrame,
 def summarise(df: pd.DataFrame,
               *args,
               **kwargs) -> pd.DataFrame:
-    ''' <*> summarise or aggregate data.
+    '''summarise or aggregate data.
 
     This is a wrapper function rather than using e.g. df.agg()
     For details of args, kwargs - see help(pd.DataFrame.agg)
@@ -2283,11 +2319,12 @@ def summarise(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2302,17 +2339,18 @@ def summarise(df: pd.DataFrame,
     If only the dataframe is passed, the function will
     do a 'count' and 'sum' of all columns. See also info().
 
-    %piper sample_sales() >> summarise()
+    .. code-block::
 
-    | names         |   n |        sum |
-    |:--------------|----:|-----------:|
-    | location      | 200 |        nan |
-    | product       | 200 |        nan |
-    | month         | 200 |        nan |
-    | target_sales  | 200 | 5423715.00 |
-    | target_profit | 200 |  487476.42 |
-    | actual_sales  | 200 | 5376206.33 |
-    | actual_profit | 200 |  482133.92 |
+        %piper sample_sales() >> summarise()
+
+          names             n          sum
+          location        200          nan
+          product         200          nan
+          month           200          nan
+          target_sales    200   5423715.00
+          target_profit   200    487476.42
+          actual_sales    200   5376206.33
+          actual_profit   200    482133.92
 
     If you pass a groupby object to summarise() with no other
     parameters - summarise will summate all numeric columns.
@@ -2321,52 +2359,72 @@ def summarise(df: pd.DataFrame,
     %pipe df >> group_by(['col1', 'col2']) >> summarise(sum)
 
 
-    Syntax examples
-    ---------------
-    # Syntax 1: column_name = ('existing_column', function)
-    # note: below there are some 'common' functions that can
-    # be quoted like 'sum', 'mean', 'count', 'nunique' or
-    # just state the function name
+    Examples
+    --------
+    Syntax 1
 
-    ```python
-    %%piper
-    sample_sales() >>
-    group_by('product') >>
-    summarise(totval1=('target_sales', sum),
-              totval2=('actual_sales', 'sum'))
-    ```
+    .. code-block::
 
+        column_name = ('existing_column', function)
 
-    # Syntax 2: column_name = pd.NamedAgg('existing_column', function)
-    ```python
-    %%piper
-    sample_sales() >>
-    group_by('product') >>
-    summarise(totval1=(pd.NamedAgg('target_sales', 'sum')),
-              totval2=(pd.NamedAgg('actual_sales', 'sum')))
-    ```
+    .. note::
+
+        below there are some 'common' functions that can be quoted like 'sum',
+        'mean', 'count', 'nunique' or just state the function name
+
+    .. code-block::
+
+        %%piper
+        sample_sales() >>
+        group_by('product') >>
+        summarise(totval1=('target_sales', sum),
+                  totval2=('actual_sales', 'sum'))
 
 
-    # Syntax 3: {'existing_column': function}
-                {'existing_column': [function1, function2]}
+    Syntax 2
 
-    ```python
-    %%piper
-    sample_sales()
-    >> group_by('product')
-    >> summarise({'target_sales':['sum', 'mean']})
-    ```
+    .. code-block::
 
-    # Syntax 4: 'existing_column': lambda x: x+1
-    # Example below identifies unique products sold by location.
+        column_name = pd.NamedAgg('existing_column', function)
 
-    ```python
-    %%piper
-    sample_sales() >>
-    group_by('location') >>
-    summarise({'product': lambda x: set(x.tolist())}) >>
-    # explode('product')
-    ```
+    .. code-block::
+
+        %%piper
+        sample_sales() >>
+        group_by('product') >>
+        summarise(totval1=(pd.NamedAgg('target_sales', 'sum')),
+                  totval2=(pd.NamedAgg('actual_sales', 'sum')))
+
+
+    Syntax 3
+
+    .. code-block::
+
+        {'existing_column': function}
+        {'existing_column': [function1, function2]}
+
+    .. code-block::
+
+        %%piper
+        sample_sales()
+        >> group_by('product')
+        >> summarise({'target_sales':['sum', 'mean']})
+
+    Syntax 4:
+
+    .. code-block::
+
+        'existing_column': lambda x: x+1
+
+    Example below identifies unique products sold by location.
+
+    .. code-block::
+
+        %%piper
+        sample_sales() >>
+        group_by('location') >>
+        summarise({'product': lambda x: set(x.tolist())}) >>
+        # explode('product')
 
     '''
     # If nothing passed to summarise - return a count and sum of all columns
@@ -2394,7 +2452,7 @@ def summarise(df: pd.DataFrame,
 def stack(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
-    ''' <*> stack dataframe
+    '''stack dataframe
 
     This is a wrapper function rather than using e.g. df.stack()
     For details of args, kwargs - see help(pd.DataFrame.stack)
@@ -2402,11 +2460,12 @@ def stack(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2420,24 +2479,25 @@ def stack(df: pd.DataFrame,
 def tail(df: pd.DataFrame,
          n: int = 4,
          shape: bool = True) -> pd.DataFrame:
-    ''' <*> show last n records
+    '''show last n records
     Like the corresponding R function, displays the last n records
     Alternative to df.tail().
 
-    Usage example
-    -------------
-    ```python
-    tail(df)
-    ```
+    Examples
+    --------
+    .. code-block::
+
+        tail(df)
 
 
     Parameters
     ----------
-    df : dataframe
-
-    n : number of rows to display, default n=4
-
-    shape: True, show shape information
+    df
+        dataframe
+    n
+        number of rows to display, default n=4
+    shape
+        Default True, show shape information
 
 
     Returns
@@ -2454,7 +2514,7 @@ def tail(df: pd.DataFrame,
 def to_csv(df: pd.DataFrame,
           *args,
           **kwargs) -> None:
-    ''' <*> to CSV
+    '''to CSV
 
     This is a wrapper function rather than using e.g. df.to_csv()
     For details of args, kwargs - see help(pd.DataFrame.to_csv)
@@ -2462,11 +2522,12 @@ def to_csv(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2481,7 +2542,7 @@ def to_csv(df: pd.DataFrame,
 def to_tsv(df: pd.DataFrame,
            file_name: str,
            sep='\t') -> None:
-    ''' <*> to TSV
+    '''to TSV
 
     This is a wrapper function rather than using e.g. df.to_tsv()
     For details of args, kwargs - see help(pd.DataFrame.to_tsv)
@@ -2489,11 +2550,12 @@ def to_tsv(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    file_name: output filename (extension assumed to be .tsv)
-
-    sep: separator - default \t (tab-delimitted)
+    df
+        dataframe
+    file_name
+        output filename (extension assumed to be .tsv)
+    sep
+        separator - default \t (tab-delimitted)
 
 
     Returns
@@ -2510,7 +2572,7 @@ def to_tsv(df: pd.DataFrame,
 
 # to_parquet() {{{1
 def to_parquet(df: pd.DataFrame, *args, **kwargs) -> None:
-    ''' <*> to parquet
+    '''to parquet
 
     This is a wrapper function rather than using e.g. df.to_parquet()
     For details of args, kwargs - see help(pd.DataFrame.to_parquet)
@@ -2518,11 +2580,12 @@ def to_parquet(df: pd.DataFrame, *args, **kwargs) -> None:
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2538,7 +2601,7 @@ def to_excel(df: pd.DataFrame,
              file_name: str = None,
              *args,
              **kwargs) -> None:
-    ''' <*> to excel
+    '''to excel
 
     This is a wrapper function for piper WorkBook class
     For details of args, kwargs - see help(piper.xl.WorkBook)
@@ -2546,11 +2609,12 @@ def to_excel(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2567,7 +2631,7 @@ def to_excel(df: pd.DataFrame,
 def transform(df: pd.DataFrame,
               index: Union[str, List[str]] = None,
               **kwargs) -> pd.DataFrame:
-    ''' <*> Add a group calculation to grouped DataFrame
+    '''Add a group calculation to grouped DataFrame
 
     Transform is based on the pandas pd.DataFrame.transform() function.
     For details of args, kwargs - see help(pd.DataFrame.transform)
@@ -2578,65 +2642,65 @@ def transform(df: pd.DataFrame,
     By default, it calculates the group % of the first numeric column, in
     proportion to the first 'index' or grouping value.
 
-    Usage example
-    -------------
+    Examples
+    --------
     Calculate group percentage value
 
-    ```python
-    %%piper
-    sample_data() >>
-    group_by(['countries', 'regions']) >>
-    summarise(TotSales1=('values_1', 'sum'))
-    ```
+    .. code-block::
 
-    |                      |   TotSales1 |
-    |:---------------------|------------:|
-    | ('France', 'East')   |        2170 |
-    | ('France', 'North')  |        2275 |
-    | ('France', 'South')  |        2118 |
-    | ('France', 'West')   |        4861 |
-    | ('Germany', 'East')  |        1764 |
-    | ('Germany', 'North') |        2239 |
-    | ('Germany', 'South') |        1753 |
-    | ('Germany', 'West')  |        1575 |
+        %%piper
+        sample_data() >>
+        group_by(['countries', 'regions']) >>
+        summarise(TotSales1=('values_1', 'sum'))
+
+        |                      |   TotSales1 |
+        |:---------------------|------------:|
+        | ('France', 'East')   |        2170 |
+        | ('France', 'North')  |        2275 |
+        | ('France', 'South')  |        2118 |
+        | ('France', 'West')   |        4861 |
+        | ('Germany', 'East')  |        1764 |
+        | ('Germany', 'North') |        2239 |
+        | ('Germany', 'South') |        1753 |
+        | ('Germany', 'West')  |        1575 |
 
     To add a group percentage based on the countries:
 
-    ```python
-    %%piper
-    sample_data() >>
-    group_by(['countries', 'regions']) >>
-    summarise(TotSales1=('values_1', 'sum')) >>
-    transform(index='countries', g_percent=('TotSales1', 'percent')) >>
-    head(8)
-    ```
+    .. code-block::
 
-    |                      |   TotSales1 |   g_percent |
-    |:---------------------|------------:|------------:|
-    | ('France', 'East')   |        2170 |       19    |
-    | ('France', 'North')  |        2275 |       19.91 |
-    | ('France', 'South')  |        2118 |       18.54 |
-    | ('France', 'West')   |        4861 |       42.55 |
-    | ('Germany', 'East')  |        1764 |       24.06 |
-    | ('Germany', 'North') |        2239 |       30.54 |
-    | ('Germany', 'South') |        1753 |       23.91 |
-    | ('Germany', 'West')  |        1575 |       21.48 |
+        %%piper
+        sample_data() >>
+        group_by(['countries', 'regions']) >>
+        summarise(TotSales1=('values_1', 'sum')) >>
+        transform(index='countries', g_percent=('TotSales1', 'percent')) >>
+        head(8)
+
+        |                      |   TotSales1 |   g_percent |
+        |:---------------------|------------:|------------:|
+        | ('France', 'East')   |        2170 |       19    |
+        | ('France', 'North')  |        2275 |       19.91 |
+        | ('France', 'South')  |        2118 |       18.54 |
+        | ('France', 'West')   |        4861 |       42.55 |
+        | ('Germany', 'East')  |        1764 |       24.06 |
+        | ('Germany', 'North') |        2239 |       30.54 |
+        | ('Germany', 'South') |        1753 |       23.91 |
+        | ('Germany', 'West')  |        1575 |       21.48 |
 
 
     Parameters
     ----------
-    df - dataframe to calculate grouped value
+    df
+        dataframe to calculate grouped value
+    index
+        grouped column(s) (str or list) to be applied as grouping index.
+    kwargs
+        Similar to 'assign', keyword arguments to be assigned as dataframe
+        columns containing, tuples of column_name and function e.g.
+        new_column=('existing_col', 'sum')
 
-    index - grouped column(s) (str or list) to be applied as grouping index.
+        If no kwargs supplied - calculates the group percentage ('g%') using
+        the first index column as index key and the first column value(s).
 
-    kwargs - similar to 'assign', keyword arguments to be
-            assigned as dataframe columns containing, tuples
-            of column_name and function
-            e.g. new_column=('existing_col', 'sum')
-
-            if no kwargs supplied - calculates the group percentage ('g%')
-            using the first index column as index key and the first column
-            value(s).
 
     Returns
     -------
@@ -2677,14 +2741,15 @@ def transform(df: pd.DataFrame,
 
 # trim() {{{1
 def trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
-    ''' <*> strip leading/trailing blanks
+    '''strip leading/trailing blanks
 
     Parameters
     ----------
-    df : pandas dataframe
-
-    str_columns : Optional list of columns to strip.
-                  If None, all string data type columns will be trimmed.
+    df
+        pandas dataframe
+    str_columns
+        Optional list of columns to strip. If None, all string data type columns
+        will be trimmed.
 
     Returns
     -------
@@ -2713,7 +2778,7 @@ def trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
 def unstack(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
-    ''' <*> unstack dataframe
+    '''unstack dataframe
 
     This is a wrapper function rather than using e.g. df.unstack()
     For details of args, kwargs - see help(pd.DataFrame.unstack)
@@ -2721,11 +2786,12 @@ def unstack(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
-
-    *args: arguments for wrapped function
-
-    **kwargs: keyword-parameters for wrapped function
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
 
 
     Returns
@@ -2739,7 +2805,7 @@ def unstack(df: pd.DataFrame,
 def _set_grouper(df: pd.DataFrame,
                 index: Union[Any, List[Any]],
                 freq: str = 'D') -> pd.DataFrame:
-    ''' <*> Convert index to grouper index
+    '''Convert index to grouper index
 
     For given dataframe and index (str, list), return a dataframe with
     a pd.Grouper object for each defined index.
@@ -2747,13 +2813,15 @@ def _set_grouper(df: pd.DataFrame,
 
     Parameters
     ----------
-    df: dataframe
+    df
+        dataframe
+    index
+        index column(s) to be converted to pd.Grouper objects
+    freq
+        Default 'd' (days)
 
-    index: index column(s) to be converted to pd.Grouper objects
-
-    freq: Default 'd' (days)
-    See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
-    for list of valid frequency strings.
+        See https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+        for list of valid frequency strings.
 
 
     Returns
@@ -2780,7 +2848,7 @@ def _set_grouper(df: pd.DataFrame,
 
 # _inplace() {{{1
 def _inplace(df: pd.DataFrame, inplace: int = False) -> pd.DataFrame:
-    ''' <*> Return a copy of the dataframe
+    '''Return a copy of the dataframe
 
     Helper function to return either a copy of dataframe or a reference to the
     passed dataframe
@@ -2788,7 +2856,8 @@ def _inplace(df: pd.DataFrame, inplace: int = False) -> pd.DataFrame:
 
     Parameters
     ----------
-    df - pandas dataframe
+    df
+        pandas dataframe
 
 
     Returns
@@ -2803,11 +2872,12 @@ def _inplace(df: pd.DataFrame, inplace: int = False) -> pd.DataFrame:
 
 # _shape() {{{1
 def _shape(df: pd.DataFrame) -> pd.DataFrame:
-    ''' <*> Show shape information
+    '''Show shape information
 
     Parameters
     ----------
-    df - pandas dataframe
+    df
+        pandas dataframe
 
 
     Returns

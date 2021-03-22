@@ -11,6 +11,21 @@ from os import walk
 from os.path import split, normpath, join, relpath, basename
 from zipfile import ZipFile, ZIP_DEFLATED
 
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    Union,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,24 +33,26 @@ logger = logging.getLogger(__name__)
 def _get_qual_file(folder, file_name, ts_prefix=True):
     ''' Get qualified xl file name
 
-    Example
-    -------
-    _get_qual_file(folder, file_name, ts_prefix=False)
+    Examples
+    --------
 
-    _get_qual_file(folder, file_name, ts_prefix='date')
+    .. code-block::
 
-    _get_qual_file(folder, file_name, ts_prefix='time')
+        _get_qual_file(folder, file_name, ts_prefix=False)
+        _get_qual_file(folder, file_name, ts_prefix='date')
+        _get_qual_file(folder, file_name, ts_prefix='time')
 
 
     Parameters
     ----------
-    folder : folder path (string)
-
-    file_name : file name (string) to create.
-
-    ts_prefix : False (no timestamp)
-                True (timestamp prefix)
-                'date' (date only)
+    folder
+        folder path
+    file_name
+        file name to create.
+    ts_prefix
+        default False (no timestamp)
+        True (timestamp prefix)
+        'date' (date only)
 
     Returns
     -------
@@ -115,28 +132,22 @@ def write_text(file_name, text):
         f.write(text)
 
 # zip_data() {{{1
-def zip_data(source='outputs', filter='*.xls*',
-             target='outputs/zip_data', ts_prefix='date',
-             include_folder=True, recurse=False,
-             info=False, mode='w', test_mode=False):
-    '''
-    For given file or list of files, compress to target zip file provided.
-
-    Example
-    -------
-    zip_data(source='outputs/', filter=f'{date_prefix}*.xsv',
-             target='outputs/test', ts_prefix=True,
-             include_folder=True, recurse=True, info=False,
-             test_mode=False)
-
-    Source: outputs, filter: 20200614*.xsv
-    WARNING: No files found for selected folder/filter.
+def zip_data(source: str = 'outputs',
+             filter: str = '*.xls*',
+             target: str = 'outputs/zip_data',
+             ts_prefix: str = 'date',
+             include_folder: bool = True,
+             recurse: bool = False,
+             info: bool = False,
+             mode: str = 'w',
+             test_mode: bool = False) -> Union[ZipFile, None]:
+    '''Compress files from source to target folder
 
     Parameters
     ----------
-    source : (str) source folder containing the files to zip
+    source: (str) source folder containing the files to zip
 
-    filter : (str) default='*.xlsx', file filter
+    filter: (str) default='*.xlsx', file filter
 
     target: (str) target zip file name to create.
 
@@ -155,9 +166,20 @@ def zip_data(source='outputs', filter='*.xls*',
 
     test_mode : (bool) - default (False), if True - do not create zip
 
-    Return
-    ------
+    Returns
+    -------
     None
+
+    Examples
+    --------
+    zip_data(source='outputs/', filter=f'{date_prefix}*.xsv',
+             target='outputs/test', ts_prefix=True,
+             include_folder=True, recurse=True, info=False,
+             test_mode=False)
+
+    Source: outputs, filter: 20200614*.xsv
+    WARNING: No files found for selected folder/filter.
+
     '''
     source_folder, target_zip = Path(source), Path(target)
 
@@ -175,7 +197,7 @@ def zip_data(source='outputs', filter='*.xls*',
     files_to_zip = list(file_list)
     if len(files_to_zip) == 0:
         logger.info('WARNING: No files found for selected folder/filter.')
-        return
+        return None
 
     if isinstance(source_folder, Path):
         with ZipFile(target_zip, mode=mode, compression=ZIP_DEFLATED) as zip:
@@ -193,10 +215,10 @@ def zip_data(source='outputs', filter='*.xls*',
 
             if test_mode:
                 logger.info(f'<<TEST MODE>> Target: {target_zip} not created with {idx} files.')
-                return None
             else:
                 logger.info(f'Target: {target_zip} created with {idx} files.')
-                return zip
+
+            return zip
 
 
 # list_files() {{{1
@@ -206,29 +228,33 @@ def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
     a list of files. Criteria parameter allows one to focus on one
     or a group of files.
 
-    Example
-    -------
+    Examples
+    --------
     List *ALL* files in /inputs directory, returning a list of paths:
 
     list_files(glob_pattern = '*', regex='Test', as_posix=True)
 
+
     Parameters
     ----------
+    source
+        source folder, default - 'inputs/'
+    glob_pattern
+        file extension filter (str), default - '*.xls*'
+    regex
+        if specified, allows regular expression to further filter the file
+        selection. Default is ''
 
-    source - source folder (str), default - 'inputs/'
+        *example*
 
-    glob_pattern - file extension filter (str), default - '*.xls*'
+        .. code-block::
 
-    regex - if specified, allows regular expression to further filter
-            the file selection. Default is ''
-
-            Example::
             list_files(glob_pattern = '*.tsv', regex='Test', as_posix=True)
             >['inputs/Test XL WorkBook.tsv']
-
-    recurse - recurse directory (boolean), default False
-
-    as_posix - if True, return list of files strings, default False
+    recurse
+        recurse directory (boolean), default False
+    as_posix
+        If True, return list of files strings, default False
 
     '''
     if glob_pattern in ('', None):
@@ -252,47 +278,51 @@ def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
     return files
 
 
+# duplicate_files() {{{1
 def duplicate_files(source=None, glob_pattern='*.*', recurse=False, filesize=1,
                    keep=False, xl_file=None):
     ''' For given source directory and global pattern (filter), all
     select files that have the same file size. This files are are assumed
     to be 'duplicates'.
 
-    Example
-    -------
-    source = '/home/mike/Documents'
-    duplicate_files(source, glob_pattern='*.*', recurse=True,
-                filesize=2000000, keep=False).query("duplicate == True")
+    Parameters
+    ----------
+    source
+        source directory, default None
+    glob_pattern
+        filter extension suffix, default '*.*'
+    recurse
+        default False, if True, recurse source directory provided
+    filesize
+        file size filter, default 1 (kb)
+    keep
+        {‘first’, ‘last’, False}, default ‘first’
+        Determines which duplicates (if any) to mark.
 
-    References:
-    -----------
-    https://docs.python.org/3/library/pathlib.html
-    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
-
-
-    Parameters:
-    -----------
-    source : str - source directory, default None
-
-    glob_pattern : str - filter extension suffix, default '*.*'
-
-    recurse: bool - default False, if True, recurse source directory provided
-
-    filesize : int - file size filter, default 1 (kb)
-
-    keep: str - {‘first’, ‘last’, False}, default ‘first’
-                Determines which duplicates (if any) to mark.
-                    first : Mark duplicates as True except for the first occurrence.
-                    last : Mark duplicates as True except for the last occurrence.
-                    False : Mark all duplicates as True.
-
-    xl_file : str - default None: output results to Excel workbook to xl_file
+        first: Mark duplicates as True except for the first occurrence.
+        last: Mark duplicates as True except for the last occurrence.
+        False: Mark all duplicates as True.
+    xl_file
+        default None: output results to Excel workbook to xl_file
 
 
-    Return:
+    Returns
     -------
     pd.DataFrame
 
+
+    Examples
+    --------
+
+    .. code-block::
+
+        source = '/home/mike/Documents'
+        duplicate_files(source, glob_pattern='*.*', recurse=True,
+                    filesize=2000000, keep=False).query("duplicate == True")
+
+    **References**
+    https://docs.python.org/3/library/pathlib.html
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
     '''
     def func(f):
 

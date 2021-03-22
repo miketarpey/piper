@@ -14,11 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 # read_sql() {{{1
-def read_sql(sql, con=None, sql_info=False, trim_blanks=True,
-             return_sql=False, info=True):
+def read_sql(sql,
+             con = None,
+             sql_info = False,
+             trim_blanks = True,
+             return_sql = False,
+             info = True):
     ''' Custom pandas pd.read_sql wrapper function
 
-    Example:
+    Examples
     --------
     df = read_sql(sql=sql, con=con)
 
@@ -27,23 +31,22 @@ def read_sql(sql, con=None, sql_info=False, trim_blanks=True,
 
     Parameters
     ----------
-    sql : sql text to be executed
-
-    con : database connection
-
-    sql_info : True, False
-               display logged sql code executed
-
-    trim_blanks : True, False
-                  if True, strip all column (row) values of leading
-                  and trailing blanks
-
-    info : True (default), False
-           if True, display additional logging information
+    sql
+        sql text to be executed
+    con
+        database connection
+    sql_info
+        Default False
+        If True, display logged sql code executed
+    trim_blanks
+        If true, strip all column (row) values of leading and trailing blanks
+    info
+        Default True
+        If True, display additional logging information
 
     Returns
     -------
-    returns dataframe and optionally executed sql code (text)
+    a pandas dataframe and optionally executed sql code (text)
     '''
     try:
         df = pd.read_sql(sql, con=con)
@@ -73,27 +76,30 @@ def read_sql(sql, con=None, sql_info=False, trim_blanks=True,
 
 # read_csv() {{{1
 @shape(debug=False)
-def read_csv(file_name, sep=',', strip_blanks=True, clean_cols=True,
-             encoding='latin-1', info=True):
+def read_csv(file_name,
+             sep = ',',
+             strip_blanks = True,
+             clean_cols = True,
+             encoding = 'latin-1',
+             info = True):
     ''' pd.read_csv wrapper function
 
     Parameters
     ----------
-    file_name : csv formatted file
-
-    sep : column separator
-
-    strip_blanks : True, False
-                   if True, strip all column (row) values of leading
-                   and trailing blanks
-
-    clean_cols (bool): default True -> lowercase column names, replace
-                        spaces with underscore ('_')
-
-    encoding: (str) : default 'latin-1'
-
-    info : True, False
-           if True, display additional logging information
+    file_name
+        csv formatted file
+    sep
+        column separator
+    strip_blanks
+        Default True
+        If True, strip all column (row) values of leading and trailing blanks
+    clean_cols
+        default True
+        If True, lowercase column names, replace spaces with underscore ('_')
+    encoding
+        default 'latin-1'
+    info
+        if True, display additional logging information
 
     Returns
     -------
@@ -117,32 +123,35 @@ def read_csv(file_name, sep=',', strip_blanks=True, clean_cols=True,
 
 # read_csvs() {{{1
 @shape(debug=False)
-def read_csvs(source='inputs/', glob_pattern='*.csv', sep=',', strip_blanks=True,
-              clean_cols=True, encoding='latin-1', include_file=False, info=False):
-    ''' pd.read_csv wrapper function
+def read_csvs(source = 'inputs/',
+              glob_pattern = '*.csv',
+              sep = ',',
+              strip_blanks = True,
+              clean_cols = True,
+              encoding = 'latin-1',
+              include_file = False,
+              info = False):
+    '''pd.read_csv wrapper function
 
     Parameters
     ----------
-    source - (str) source folder containing csv text files
-             (that is, files ending with '*.csv')
-
-    glob_pattern : file suffix filter - default '*.csv'
-
-    sep : column separator - default ','
-
-    strip_blanks : True, False
-                   if True, strip all column (row) values of leading
-                   and trailing blanks
-
-    clean_cols (bool): default True -> lowercase column names, replace
-                        spaces with underscore ('_')
-
-    encoding: (str) : default 'latin-1'
-
-    include_file (str) : include filename in returned dataframe - default False
-
-    info : True, False
-           if True, display additional logging information
+    source
+        source folder containing csv text files (that is, files ending with '\*.csv')
+    glob_pattern
+        global pattern for file selection
+    sep
+        Column separator
+    strip_blanks
+        Default True
+        If True, strip all column (row) values of leading and trailing blanks
+    clean_cols
+        default True. Lowercase column names, replace spaces with underscore ('\_')
+    encoding
+        default 'latin-1'
+    include_file
+        include filename in returned dataframe - default False
+    info
+        if True, display additional logging information
 
     Returns
     -------
@@ -172,91 +181,99 @@ def read_csvs(source='inputs/', glob_pattern='*.csv', sep=',', strip_blanks=True
 
 
 # read_excels() {{{1
-def read_excels(source='inputs/',  glob_pattern='*.xls*', func=None,
-                include_file=False, reset_index=True, info=False):
+def read_excels(source = 'inputs/',
+                glob_pattern = '*.xls*',
+                func = None,
+                include_file = False,
+                reset_index = True,
+                info = False):
     '''
     Read, concatenate, combine and return a pandas dataframe based on
     workbook(s) data within a given source folder.
 
     Parameters
     ----------
-    source - (str) source folder containing workbook data
-             (that is, files ending with '.xls*')
+    source
+        source folder containing workbook data (that is, files ending with '.xls*')
+    glob_pattern
+        file extension filter (str), default - '*.xls*'
+    func
+        pass a custom function to read/transform each workbook/sheet. default is
+        None (just performs a read_excel())
 
-    glob_pattern - file extension filter (str), default - '*.xls*'
-
-    func - pass a custom function to read/transform each workbook/sheet.
-            default is None (just performs a read_excel())
-
-           Note: custom function will recieve Path object.
-           To obtain the 'string' filename - use Path.as_posix()
-
-    include_file (str) : include filename in returned dataframe - default False
-
-    reset_index - (bool) reset index - default True
-
-    info - (bool) - Provide debugging information - default False
+        Note: custom function will recieve Path object. To obtain the 'string'
+        filename - use Path.as_posix()
+    include_file
+        include filename in returned dataframe - default False
+    reset_index
+        default True
+    info
+        Provide debugging information - default False
 
 
     Returns
     -------
     pd.DataFrame - pandas DataFrame
 
-    Example:
-    -- Using a custom function, use below as a guide.
 
-    def clean_data(xl_file):
+    Examples
+    --------
+    Using a custom function, use below as a guide.
 
-        df = pd.read_excel(xl_file.as_posix(), header=None)
+    .. code-block::
 
-        # Combine first two rows to correct column headings
-        df.columns = df.loc[0].values + ' ' + df.loc[1].values
+        def clean_data(xl_file):
 
-        # Read remaining data and reference back to dataframe reference
-        df = df.iloc[2:]
+            df = pd.read_excel(xl_file.as_posix(), header=None)
 
-        # clean up column names to make it easier to use them in calculations
-        df = clean_columns(df)
+            # Combine first two rows to correct column headings
+            df.columns = df.loc[0].values + ' ' + df.loc[1].values
 
-        # Set date data types for order and ship dates
-        cols = ['order_date', 'ship_date']
-        date_data = [pd.to_datetime(df[col]) for col in cols]
-        df[cols] = pd.concat(date_data, axis=1)
+            # Read remaining data and reference back to dataframe reference
+            df = df.iloc[2:]
 
-        # Separate shipping mode from container
-        df_split = df['ship_mode_container'].str.extract(r'(.*)-(.*)')
-        df_split.columns = ['ship', 'container']
+            # clean up column names to make it easier to use them in calculations
+            df = clean_columns(df)
 
-        priority_categories = ['Low', 'Medium', 'High', 'Critical', 'Not Specified']
-        priority_categories = pd.CategoricalDtype(priority_categories, ordered=True)
+            # Set date data types for order and ship dates
+            cols = ['order_date', 'ship_date']
+            date_data = [pd.to_datetime(df[col]) for col in cols]
+            df[cols] = pd.concat(date_data, axis=1)
 
-        # split out and define calculated fields using lambdas
-        sales_amount = lambda x: (x.order_quantity * x.unit_sell_price
-                                  * (1 - x.discount_percent)).astype(float).round(2)
+            # Separate shipping mode from container
+            df_split = df['ship_mode_container'].str.extract(r'(.*)-(.*)')
+            df_split.columns = ['ship', 'container']
 
-        days_to_ship=lambda x: ((x.ship_date - x.order_date) / pd.Timedelta(1, 'day')).astype(int)
+            priority_categories = ['Low', 'Medium', 'High', 'Critical', 'Not Specified']
+            priority_categories = pd.CategoricalDtype(priority_categories, ordered=True)
 
-        sales_person=lambda x: x.sales_person.str.extract('(Mr|Miss|Mrs) (\w+) (\w+)').loc[:, 1]
+            # split out and define calculated fields using lambdas
+            sales_amount = lambda x: (x.order_quantity * x.unit_sell_price
+                                      * (1 - x.discount_percent)).astype(float).round(2)
 
-        order_priority=lambda x: x.order_priority.astype(priority_categories)
+            days_to_ship=lambda x: ((x.ship_date - x.order_date) / pd.Timedelta(1, 'day')).astype(int)
 
-        # Define/assign new column (values)
-        df = (df.assign(ship_mode=df_split.ship,
-                        container=df_split.container,
-                        sales_amount=sales_amount,
-                        days_to_ship=days_to_ship,
-                        sales_person=sales_person,
-                        order_priority=order_priority)
-                .drop(columns=['ship_mode_container'])
-                .pipe(move_column, 'days_to_ship', 'after', 'ship_date')
-                .pipe(move_column, 'sales_amount', 'after', 'unit_sell_price')
-                .pipe(clean_columns, replace_char=('_', ' '), title=True)
-             )
+            sales_person=lambda x: x.sales_person.str.extract('(Mr|Miss|Mrs) (\w+) (\w+)').loc[:, 1]
 
-        return df
+            order_priority=lambda x: x.order_priority.astype(priority_categories)
 
-    data = read_excels('inputs/Data', func=clean_data)
-    head(data, 2)
+            # Define/assign new column (values)
+            df = (df.assign(ship_mode=df_split.ship,
+                            container=df_split.container,
+                            sales_amount=sales_amount,
+                            days_to_ship=days_to_ship,
+                            sales_person=sales_person,
+                            order_priority=order_priority)
+                    .drop(columns=['ship_mode_container'])
+                    .pipe(move_column, 'days_to_ship', 'after', 'ship_date')
+                    .pipe(move_column, 'sales_amount', 'after', 'unit_sell_price')
+                    .pipe(clean_columns, replace_char=('_', ' '), title=True)
+                 )
+
+            return df
+
+        data = read_excels('inputs/Data', func=clean_data)
+        head(data, 2)
 
     '''
 
@@ -289,14 +306,18 @@ def read_excels(source='inputs/',  glob_pattern='*.xls*', func=None,
 
 
 # read_excel_sheets() {{{1
-def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
-                      column='sheet_name', info=False, return_type='list_frames',
+def read_excel_sheets(filename = None,
+                      sheets = None,
+                      include_sheet = False,
+                      column = 'sheet_name',
+                      info = False,
+                      return_type = 'list_frames',
                       **kwargs):
     ''' For given Excel file name, return all or selected (list of) sheets as a
     consolidated pandas DataFrame
 
-    Example
-    -------
+    Examples
+    --------
     test1, test2 = read_excel_sheets(xl_file, return_type='list_frames')
 
 
@@ -374,7 +395,8 @@ def read_excel_sheets(filename=None, sheets=None, include_sheet=False,
 
 
 # split_dataframe() {{{1
-def split_dataframe(df, chunk_size=1000):
+def split_dataframe(df,
+                    chunk_size = 1000):
     ''' Split dataframe by chunk_size rows, returning multiple dataframes
 
     1. Define 'range' (start, stop, step/chunksize)
@@ -382,19 +404,24 @@ def split_dataframe(df, chunk_size=1000):
 
     Parameters
     ----------
-    df - dataframe to be split
+    df
+        dataframe to be split
+    chunksize
+        default=1000
 
-    chunksize - chunksize, default=1000
 
-    Example
-    -------
-    chunks = split(customer_orders_tofix, 1000)
-    for df in chunks:
-        display(head(df, 2))
-
-    returns
+    Returns
     -------
     A list of pd.DataFrame 'chunks'
+
+
+    Examples
+    --------
+    .. code-block::
+
+        chunks = split(customer_orders_tofix, 1000)
+        for df in chunks:
+            display(head(df, 2))
 
     '''
     nrows = df.shape[0]
@@ -413,11 +440,15 @@ def paste(source='text'):
 
     Parameters
     ----------
-    source : vertical        - copy from a vertical list of values (usually Excel)
-             horizontal      - copy from a horizontal list of values (usually Excel)
-             horizontal_list - return a horizontal list
+    source
+        Default 'vertical'
+        vertical        - copy from a vertical list of values (usually Excel)
+        horizontal      - copy from a horizontal list of values (usually Excel)
+        horizontal_list - return a horizontal list
 
-             default 'vertical'
+    Returns
+    -------
+    Clipboard contents
     '''
     if source == 'vertical':
         dx = pd.read_clipboard(header=None, names=['x'])
@@ -435,34 +466,43 @@ def paste(source='text'):
 
 
 # generate_summary_df() {{{1
-def generate_summary_df(datasets, title='Summary', col_total='Total records',
-                        add_grand_total=True, grand_total='Grand total'):
+def generate_summary_df(datasets,
+                        title = 'Summary',
+                        col_total = 'Total records',
+                        add_grand_total = True,
+                        grand_total = 'Grand total'):
     ''' Given a dictionary of dataframes, transform into a summary
     of these dataframes with (optional) grand total row sum.
 
     Parameters
     ----------
-    datasets : a list tuples containing dataframe description and dataframe(s)
+    datasets
+        a list tuples containing dataframe description and dataframe(s)
+    title
+        title to be used in the summary dataframe.
+    col_total
+        column total title
+    add_grand_total
+        Default True
+    grand_total
+        grand total title
 
-    title : title (string) to be used in the summary dataframe.
-
-    col_total : column total title (string)
-
-    add_grand_total : True (default), False
-
-    grand_total : grand total title (string)
 
     Returns
     -------
     pandas dataframe containing summary info
 
-    Example:
+
+    Examples
     --------
-    datasets = [('1st dataset', df), ('2nd dataset', df2)]
-    summary_df = generate_summary_df(datasets, title='Summary',
-                                     col_total='Total records',
-                                     add_grand_total=True,
-                                     grand_total='Grand total')
+
+    .. code-block::
+
+        datasets = [('1st dataset', df), ('2nd dataset', df2)]
+        summary_df = generate_summary_df(datasets, title='Summary',
+                                         col_total='Total records',
+                                         add_grand_total=True,
+                                         grand_total='Grand total')
     '''
     today_str = f"@ {datetime.now().strftime('%d, %b %Y')}"
     summary_title = ' '.join((title, today_str))
@@ -487,12 +527,13 @@ def is_type(value, type_=str):
 
     Parameters
     ----------
-    value : value to be checked
+    value
+        value to be checked
+    type
+        data type (e.g. str, int, float etc.)
 
-    type : data type (e.g. str, int, float etc.)
-
-    Example
-    -------
+    Examples
+    --------
     df[df.bgexdj.apply(is_type)]
 
     Returns

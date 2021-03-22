@@ -8,6 +8,8 @@ from .io import *
 from .xl import *
 from .custom import *
 from .pandas import *
+from IPython import get_ipython
+from IPython.core.magic import magics_class
 import numpy as np
 import pandas as pd
 import logging
@@ -34,3 +36,7 @@ pd.set_option("display.max_columns", 80)
 pd.set_option('max_colwidth', 120)
 
 sns.set_style("darkgrid")
+
+# Register magic commands
+ip = get_ipython()
+ip.register_magics(PipeMagic)

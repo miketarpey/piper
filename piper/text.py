@@ -30,8 +30,8 @@ def pipe_parser(text: str,
     whether the statement should be executed or not by the piper magic method
     (run_cmd).
 
-    Example
-    -------
+    Examples
+    --------
     ```python
     %%piper --info
     get_sample_sales() >>
@@ -169,8 +169,8 @@ def join_function_parms(idx: int, value: str) -> str:
     - the corresponding parameters
 
 
-    Example
-    -------
+    Examples
+    --------
     statements = [('head(', 'n=10)')]
     result = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
     result

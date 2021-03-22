@@ -24,31 +24,35 @@ class WorkBook():
 
     Parameters
     ----------
-    file_name : (string) - the name of the Excel file to create.
-                If you don't specify .xlsx extension, defaults to '.xlsx'
+    file_name
+        the name of the Excel file to create.  If you don't specify .xlsx
+        extension, defaults to '.xlsx'
+    sheets
+        (df, list, dict) multisheet mode
 
-    sheets    : (df, list, dict) - multisheet mode
+        1. A single DataFrame e.g. df
+        file_name = 'outputs/single sheet.xlsx'
+        WorkBook(file_name, df);
 
-                1. A single DataFrame e.g. df
-                file_name = 'outputs/single sheet.xlsx'
-                WorkBook(file_name, df);
+        2. A list of DataFrames e.g. [df1, df2, df3]
+        file_name = 'outputs/multi sheet.xlsx'
+        WorkBook(file_name, [df, df2]);
 
-                2. A list of DataFrames e.g. [df1, df2, df3]
-                file_name = 'outputs/multi sheet.xlsx'
-                WorkBook(file_name, [df, df2]);
+        3. A dictionary of sheet names and dataframe objects
+        file_name = 'outputs/multi sheet with sheet names.xlsx'
 
-                3. A dictionary of sheet names and dataframe objects
-                file_name = 'outputs/multi sheet with sheet names.xlsx'
-                WorkBook(file_name, {'revised': df, 'original': df_original});
+        .. code-block::
 
-    ts_prefix : (string/boolean) - timestamp file name prefix.
-                 - 'date' (date only) -> default
-                 - False (no timestamp)
-                 - True (timestamp prefix)
-
-    date_format: (string) default 'dd-mmm-yy'
-
-    datetime_format: (string) default 'dd-mmm-yy'
+            WorkBook(file_name, {'revised': df, 'original': df_original});
+    ts_prefix
+        timestamp file name prefix.
+        'date' (date only) -> default
+        False (no timestamp)
+        True (timestamp prefix)
+    date_format
+        default 'dd-mmm-yy'
+    datetime_format
+        default 'dd-mmm-yy'
 
 
     Examples
@@ -151,8 +155,8 @@ class WorkBook():
                   theme='Medium 2', sql=None):
         ''' Add DataFrame to WorkBook object
 
-        Example
-        -------
+        Examples
+        --------
         file_name = 'outputs/test.xlsx'
         wb = WorkBook(file_name, ts_prefix=False)
 
@@ -411,8 +415,8 @@ class WorkBook():
         This function provides greater control of formatting of individual
         columns.
 
-        Example:
-        ========
+        Examples
+        --------
         df = get_sample_data()
         formats = get_default_format(df)
 
@@ -607,7 +611,8 @@ class WorkBook():
     def _calc_width(df):
         ''' Given dataframe, calculate optimum column widths
 
-        Example:
+        Examples
+        --------
         for ix, width in enumerate(_calc_width(df)['max_']):
             ws.set_column(ix, ix, width)
         '''
@@ -691,6 +696,8 @@ class WorkBook():
 
 # sqldeveloper_xl() {{{1
 def sqldeveloper_xl(filename=None, target=None, ts_prefix='date',):
+    '''
+    '''
 
     if filename is None:
         project_dir = Path.home()
