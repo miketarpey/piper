@@ -1,17 +1,30 @@
-import logging
-import pandas as pd
-import re
-import xlsxwriter
 from copy import deepcopy
 from os.path import split, abspath, dirname, join
+from pathlib import Path
 from piper.configure import get_config
 from piper.io import _file_with_ext
 from piper.io import _get_qual_file
 from xlsxwriter.utility import xl_col_to_name
 from xlsxwriter.utility import xl_rowcol_to_cell
+import pandas as pd
+import re
+import xlsxwriter
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    Union,
+)
 
-from pathlib import Path
-
+import logging
 logger = logging.getLogger(__name__)
 
 
@@ -97,7 +110,7 @@ class WorkBook():
 
         wb.close()
     '''
-    sheet_dict = {}
+    sheet_dict: Dict[Tuple, Any] = {}
     last_sheet_idx = 0
 
     def __init__(self, file_name, sheets=None, ts_prefix='date',
@@ -119,7 +132,7 @@ class WorkBook():
         self.sheet_dict = {}  # Was getting memory issues !
         themes = WorkBook.get_themes()
 
-        html = HTML(f"""<a href="{file_name}">{file_name}</a>""")
+        html = f"""<a href="{file_name}">{file_name}</a>"""
         logger.info(html)
         logger.info(f'Workbook: {file_name}')
 
