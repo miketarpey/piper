@@ -1,15 +1,13 @@
+from datetime import datetime
+from glob import glob
+from os.path import split, normpath, join, relpath, basename
+from pathlib import Path
+from zipfile import ZipFile, ZIP_DEFLATED
 import logging
 import os
+import pandas as pd
 import re
 import zipfile
-from datetime import datetime
-from pathlib import Path
-from glob import glob
-import pandas as pd
-
-from os import walk
-from os.path import split, normpath, join, relpath, basename
-from zipfile import ZipFile, ZIP_DEFLATED
 
 from typing import (
     Any,
@@ -56,7 +54,8 @@ def _get_qual_file(folder, file_name, ts_prefix=True):
 
     Returns
     -------
-    qual_file : (string) qualified file name
+    qual_file
+        qualified file name
     '''
     if ts_prefix == 'date':
         ts = "{:%Y%m%d_}".format(datetime.now())
@@ -73,6 +72,7 @@ def _get_qual_file(folder, file_name, ts_prefix=True):
 # _file_with_ext() {{{1
 def _file_with_ext(filename, extension='.xlsx'):
     ''' For given filename, check if required extension present.
+
         If not, append and return.
     '''
     if re.search(extension+'$', filename) is None:
@@ -83,20 +83,21 @@ def _file_with_ext(filename, extension='.xlsx'):
 
 # read_text() {{{1
 def read_text(file_name, count=True):
-    '''
-    read and return text/string data from a text file
+    ''' read and return text/string data from a text file
 
     Parameters
     ----------
 
-    file_name : file name (string)
-
-    count : return row/record count only (default)
+    file_name
+        file name (string)
+    count
+        return row/record count only (default)
 
     Returns
     -------
-    text : if count is True, return count (int)
-           otherwise, return text data from file name (string)
+    text
+        if count is True, return count (int) otherwise, return text data from
+        file name (string)
 
     '''
     with open(file_name, 'r') as f:
@@ -114,15 +115,15 @@ def read_text(file_name, count=True):
 
 # write_text() {{{1
 def write_text(file_name, text):
-    '''
-    write text/string data to text file
+    ''' write text/string data to text file
 
     Parameters
     ----------
 
-    file_name : file name (string)
-
-    text : text string to be written to file name (string) to create.
+    file_name
+        file name (string)
+    text
+        text string to be written to file name (string) to create.
 
     Returns
     -------
@@ -140,42 +141,47 @@ def zip_data(source: str = 'outputs',
              recurse: bool = False,
              info: bool = False,
              mode: str = 'w',
-             test_mode: bool = False) -> Union[ZipFile, None]:
-    '''Compress files from source to target folder
+             test_mode: bool = False) -> Union[ZipFile, Any]:
+    ''' Compress files from source to target folder
 
     Parameters
     ----------
-    source: (str) source folder containing the files to zip
+    source
+        source folder containing the files to zip.
+    filter
+        default scans for xlsx files.
+    target
+        target zip file name to create.
+    ts_prefix
+        timestamp file name prefix.
+        'date' (date only) -> default
+        False (no timestamp)
+        True (timestamp prefix)
+    include_folder
+        True (default). Zipped files include the original folder reference that
+        the file resided in.
+    recurse
+        default (False) Recurse folders
+    mode
+        default 'w' (write), 'a' (add)
+    test_mode
+        default (False), if True - do not create zip
 
-    filter: (str) default='*.xlsx', file filter
-
-    target: (str) target zip file name to create.
-
-    ts_prefix : (str/bool) - timestamp file name prefix.
-                'date' (date only) -> default
-                False (no timestamp)
-                True (timestamp prefix)
-
-    include_folder : True (default), False
-                     True -> zipped files include the original folder
-                     reference that the file resided in.
-
-    recurse : (bool) - default (False) Recurse folders
-
-    mode : (str) default 'w' (write), 'a' (add)
-
-    test_mode : (bool) - default (False), if True - do not create zip
 
     Returns
     -------
     None
 
+
     Examples
     --------
-    zip_data(source='outputs/', filter=f'{date_prefix}*.xsv',
-             target='outputs/test', ts_prefix=True,
-             include_folder=True, recurse=True, info=False,
-             test_mode=False)
+
+    .. code-block::
+
+        zip_data(source='outputs/', filter=f'{date_prefix}*.xsv',
+                 target='outputs/test', ts_prefix=True,
+                 include_folder=True, recurse=True, info=False,
+                 test_mode=False)
 
     Source: outputs, filter: 20200614*.xsv
     WARNING: No files found for selected folder/filter.
@@ -224,9 +230,10 @@ def zip_data(source: str = 'outputs',
 # list_files() {{{1
 def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
                as_posix=False, regex=''):
-    ''' For a given source folder and file selection criteria, return
-    a list of files. Criteria parameter allows one to focus on one
-    or a group of files.
+    ''' return a list of files.
+
+    Criteria parameter allows one to focus on one or a group of files.
+
 
     Examples
     --------
@@ -281,9 +288,9 @@ def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
 # duplicate_files() {{{1
 def duplicate_files(source=None, glob_pattern='*.*', recurse=False, filesize=1,
                    keep=False, xl_file=None):
-    ''' For given source directory and global pattern (filter), all
-    select files that have the same file size. This files are are assumed
-    to be 'duplicates'.
+    ''' select files that have the same file size.
+
+    This files are are assumed to be 'duplicates'.
 
     Parameters
     ----------
