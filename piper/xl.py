@@ -530,29 +530,32 @@ class WorkBook():
             pass a list of dictionary definitions.
 
             .. note::
+
                 if 'format' not specified, then 'error' format is defaulted.
                 if 'range' not specified, then condition applies to entire row.
 
-            Valid condition types are:
-            ('2_color_scale', '3_color_scale', 'type', 'average', 'blanks',
-             'bottom', 'cell', 'data_bar', 'date', 'duplicate', 'errors',
-             'formula', 'icon_set', 'no_blanks', 'no_errors', 'text',
-             'time_period', 'top', 'unique')
+        Valid condition types are:
+        ['2_color_scale', '3_color_scale', 'type', 'average', 'blanks', 'bottom',\
+         'cell', 'data_bar', 'date', 'duplicate', 'errors', 'formula', 'icon_set',\
+         'no_blanks', 'no_errors', 'text', 'time_period', 'top', 'unique']
+
 
         For more details, consult link below.
-        # https://xlsxwriter.readthedocs.io/working_with_conditional_formats.html
+        `<https://xlsxwriter.readthedocs.io/working_with_conditional_formats.html>`_
 
         Examples
         --------
 
         .. code-block::
 
-            xl_file = f'example #7 WorkBook - Multi sheet with conditional formatting.xlsx'
-            wb = WorkBook(f'outputs/{xl_file}'), ts_prefix=None)
+            xl_file = f'WorkBook - Multi sheet with conditional formatting.xlsx'
+            wb = WorkBook(f'outputs/{xl_file}', ts_prefix=None)
 
-            ws = wb.add_sheet(df_original, sheet_name='original', tab_color='yellow', zoom=175)
+            ws = wb.add_sheet(df_original, sheet_name='original',
+                              tab_color='yellow', zoom=175)
 
-            ws = wb.add_sheet(df, sheet_name='revised data', tab_color='red', zoom=175)
+            ws = wb.add_sheet(df, sheet_name='revised data',
+                              tab_color='red', zoom=175)
 
             # Simple (single dictionary) condition
             ws = wb.add_condition(ws, condition={'type': '3_color_scale', 'range': 'H'})
@@ -561,22 +564,30 @@ class WorkBook():
 
             # Multiple conditions added to a sheet (list of dictionaries)
             c = [ {'type': 'formula', 'criteria': '=$I2=2263', 'format': 'accent4'},
-                  {'type': 'cell', 'criteria': 'equal to', 'value': '"A103"', 'format': 'accent5', 'range': 'A'},
-                  {'type': 'cell', 'criteria': 'equal to', 'value': 23899003, 'format': 'accent6', 'range': 'B'} ,
+                  {'type': 'cell', 'criteria': 'equal to',
+                  'value': '"A103"', 'format': 'accent5', 'range': 'A'},
+                  {'type': 'cell', 'criteria': 'equal to',
+                  'value': 23899003, 'format': 'accent6', 'range': 'B'} ,
                   {'type': 'duplicate', 'format': 'accent1', 'range': 'C:D'},
-                  {'type': 'text', 'criteria': 'containing', 'value': 'Eoin', 'format': 'accent2', 'range': 'D'},
-                  {'type': 'data_bar', 'data_bar_2010': True, 'criteria': '=$F2>0', 'range': 'F'},
-                  {'type': 'date', 'criteria': 'less than', 'value': selected_date, 'format': 'accent3', 'range': 'G'},
-                  {'type': 'formula', 'criteria': '=$J2="cat;dog;books"', 'format': 'accent5', 'range': 'J'},
-               ]
+                  {'type': 'text', 'criteria': 'containing',
+                  'value': 'Eoin', 'format': 'accent2', 'range': 'D'},
+                  {'type': 'data_bar', 'data_bar_2010': True,
+                  'criteria': '=$F2>0', 'range': 'F'},
+                  {'type': 'date', 'criteria': 'less than',
+                  'value': selected_date, 'format': 'accent3', 'range': 'G'},
+                  {'type': 'formula', 'criteria': '=$J2="cat;dog;books"',
+                  'format': 'accent5', 'range': 'J'}]
 
             wb.add_condition(ws, condition=c)
 
-            c = [ {'type': 'formula', 'criteria': '=$B2=""',   'format': 'accent2', 'range': 'B'},
-                  {'type': 'formula', 'criteria': '=$M2=""',   'format': 'accent2', 'range': 'M'},
-                  {'type': 'formula', 'criteria': '=$F2="O"',  'format': 'input'},
-                  {'type': 'formula', 'criteria': '=$J2="uom mismatch"', 'format': 'accent1', 'range': 'J:L'}
-               ]
+            c = [{'type': 'formula', 'criteria': '=$B2=""',
+                  'format': 'accent2', 'range': 'B'},
+                 {'type': 'formula', 'criteria': '=$M2=""',
+                  'format': 'accent2', 'range': 'M'},
+                 {'type': 'formula', 'criteria': '=$F2="O"',
+                  'format': 'input'},
+                 {'type': 'formula', 'criteria': '=$J2="uom mismatch"',
+                  'format': 'accent1', 'range': 'J:L'}]
 
             wb.add_condition(ws, c)
 
