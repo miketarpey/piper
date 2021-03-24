@@ -1,7 +1,6 @@
 import json
 import logging
 import pandas as pd
-from shutil import copy
 from pathlib import Path
 from os.path import dirname, abspath
 

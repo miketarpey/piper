@@ -1,7 +1,7 @@
-from pathlib import Path
 import re
 import logging
-from datetime import datetime
+from os.path import join
+from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
@@ -9,40 +9,35 @@ logger = logging.getLogger(__name__)
 
 # create_table() {{{1
 def create_table(df, tablename=None, data_types=None, not_null=False, info=False):
-    '''
-    For given dataframe, generate 'create table' sql statement(s) to
-    build corresponding sql database table.
+    ''' SQL - generate 'create table' sql stmt(s)
 
+    Function to build sql database table for supplied dataframe.
 
     Parameters
     ----------
-    df: dataframe - containing rows to be inserted
+    df
+        dataframe containing rows to be inserted
+    table_name
+        target database table name
+    data_types:
+        dictionary containing corresponding data types between pandas and target
+        database.
 
-    table_name: str - target database table name
-
-    data_types: dict - dictionary containing corresponding data types
-                        between pandas and target database.
-
-                If None, function will apply 'default' from/to data
-                type values.
-
-    not null: boolean - default False. If True, insert 'not null'
-                        in SQL column statement(s)
-
+        If None, function will apply 'default' from/to data type values.
+    not null
+        default False. If True, insert 'not null' in SQL column statement(s)
 
     Returns
     -------
-    sql: sql text containing insert statement(s)
-
+    sql
+        sql text containing insert statement(s)
     '''
     if tablename is None:
         tablename = 'table'
 
     if data_types is None:
-        data_types = {'object': 'text',
-                      'int32': 'integer',
-                      'int64': 'bigint',
-                      'float64': 'decimal',
+        data_types = {'object': 'text', 'int32': 'integer',
+                      'int64': 'bigint', 'float64': 'decimal',
                       'datetime64[ns]': 'date'}
 
     null = ' not_null' if not_null else ''
@@ -63,8 +58,9 @@ def create_table(df, tablename=None, data_types=None, not_null=False, info=False
 
 # insert() {{{1
 def insert(df, tablename=None, info=False):
-    """
-    For given dataframe, generate mass insert sql statement(s).
+    """ SQL - Generate mass insert sql stmts
+
+    Function to build sql insert statements for supplied dataframe.
 
     Note: lambda 'func' defined to build row values delimitting
           str values using apostrophes
@@ -72,15 +68,17 @@ def insert(df, tablename=None, info=False):
 
     Parameters
     ----------
-    df: pandas dataframe containing rows to be inserted
+    df
+        pandas dataframe containing rows to be inserted
 
-    table_name: target database table name
+    table_name
+        target database table name
 
 
     Returns
     -------
-    sql: sql text containing insert statement(s)
-
+    sql
+        sql text containing insert statement(s)
     """
     columns = ', '.join(df.columns.tolist())
 
@@ -119,21 +117,18 @@ def get_sql_text(file_or_text, variables, debug=False):
 
     Parameters
     ----------
-    file_or_text :
-        file name containing sql or actual text to
-        convert
-
-    variables :
+    file_or_text
+        file name containing sql or actual text to convert
+    variables
         dictionary of variables to be used for replacing
         substitutional variables.
-
-    debug :
-        True, False
+    debug
         If True, provide logging/debug information
 
     Returns
     -------
-    text string containing replaced substitutional variables
+    text string
+        containing replaced substitutional variables
     '''
 
     # If the file does not exist, assume that SQL text
@@ -163,48 +158,13 @@ def get_sql_text(file_or_text, variables, debug=False):
 
         return sql
 
-# _get_sql_text {{{1
-def _get_sql_text(sql, variables, debug=False):
-    ''' Get SQL text string and substitute statement
-        variables with dictionary variables passed.
-
-    Parameters
-    ----------
-    sql       : sql text
-
-    variables : dictionary of variables to be used for
-                replacing substitutional variables.
-
-    debug     : True, False
-                if True, provide logging/debug information
-
-    Returns
-    -------
-    text string containing replaced substitutional variables
-    '''
-
-    for key, variable in variables.items():
-        check_key = '{' + f'{key}' + '}'
-        if isinstance(variable, list):
-            variable = ', '.join(map(lambda x: f"'{x}'", variable))
-        elif isinstance(variable, int):
-            variable = str(variable)
-
-        sql = re.sub(pattern=check_key, repl=variable, string=sql, flags=re.I)
-
-    if debug:
-        logger.info(variables)
-        logger.info(sql)
-
-    return sql
-
 
 # set_sql_file {{{1
 def set_sql_file(from_file=None, to_file=None, template_values=True):
     ''' Set SQL file text to 'template' substitutional values
 
-    Example
-    -------
+    Examples
+    --------
 
     Set/replace existing SQL text file to template format:
 
@@ -226,17 +186,14 @@ def set_sql_file(from_file=None, to_file=None, template_values=True):
 
     Parameters
     ----------
-    from_file : source file containing sql text to be converted
-
-    to_file : target file to contain substituted text
-
-    template_values :
-        True (convert sql text to use 'template' variables)
-
-        or,
-
-        string value (a dictionary of key/values each containing
-        a regex statement and replacement values
+    from_file
+        source file containing sql text to be converted
+    to_file
+        target file to contain substituted text
+    template_values
+        - True (convert sql text to use 'template' variables) or,
+        - string value (a dictionary of key/values each containing a regex
+          statement and replacement values
 
     Returns
     -------
@@ -258,27 +215,24 @@ def set_sql_file(from_file=None, to_file=None, template_values=True):
 def set_sql_text(sql, template_values=True):
     ''' Set SQL text values to 'template' values
 
-    Example
-    -------
+    Examples
+    --------
     sql = set_sql_text(sql, template_values=True)
 
 
     Parameters
     ----------
-    sql : sql text string
-
-    template_values :
-        True (convert sql text to use 'template' variables)
-
-        or,
-
-        string value (a dictionary of key/values each containing
-        a regex statement and replacement values
+    sql
+        sql text string
+    template_values
+        - True (convert sql text to use 'template' variables) or,
+        - string value (a dictionary of key/values each containing a regex
+          statement and replacement values
 
     Returns
     -------
-    sql (rendered text)
-
+    sql
+        rendered text
     '''
 
     if template_values is True:
@@ -295,5 +249,43 @@ def set_sql_text(sql, template_values=True):
             key = '{' + f'{key}' + '}'
 
         sql = re.sub(pattern=key, repl=value, string=sql, flags=re.I)
+
+    return sql
+
+    
+# _get_sql_text {{{1
+def _get_sql_text(sql, variables, debug=False):
+    ''' Get SQL text string and substitute statement
+        variables with dictionary variables passed.
+
+    Parameters
+    ----------
+    sql
+        sql text
+
+    variables
+        dictionary of variables to be used for replacing substitutional
+        variables.
+    debug
+        If True, provide logging/debug information.
+
+    Returns
+    -------
+    text
+        string containing replaced substitutional variables
+    '''
+
+    for key, variable in variables.items():
+        check_key = '{' + f'{key}' + '}'
+        if isinstance(variable, list):
+            variable = ', '.join(map(lambda x: f"'{x}'", variable))
+        elif isinstance(variable, int):
+            variable = str(variable)
+
+        sql = re.sub(pattern=check_key, repl=variable, string=sql, flags=re.I)
+
+    if debug:
+        logger.info(variables)
+        logger.info(sql)
 
     return sql

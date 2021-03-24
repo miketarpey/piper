@@ -1,13 +1,17 @@
+import os
+import pandas as pd
+import re
+import zipfile
+
 from datetime import datetime
 from glob import glob
 from os.path import split, normpath, join, relpath, basename
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
+from piper.text import _get_qual_file
+from piper.text import _file_with_ext
+
 import logging
-import os
-import pandas as pd
-import re
-import zipfile
 
 from typing import (
     Any,
@@ -27,58 +31,146 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 
-# _get_qual_file() {{{1
-def _get_qual_file(folder, file_name, ts_prefix=True):
-    ''' Get qualified xl file name
+# duplicate_files() {{{1
+def duplicate_files(source=None,
+                   glob_pattern='*.*',
+                   recurse=False,
+                   filesize=1,
+                   keep=False,
+                   xl_file=None):
+    ''' select files that have the same file size.
+
+    This files are are assumed to be 'duplicates'.
+
+    Parameters
+    ----------
+    source
+        source directory, default None
+    glob_pattern
+        filter extension suffix, default '*.*'
+    recurse
+        default False, if True, recurse source directory provided
+    filesize
+        file size filter, default 1 (kb)
+    keep
+        {‘first’, ‘last’, False}, default ‘first’
+        Determines which duplicates (if any) to mark.
+
+        first: Mark duplicates as True except for the first occurrence.
+        last: Mark duplicates as True except for the last occurrence.
+        False: Mark all duplicates as True.
+    xl_file
+        default None: output results to Excel workbook to xl_file
+
+
+    Returns
+    -------
+    pd.DataFrame
+
 
     Examples
     --------
 
     .. code-block::
 
-        _get_qual_file(folder, file_name, ts_prefix=False)
-        _get_qual_file(folder, file_name, ts_prefix='date')
-        _get_qual_file(folder, file_name, ts_prefix='time')
+        source = '/home/mike/Documents'
+        duplicate_files(source, glob_pattern='*.*', recurse=True,
+                    filesize=2000000, keep=False).query("duplicate == True")
+
+    **References**
+    https://docs.python.org/3/library/pathlib.html
+    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
+    '''
+    def func(f):
+
+        try:
+            size = os.stat(f.as_posix()).st_size
+        except OSError as e:
+            size = 0
+
+        data = {'parent': f.parents[0].as_posix(),
+                'name': f.name,
+                # 'stem': f.stem, 'suffix': f.suffix,
+                'size': size}
+
+        return data
+
+
+    file_data = list_files(source=source, glob_pattern = glob_pattern,
+                           recurse=recurse, regex=None)
+
+    file_data = [func(x) for x in file_data]
+
+    df = (pd.DataFrame(file_data)
+            .assign(duplicate = lambda x: x['size'].duplicated(keep=keep)))
+
+    if filesize is not None:
+        df = df.query("size >= @filesize")
+
+    df = (df.sort_values(['size', 'name'], ascending=[False, True])
+            .reset_index(drop=True))
+
+    if xl_file is not None:
+        logger.info(f'{xl_file} written, {df.shape[0]} rows')
+        df.to_excel(xl_file, index=False)
+
+    return df
+# list_files() {{{1
+def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
+               as_posix=False, regex=''):
+    ''' return a list of files.
+
+    Criteria parameter allows one to focus on one or a group of files.
+
+
+    Examples
+    --------
+    List *ALL* files in /inputs directory, returning a list of paths:
+
+    list_files(glob_pattern = '*', regex='Test', as_posix=True)
 
 
     Parameters
     ----------
-    folder
-        folder path
-    file_name
-        file name to create.
-    ts_prefix
-        default False (no timestamp)
-        True (timestamp prefix)
-        'date' (date only)
+    source
+        source folder, default - 'inputs/'
+    glob_pattern
+        file extension filter (str), default - '*.xls*'
+    regex
+        if specified, allows regular expression to further filter the file
+        selection. Default is ''
 
-    Returns
-    -------
-    qual_file
-        qualified file name
+        *example*
+
+        .. code-block::
+
+            list_files(glob_pattern = '*.tsv', regex='Test', as_posix=True)
+            >['inputs/Test XL WorkBook.tsv']
+    recurse
+        recurse directory (boolean), default False
+    as_posix
+        If True, return list of files strings, default False
+
     '''
-    if ts_prefix == 'date':
-        ts = "{:%Y%m%d_}".format(datetime.now())
-        qual_file = normpath(join(folder, ts + file_name))
-    elif ts_prefix:
-        ts = "{:%Y%m%d_%H%M}_".format(datetime.now())
-        qual_file = normpath(join(folder, ts + file_name))
-    else:
-        qual_file = normpath(join(folder, file_name))
+    if glob_pattern in ('', None):
+        raise ValueError(f'criteria {glob_pattern} value is invalid')
 
-    return qual_file
+    files = list(Path(source).glob(glob_pattern))
 
+    if recurse:
+        files = list(Path(source).rglob(glob_pattern))
 
-# _file_with_ext() {{{1
-def _file_with_ext(filename, extension='.xlsx'):
-    ''' For given filename, check if required extension present.
+    if as_posix:
+        files = [x.as_posix() for x in files]
 
-        If not, append and return.
-    '''
-    if re.search(extension+'$', filename) is None:
-        return filename + extension
+    if regex not in (False, None):
+        regexp = re.compile(regex)
+        if as_posix:
+            files = list(filter(lambda x: regexp.search(x), files))
+        else:
+            files = list(filter(lambda x: regexp.search(x.as_posix()), files))
 
-    return filename
+    return files
 
 
 # read_text() {{{1
@@ -220,148 +312,9 @@ def zip_data(source: str = 'outputs',
                     logger.info(f'file: {f} written')
 
             if test_mode:
-                logger.info(f'<<TEST MODE>> Target: {target_zip} not created with {idx} files.')
+                msg = f'<TEST> Target: {target_zip} - {idx} files not created.'
+                logger.info(msg)
             else:
-                logger.info(f'Target: {target_zip} created with {idx} files.')
+                logger.info(f'Target: {target_zip} - {idx} files created.')
 
             return zip
-
-
-# list_files() {{{1
-def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
-               as_posix=False, regex=''):
-    ''' return a list of files.
-
-    Criteria parameter allows one to focus on one or a group of files.
-
-
-    Examples
-    --------
-    List *ALL* files in /inputs directory, returning a list of paths:
-
-    list_files(glob_pattern = '*', regex='Test', as_posix=True)
-
-
-    Parameters
-    ----------
-    source
-        source folder, default - 'inputs/'
-    glob_pattern
-        file extension filter (str), default - '*.xls*'
-    regex
-        if specified, allows regular expression to further filter the file
-        selection. Default is ''
-
-        *example*
-
-        .. code-block::
-
-            list_files(glob_pattern = '*.tsv', regex='Test', as_posix=True)
-            >['inputs/Test XL WorkBook.tsv']
-    recurse
-        recurse directory (boolean), default False
-    as_posix
-        If True, return list of files strings, default False
-
-    '''
-    if glob_pattern in ('', None):
-        raise ValueError(f'criteria {glob_pattern} value is invalid')
-
-    files = list(Path(source).glob(glob_pattern))
-
-    if recurse:
-        files = list(Path(source).rglob(glob_pattern))
-
-    if as_posix:
-        files = [x.as_posix() for x in files]
-
-    if regex not in (False, None):
-        regexp = re.compile(regex)
-        if as_posix:
-            files = list(filter(lambda x: regexp.search(x), files))
-        else:
-            files = list(filter(lambda x: regexp.search(x.as_posix()), files))
-
-    return files
-
-
-# duplicate_files() {{{1
-def duplicate_files(source=None, glob_pattern='*.*', recurse=False, filesize=1,
-                   keep=False, xl_file=None):
-    ''' select files that have the same file size.
-
-    This files are are assumed to be 'duplicates'.
-
-    Parameters
-    ----------
-    source
-        source directory, default None
-    glob_pattern
-        filter extension suffix, default '*.*'
-    recurse
-        default False, if True, recurse source directory provided
-    filesize
-        file size filter, default 1 (kb)
-    keep
-        {‘first’, ‘last’, False}, default ‘first’
-        Determines which duplicates (if any) to mark.
-
-        first: Mark duplicates as True except for the first occurrence.
-        last: Mark duplicates as True except for the last occurrence.
-        False: Mark all duplicates as True.
-    xl_file
-        default None: output results to Excel workbook to xl_file
-
-
-    Returns
-    -------
-    pd.DataFrame
-
-
-    Examples
-    --------
-
-    .. code-block::
-
-        source = '/home/mike/Documents'
-        duplicate_files(source, glob_pattern='*.*', recurse=True,
-                    filesize=2000000, keep=False).query("duplicate == True")
-
-    **References**
-    https://docs.python.org/3/library/pathlib.html
-    https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.duplicated.html
-    '''
-    def func(f):
-
-        try:
-            size = os.stat(f.as_posix()).st_size
-        except OSError as e:
-            size = 0
-
-        data = {'parent': f.parents[0].as_posix(),
-                'name': f.name,
-                # 'stem': f.stem, 'suffix': f.suffix,
-                'size': size}
-
-        return data
-
-
-    file_data = list_files(source=source, glob_pattern = glob_pattern,
-                           recurse=recurse, regex=None)
-
-    file_data = [func(x) for x in file_data]
-
-    df = (pd.DataFrame(file_data)
-            .assign(duplicate = lambda x: x['size'].duplicated(keep=keep)))
-
-    if filesize is not None:
-        df = df.query("size >= @filesize")
-
-    df = (df.sort_values(['size', 'name'], ascending=[False, True])
-            .reset_index(drop=True))
-
-    if xl_file is not None:
-        logger.info(f'{xl_file} written, {df.shape[0]} rows')
-        df.to_excel(xl_file, index=False)
-
-    return df

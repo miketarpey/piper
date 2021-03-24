@@ -3,6 +3,7 @@ import numpy as np
 import json
 from xlsxwriter.utility import xl_col_to_name
 import logging
+
 from typing import (
     Any,
     Callable,
@@ -68,8 +69,15 @@ def sample_data(start: int = 2020,
     order_dates = (pd.date_range(start=str(start), end=str(end), freq=freq)
                      .shift(freq=freq, periods=np.random.randint(1, 30)))
 
-    values1 = pd.Series(np.random.randint(low=10, high=400, size=len_period), name='values_1')
-    values2 = pd.Series(np.random.randint(low=10, high=400, size=len_period), name='values_2')
+    values1 = pd.Series(np.random.randint(low=10,
+                                          high=400, 
+                                          size=len_period),
+                                          name='values_1')
+
+    values2 = pd.Series(np.random.randint(low=10,
+                                          high=400,
+                                          size=len_period),
+                                          name='values_2')
 
     id_list = ['A', 'B', 'C', 'D', 'E']
     ids = pd.Series(np.random.choice(id_list, size=len_period), name='ids')
@@ -156,8 +164,8 @@ def sample_sales(number_of_rows: int = 200,
 
     df['target_profit'] = df['target_sales'] * df['target%_profit']
 
-    actual_sales_lambda = lambda x: x + (x * np.random.choice(range(-10, 10)) / 100)
-    df['actual_sales'] = df['target_sales'].apply(actual_sales_lambda)
+    f = lambda x: x + (x * np.random.choice(range(-10, 10)) / 100)
+    df['actual_sales'] = df['target_sales'].apply(f)
 
     df['actual_profit'] = (df['actual_sales'] * df['target%_profit']).round(2)
 
@@ -175,7 +183,7 @@ def sample_matrix(size: Tuple = (5, 5),
                   scale: int = 10,
                   lowercase_cols: bool = True,
                   round: int = 3,
-                  seed:int = 42) -> pd.DataFrame:
+                  seed: int = 42) -> pd.DataFrame:
     ''' Generate sample data for given size (tuple)
 
     Draw random samples from a normal (Gaussian) distribution.
@@ -229,6 +237,7 @@ def sample_matrix(size: Tuple = (5, 5),
     df = pd.DataFrame(data, columns=cols).round(round)
 
     return df
+
 
 # generate_periods {{{1
 def generate_periods(year: int = 2021,

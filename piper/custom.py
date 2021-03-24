@@ -2,7 +2,6 @@ from datetime import date
 from datetime import datetime
 from time import strptime
 import logging
-import logging
 import numpy as np #type: ignore
 import pandas as pd #type: ignore
 import re
@@ -30,41 +29,45 @@ logger = logging.getLogger(__name__)
 def fiscal_year(date: Union[pd.Timestamp],
                 start_month: int = 7,
                 year_only: bool = False) -> str:
-    ''' apply_date function: Convert to fiscal year
+    '''Convert to fiscal year
 
     Used with pd.Series date objects to obtain Fiscal Year information.
 
-    Examples
-    --------
-    assert fiscal_year(pd.Timestamp('2014-01-01')) == 'FY 2013/2014'
-    assert fiscal_year(pd.to_datetime('2014-01-01')) == 'FY 2013/2014'
-
-    assert fiscal_year(pd.Timestamp('2014-01-01'), year_only=True) == 'FY 13/14'
-    assert fiscal_year(pd.to_datetime('2014-01-01'), year_only=True) == 'FY 13/14'
-
-    assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)
-    assert pd.isna(from_excel(pd.NaT)) == pd.isna(pd.NaT)
-
-    df = pd.DataFrame()
-    df['Date'] = pd.date_range('2020-01-01', periods=12, freq='M')
-    df['Date'] = df['Date'].apply(fiscal_year)
-    df.head()
-
-    0     FY 2018/2019
-    1     FY 2018/2019
-    2     FY 2018/2019
-    3     FY 2018/2019
-    4     FY 2018/2019
-    Name: Date, dtype: object
-
     Parameters
     ----------
-    date : pd.TimeStamp object
+    date
+        pd.TimeStamp object
+    start_month
+        Fiscal year starting month, default 7 (Australia)
+    year_only
+        Default False. Returns a 4 digit year e.g. 2019, 2020
+                True   Returns a 2 digit year e.g. 19, 20
 
-    start_month : Fiscal year starting month, default 7 (Australia)
+    Examples
+    --------
 
-    year_only : False (default) - 4 digit year e.g. 2019, 2020
-                True            - 2 digit year e.g. 19, 20
+    .. code-block::
+
+        assert fiscal_year(pd.Timestamp('2014-01-01')) == 'FY 2013/2014'
+        assert fiscal_year(pd.to_datetime('2014-01-01')) == 'FY 2013/2014'
+
+        assert fiscal_year(pd.Timestamp('2014-01-01'), year_only=True) == 'FY 13/14'
+        assert fiscal_year(pd.to_datetime('2014-01-01'), year_only=True) == 'FY 13/14'
+
+        assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)
+        assert pd.isna(from_excel(pd.NaT)) == pd.isna(pd.NaT)
+
+        df = pd.DataFrame()
+        df['Date'] = pd.date_range('2020-01-01', periods=12, freq='M')
+        df['Date'] = df['Date'].apply(fiscal_year)
+        df.head()
+
+        0     FY 2018/2019
+        1     FY 2018/2019
+        2     FY 2018/2019
+        3     FY 2018/2019
+        4     FY 2018/2019
+        Name: Date, dtype: object
     '''
     prefix = 'FY'
 
@@ -79,6 +82,8 @@ def fiscal_year(date: Union[pd.Timestamp],
         text = f'{prefix} {year}/{year+1}'
 
     return text
+
+
 # from_julian {{{1
 def from_julian(julian: Union[str, int],
                 jde_format: bool = True) -> Any:
@@ -89,33 +94,36 @@ def from_julian(julian: Union[str, int],
     # https://docs.oracle.com/cd/E26228_01/doc.93/e21961/julian_date_conv.htm#WEAWX259
     # http://nimishprabhu.com/the-mystery-of-jde-julian-date-format-solved.html
 
-    Examples
-    --------
-    %%piper
-
-    sample_sales()
-    >> select(['-target_profit', '-actual_profit'])
-    # >> assign(month = lambda x: x['month'].apply(to_julian))
-    >> across('month', to_julian)
-    >> head(5)
-
-      location  product     month  target_sales  actual_sales
-      London    Beachwear  121001         31749       29209.1
-      London    Beachwear  121001         37833       34049.7
-      London    Jeans      121001         29485       31549
-      London    Jeans      121001         37524       40901.2
-      London    Sportswear 121001         27216       29121.1
-
     Parameters
     ----------
-    julian date: julian date to be converted
+    julian date
+        julian date to be converted
 
-    jde_format: default True. If False, assume 'standard' julian format.
-
+    jde_format
+        default True. If False, assume 'standard' julian format.
 
     Returns
     -------
     gregorian_date: Any Gregorian based format
+
+    Examples
+    --------
+
+    .. code-block::
+
+        %%piper
+        sample_sales()
+        >> select(['-target_profit', '-actual_profit'])
+        # >> assign(month = lambda x: x['month'].apply(to_julian))
+        >> across('month', to_julian)
+        >> head(5)
+
+          location  product     month  target_sales  actual_sales
+          London    Beachwear  121001         31749       29209.1
+          London    Beachwear  121001         37833       34049.7
+          London    Jeans      121001         29485       31549
+          London    Jeans      121001         37524       40901.2
+          London    Sportswear 121001         27216       29121.1
     '''
     if julian is None:
         return julian
@@ -149,7 +157,8 @@ def from_julian(julian: Union[str, int],
 
 
 # from_excel {{{1
-def from_excel(excel_date: Union[str, float, int, pd.Timestamp]) -> pd.Timestamp:
+def from_excel(excel_date: Union[str, float, int, pd.Timestamp]
+               ) -> pd.Timestamp:
     ''' apply_date function: excel serial date -> pd.Timestamp
 
     Converts excel serial format to pandas Timestamp object
@@ -191,7 +200,7 @@ def from_excel(excel_date: Union[str, float, int, pd.Timestamp]) -> pd.Timestamp
 
         try:
             excel_date = float(excel_date)
-        except ValueError as e:
+        except ValueError as _:
             excel_date = int(excel_date)
             return excel_date
 
@@ -216,14 +225,34 @@ def ratio(value1: Union[int, float, pd.Series],
           precision: int = 2,
           percent: bool = False,
           format: bool = False) -> Any:
-    ''' ratio - ratio/percentage of two values (or pd.Series)
+    ''' Calculate the Ratio / percentage of two values
 
-    Provide parameters to adjust decimal rounding and a 'format'
-    option to send back string rather than numeric with % appended.
-    e.g. '33.43%'
+    Custom function which calculate the ratio and optionally
+    percentage of two values or series.
 
-    Passes back np.inf value for 'divide by zero' use case.
+    .. note::
 
+        Passes back np.inf value for 'divide by zero' use case.
+
+    Parameters
+    ----------
+    value1
+        integer, float, or pd.Series
+    value2
+        integer, float, or pd.Series
+    precision
+        Default 2. Returned result is rounded to precision value.
+    percent
+        Default False. If True, calculates the percentage.
+    format
+        Default False. If True, returns a string, formatted as a
+        percentage value e.g. 92.0%
+
+
+    Returns
+    -------
+    float - if values1 and 2 are single int/float values
+    pd.Series - if values1 and 2 are pd.Series
 
     Examples
     --------
@@ -256,18 +285,6 @@ def ratio(value1: Union[int, float, pd.Series],
         London    Sportswear  2021-01-01        27216       29121.1       1.07   107.0%
 
 
-    Parameters
-    ----------
-    value1
-        integer, float, or pd.Series
-    value2
-        integer, float, or pd.Series
-
-
-    Returns
-    -------
-    float - if values1 and 2 are single int/float values
-    pd.Series - if values1 and 2 are pd.Series
 
     '''
     if isinstance(value1, pd.Series):
@@ -288,7 +305,7 @@ def ratio(value1: Union[int, float, pd.Series],
     # with individual int or float values
     try:
         if percent:
-            result = ((value1 * 100)/ value2)
+            result = ((value1 * 100) / value2)
         else:
             result = value1 / value2
 
@@ -309,31 +326,6 @@ def ratio(value1: Union[int, float, pd.Series],
 def to_julian(greg_date: Union[str, int], format: str = None):
     ''' apply_date function: Gregorian -> (JDE) Julian
 
-    References
-    ----------
-    # https://docs.oracle.com/cd/E26228_01/doc.93/e21961/julian_date_conv.htm#WEAWX259
-    # http://nimishprabhu.com/the-mystery-of-jde-julian-date-format-solved.html
-
-    Examples
-    --------
-    %%piper
-
-    sample_sales()
-    >> select(['-target_profit', '-actual_profit'])
-    # >> assign(month = lambda x: x['month'].apply(to_julian))
-    >> across('month', to_julian)
-    >> assign(month = lambda x: x['month'].apply(from_julian))
-    # >> across('month', from_julian)
-    >> head(5)
-
-      location  product     month     target_sales  actual_sales
-      London    Beachwear  2021-01-01        31749       29209.1
-      London    Beachwear  2021-01-01        37833       34049.7
-      London    Jeans      2021-01-01        29485       31549
-      London    Jeans      2021-01-01        37524       40901.2
-      London    Sportswear 2021-01-01        27216       29121.1
-
-
     Parameters
     ----------
     greg_date : gregorian format date (string)
@@ -342,6 +334,34 @@ def to_julian(greg_date: Union[str, int], format: str = None):
     Returns
     -------
     JDE Julian formatted string
+
+
+    References
+    ----------
+    # https://docs.oracle.com/cd/E26228_01/doc.93/e21961/julian_date_conv.htm#WEAWX259
+    # http://nimishprabhu.com/the-mystery-of-jde-julian-date-format-solved.html
+
+    Examples
+    --------
+
+    .. code-block::
+
+        %%piper
+
+        sample_sales()
+        >> select(['-target_profit', '-actual_profit'])
+        # >> assign(month = lambda x: x['month'].apply(to_julian))
+        >> across('month', to_julian)
+        >> assign(month = lambda x: x['month'].apply(from_julian))
+        # >> across('month', from_julian)
+        >> head(5)
+
+          location  product     month     target_sales  actual_sales
+          London    Beachwear  2021-01-01        31749       29209.1
+          London    Beachwear  2021-01-01        37833       34049.7
+          London    Jeans      2021-01-01        29485       31549
+          London    Jeans      2021-01-01        37524       40901.2
+          London    Sportswear 2021-01-01        27216       29121.1
     '''
     if greg_date in (np.NAN, pd.NaT, None, ''):
         return greg_date

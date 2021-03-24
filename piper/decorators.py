@@ -31,7 +31,7 @@ def shape(trigger='after', keyword='shape', debug=False):
         @wraps(func)
         def decorated_function(*args, **kwargs):
 
-            if debug == True:
+            if debug:
                 logger.info(f'args: {args}')
                 logger.info(f'kwargs: {kwargs}')
 

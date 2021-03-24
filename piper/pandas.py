@@ -6,7 +6,6 @@ from piper.verbs import trim
 from piper.verbs import clean_columns
 from piper.io import list_files
 from piper.decorators import shape
-from functools import wraps
 import cx_Oracle
 import re
 
@@ -278,7 +277,9 @@ def read_excels(source = 'inputs/',
     '''
 
     dataframes = []
-    for xl_file in list_files(source, glob_pattern=glob_pattern, as_posix=False):
+    for xl_file in list_files(source,
+                              glob_pattern=glob_pattern,
+                              as_posix=False):
 
         if func is None:
             df = pd.read_excel(xl_file)
@@ -352,14 +353,14 @@ def read_excel_sheets(filename = None,
 
     '''
     dataframes = []
-    dataframe_dict = {}
+    dataframes_dict = {}
     metadata = []
 
     with pd.ExcelFile(filename) as xl:
 
         for sheet in xl.sheet_names:
 
-            if (sheets == None) or (sheet in sheets):
+            if (sheets is None) or (sheet in sheets):
                 dx = xl.parse(sheet, **kwargs)
 
                 meta_dict = {'filename': filename, 'sheet_name': sheet,
@@ -465,12 +466,12 @@ def paste(source='text'):
     return data
 
 
-# generate_summary_df() {{{1
-def generate_summary_df(datasets,
-                        title = 'Summary',
-                        col_total = 'Total records',
-                        add_grand_total = True,
-                        grand_total = 'Grand total'):
+# summary_df() {{{1
+def summary_df(datasets,
+               title = 'Summary',
+               col_total = 'Total records',
+               add_grand_total = True,
+               grand_total = 'Grand total'):
     ''' Given a dictionary of dataframes, transform into a summary
     of these dataframes with (optional) grand total row sum.
 
@@ -499,10 +500,10 @@ def generate_summary_df(datasets,
     .. code-block::
 
         datasets = [('1st dataset', df), ('2nd dataset', df2)]
-        summary_df = generate_summary_df(datasets, title='Summary',
-                                         col_total='Total records',
-                                         add_grand_total=True,
-                                         grand_total='Grand total')
+        summary_df = summary_df(datasets, title='Summary',
+                                col_total='Total records',
+                                add_grand_total=True,
+                                grand_total='Grand total')
     '''
     today_str = f"@ {datetime.now().strftime('%d, %b %Y')}"
     summary_title = ' '.join((title, today_str))

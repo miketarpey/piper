@@ -1,14 +1,15 @@
 from copy import deepcopy
-from os.path import split, abspath, dirname, join
+from os.path import split, join
 from pathlib import Path
 from piper.configure import get_config
-from piper.io import _file_with_ext
-from piper.io import _get_qual_file
+from piper.text import _file_with_ext
+from piper.text import _get_qual_file
 from xlsxwriter.utility import xl_col_to_name
 from xlsxwriter.utility import xl_rowcol_to_cell
 import pandas as pd
 import re
 import xlsxwriter
+
 from typing import (
     Any,
     Callable,
@@ -43,25 +44,33 @@ class WorkBook():
         (df, list, dict) multisheet mode
 
         1. A single DataFrame e.g. df
-        file_name = 'outputs/single sheet.xlsx'
-        WorkBook(file_name, df);
-
-        2. A list of DataFrames e.g. [df1, df2, df3]
-        file_name = 'outputs/multi sheet.xlsx'
-        WorkBook(file_name, [df, df2]);
-
-        3. A dictionary of sheet names and dataframe objects
-        file_name = 'outputs/multi sheet with sheet names.xlsx'
 
         .. code-block::
 
+            file_name = 'outputs/single sheet.xlsx'
+            WorkBook(file_name, df);
+
+        2. A list of DataFrames e.g. [df1, df2, df3]
+
+        .. code-block::
+
+            file_name = 'outputs/multi sheet.xlsx'
+            WorkBook(file_name, [df, df2]);
+
+        3. A dictionary of sheet names and dataframe objects
+
+        .. code-block::
+
+            file_name = 'outputs/multi sheet with sheet names.xlsx'
             WorkBook(file_name, {'revised': df, 'original': df_original});
 
     ts_prefix
         timestamp file name prefix.
-        'date' (date only) -> default
-        False (no timestamp)
-        True (timestamp prefix)
+
+        - 'date' (date only) -> default
+        - False (no timestamp)
+        - True (timestamp prefix)
+
     date_format
         default 'dd-mmm-yy'
     datetime_format
@@ -89,7 +98,8 @@ class WorkBook():
 
         wb.close()
 
-    Create an Excel workbook, with worksheet containing conditional formatting
+    Create an Excel workbook, with worksheet containing conditional formatting.
+
     See WorkBook.add_condition for more details.
 
     .. code-block::
@@ -132,8 +142,8 @@ class WorkBook():
         self.sheet_dict = {}  # Was getting memory issues !
         themes = WorkBook.get_themes()
 
-        html = f"""<a href="{file_name}">{file_name}</a>"""
-        logger.info(html)
+        # html = f"""<a href="{file_name}">{file_name}</a>"""
+        # logger.info(html)
         logger.info(f'Workbook: {file_name}')
 
         if sheets is None:
@@ -288,7 +298,22 @@ class WorkBook():
 
 
     def add_sql_sheet(self, sheet_name=None, sql=None):
-        ''' Add worksheet containing SQL statement(s) used '''
+        ''' Add worksheet containing SQL statement(s) used
+
+        Parameters
+        ----------
+        sheet_name
+            The name of the sheet. Defaults to main sheet name prefixed
+            with underscore. E.g. if main sheet is 'sheet1', sql sheet name
+            will be '_sheet1'
+        sql
+            The SQL code to be stored within the sheet.
+
+        Returns
+        -------
+        ws
+            worksheet reference
+        '''
 
         sheet_name = '_' + sheet_name
         ws = self.wb.add_worksheet(sheet_name)
@@ -450,8 +475,21 @@ class WorkBook():
     def get_default_format(df):
         ''' For given dataframe, calculate default format.
 
-        This function provides greater control of formatting of individual
-        columns.
+        Returns dictionary list of columns with calculated width info.
+        It provides an iteratable to apply column formatting attributes
+        across an excel sheet for given dataframe (such as centreing columns).
+
+        Parameters
+        ----------
+        df
+            a pandas dataframe
+
+        Returns
+        -------
+        column format dictionary
+
+            A dictionary (list) of each field, excel column reference and
+            currently calculated column width.
 
         Examples
         --------
@@ -547,14 +585,13 @@ class WorkBook():
                 if 'format' not specified, then 'error' format is defaulted.
                 if 'range' not specified, then condition applies to entire row.
 
-        Valid condition types are:
-        ['2_color_scale', '3_color_scale', 'type', 'average', 'blanks', 'bottom',\
-         'cell', 'data_bar', 'date', 'duplicate', 'errors', 'formula', 'icon_set',\
-         'no_blanks', 'no_errors', 'text', 'time_period', 'top', 'unique']
+            Valid condition types are:
+            '2_color_scale', '3_color_scale', 'type', 'average', 'blanks', 'bottom',
+            'cell', 'data_bar', 'date', 'duplicate', 'errors', 'formula', 'icon_set',
+            'no_blanks', 'no_errors', 'text', 'time_period', 'top', 'unique'
 
-
-        For more details, consult link below.
-        `<https://xlsxwriter.readthedocs.io/working_with_conditional_formats.html>`_
+            For more details, consult link below.
+            `<https://xlsxwriter.readthedocs.io/working_with_conditional_formats.html>`_
 
         Examples
         --------
@@ -563,9 +600,6 @@ class WorkBook():
 
             xl_file = f'WorkBook - Multi sheet with conditional formatting.xlsx'
             wb = WorkBook(f'outputs/{xl_file}', ts_prefix=None)
-
-            ws = wb.add_sheet(df_original, sheet_name='original',
-                              tab_color='yellow', zoom=175)
 
             ws = wb.add_sheet(df, sheet_name='revised data',
                               tab_color='red', zoom=175)
@@ -649,7 +683,19 @@ class WorkBook():
 
 
     def get_metadata(self, meta_file=None):
-        ''' Get XL metadata '''
+        ''' Get XL metadata
+
+        Parameters
+        ----------
+        meta_file
+            If None defaults to 'config.json'
+
+        Returns
+        -------
+            Dictionary of xl meta information.
+
+
+        '''
 
         if meta_file is None:
             config = get_config('config.json', info=False)

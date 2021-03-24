@@ -2,14 +2,12 @@ from datetime import datetime
 from pandas.api.types import is_datetime64_any_dtype
 from pandas.api.types import is_period_dtype
 from pandas.core.common import flatten
-from piper.decorators import shape
-from piper.io import _file_with_ext
+from piper.text import _file_with_ext
 from piper.xl import WorkBook
 import logging
 import numpy as np
 import pandas as pd
 import re
-import logging
 
 from typing import (
     Any,
@@ -104,33 +102,31 @@ def across(df: pd.DataFrame,
     .. code-block:: python
 
         %%piper
+
         sample_data()
-        across(['dates', 'order_dates'], to_julian)
-
+        >> across(['dates', 'order_dates'], to_julian)
         # Alternative syntax, passing a lambda...
-        across(['order_dates', 'dates'], function=lambda x: to_julian(x), series_obj=False)
+        >> across(['order_dates', 'dates'], function=lambda x: to_julian(x), series_obj=False)
+        >> head(tablefmt='plain')
 
-        head()
-
-            dates     order_dates   countries     regions     ids       values_1     values_2
-           120001          120007   Italy         East        A              311           26
-           120002          120008   Portugal      South       D              150          375
-           120003          120009   Spain         East        A              396           88
-           120004          120010   Italy         East        B              319          233
-
+              dates    order_dates  countries    regions    ids      values_1    values_2
+         0   120001         120007  Italy        East       A             311          26
+         1   120002         120008  Portugal     South      D             150         375
+         2   120003         120009  Spain        East       A             396          88
+         3   120004         120010  Italy        East       B             319         233
 
     .. code-block:: python
 
         %%piper
         sample_data()
         >> across(['dates', 'order_dates'], fiscal_year, year_only=True)
-        >> head()
+        >> head(tablefmt='plain')
 
-          dates      order_dates     countries     regions     ids       values_1     values_2
-          FY 19/20   FY 19/20        Italy         East        A              311           26
-          FY 19/20   FY 19/20        Portugal      South       D              150          375
-          FY 19/20   FY 19/20        Spain         East        A              396           88
-          FY 19/20   FY 19/20        Italy         East        B              319          233
+            dates     order_dates    countries    regions    ids      values_1    values_2
+         0  FY 19/20  FY 19/20       Italy        East       A             311          26
+         1  FY 19/20  FY 19/20       Portugal     South      D             150         375
+         2  FY 19/20  FY 19/20       Spain        East       A             396          88
+         3  FY 19/20  FY 19/20       Italy        East       B             319         233
 
     Accessing Series object methods - by passing series_obj=True you can also
     manipulate series object and string vectorized functions (e.g. pd.Series.str.replace())
@@ -139,8 +135,16 @@ def across(df: pd.DataFrame,
 
         %%piper
         sample_data()
+        >> select(['-ids', '-regions'])
         >> across(columns='values_1', function=lambda x: x.astype(int), series_obj=True)
         >> across(columns=['values_1'], function=lambda x: x.astype(int), series_obj=True)
+        >> head(tablefmt='plain')
+
+            dates                order_dates          countries      values_1    values_2
+         0  2020-01-01 00:00:00  2020-01-07 00:00:00  Italy               311          26
+         1  2020-01-02 00:00:00  2020-01-08 00:00:00  Portugal            150         375
+         2  2020-01-03 00:00:00  2020-01-09 00:00:00  Spain               396          88
+         3  2020-01-04 00:00:00  2020-01-10 00:00:00  Italy               319         233
 
     '''
     if isinstance(df, pd.Series):
@@ -396,10 +400,9 @@ def assign(df: pd.DataFrame,
         values are not callable, (e.g. a Series, scalar, or array), they are
         simply assigned.
 
-
     Returns
     -------
-    DataFrame
+    A pandas DataFrame
         A new DataFrame with the new columns in addition to
         all the existing columns.
 
@@ -445,17 +448,22 @@ def assign(df: pd.DataFrame,
         sample_sales()
         >> select()
         >> assign(month_plus_one = lambda x: x.month + pd.Timedelta(1, 'D'),
-                  alternative_text_formula = "x.actual_sales * .2")
-
-        assign(profit_sales = 'x.actual_profit - x.actual_sales',
+                  alt_formula = "x.actual_sales * .2", lambda_str=True)
+        >> select(['-target_profit'])
+        >> assign(profit_sales = 'x.actual_profit - x.actual_sales',
                month_value = "x.month.dt.month",
                product_added = "x['product'] + ', TEST'",
-               salesthing = "x.target_sales.sum()", info=False)
+               salesthing = "x.target_sales.sum()", lambda_str=True)
+        >> select(['-month', '-actual_sales', '-actual_profit', '-month_value', '-location'])
+        >> assign(profit_sales = lambda x: x.profit_sales.astype(int))
+        >> reset_index(drop=True)
+        >> head(tablefmt='plain')
 
-        Alternative, use standard lambda convention
-        assign(adast = lambda x: x.adast.astype('category'),
-               adcrcd = lambda x: x.adcrcd.astype('category'),
-               aduom = lambda x: x.aduom.astype('category'))
+            product      target_sales  month_plus_one         alt_formula    profit_sales  product_added      salesthing
+         0  Beachwear           31749  2021-01-02 00:00:00           5842          -27456  Beachwear, TEST       5423715
+         1  Beachwear           37833  2021-01-02 00:00:00           6810          -28601  Beachwear, TEST       5423715
+         2  Jeans               29485  2021-01-02 00:00:00           6310          -27132  Jeans, TEST           5423715
+         3  Jeans               37524  2021-01-02 00:00:00           8180          -36811  Jeans, TEST           5423715
 
     '''
     if kwargs:
@@ -482,13 +490,16 @@ def columns(df: pd.DataFrame,
 
     This function is useful reviewing or manipulating column(s)
 
+    The dictionary output is particularly useful when composing the rename of
+    multiple columns.
+
     Examples
     --------
+
     .. code-block::
 
         import numpy as np
         import pandas as pd
-        from pandas._testing import assert_frame_equal
 
         id_list = ['A', 'B', 'C', 'D', 'E']
         s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
@@ -498,30 +509,24 @@ def columns(df: pd.DataFrame,
 
         df = pd.concat([s1, s2], axis=1)
 
-        expected = ['ids', 'regions']
-        actual = columns(df, astype='list')
-        assert expected == actual
+        columns(df, 'list')
 
-        expected = {'ids': 'ids', 'regions': 'regions'}
-        actual = columns(df, astype='dict')
-        assert expected == actual
+        ['ids', 'regions']
 
-        expected = pd.DataFrame(['ids', 'regions'], columns=['column_names'])
-        actual = columns(df, astype='dataframe')
-        assert_frame_equal(expected, actual)
-
-        expected = "['ids', 'regions']"
-        actual = columns(df, astype='text')
-        assert expected == actual
 
     Parameters
     ----------
     df
         dataframe
     regex
-        regular expression to 'filter' list of returned columns default, None
+        Default None. regular expression to 'filter' list of returned columns.
     astype
-        default - list. See return options below
+        Default 'list'. See return options below:
+            - 'dict' returns a dictionary object
+            - 'list' returns a list object
+            - 'text' returns columns joined into a text string
+            - 'series' returns a pd.Series
+            - 'dataframe' returns a pd.DataFrame
 
 
     Returns
@@ -570,7 +575,7 @@ def count(df: pd.DataFrame,
 
         import numpy as np
         import pandas as pd
-        from piper.verbs import count
+        from piper.defaults import *
 
         np.random.seed(42)
 
@@ -579,14 +584,35 @@ def count(df: pd.DataFrame,
         s2 = pd.Series(np.random.randint(1, 10, s1.shape[0]), name='values')
         df = pd.concat([s1, s2], axis=1)
 
-        count(df.ids)
-        count(df, 'ids')
-        count(df, ['ids'])
+        %%piper
+        count(df.ids, totals=True)
+        >> head(tablefmt='plain')
 
-          ids       n     %     cum %
-          E         3    60        60
-          C         1    20        80
-          D         1    20       100
+                 n    %  cum %
+        E        3   60  60.0
+        C        1   20  80.0
+        D        1   20  100.0
+        Total    5  100
+
+
+        %piper df >> count('ids', totals=False, cum_percent=False) >> head(tablefmt='plain')
+
+        ids      n    %
+        E        3   60
+        C        1   20
+        D        1   20
+
+
+        %%piper
+        df
+        >> count(['ids'], sort_values=None, totals=True)
+        >> head(tablefmt='plain')
+
+                 n    %  cum %
+        C        1   20  20.0
+        D        1   20  40.0
+        E        3   60  100.0
+        Total    5  100
 
 
     Parameters
@@ -748,20 +774,23 @@ def combine_header_rows(df: pd.DataFrame,
                 'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
 
         df = pd.DataFrame(data)
-        df
+        head(df, tablefmt='plain')
 
-               A          B          C     D            E
-           0   Customer   Order      nan   Item         nan
-           1   id         Number     Qty   Number       Description
-           2   48015346   DE-12345   10    SW-10-2134   Screwdriver Set
-           3   49512432   FR-12346   40    YH-22-2030   Workbench
+            A         B         C    D           E
+         0  Customer  Order     nan  Item        nan
+         1  id        Number    Qty  Number      Description
+         2  48015346  DE-12345  10   SW-10-2134  Screwdriver Set
+         3  49512432  FR-12346  40   YH-22-2030  Workbench
+
+    .. code-block::
 
         df.iloc[0] = df.iloc[0].ffill()
         df = combine_header_rows(df)
-        df
-              Customer Id   Order Number Order Qty   Item Number  Item Description
-           2     48015346   DE-12345            10   SW-10-2134   Screwdriver Set
-           3     49512432   FR-12346            40   YH-22-2030   Workbench
+        head(df, tablefmt='plain')
+
+              Customer Id  Order Number      Order Qty  Item Number    Item Description
+         2       48015346  DE-12345                 10  SW-10-2134     Screwdriver Set
+         3       49512432  FR-12346                 40  YH-22-2030     Workbench
 
 
     Parameters
@@ -1246,7 +1275,11 @@ def group_by(df: pd.DataFrame,
 
 
 # head() {{{1
-def head(df: pd.DataFrame, n: int = 4, shape: bool = True, rst: bool = False) -> pd.DataFrame:
+def head(df: pd.DataFrame,
+         n: int = 4,
+         shape: bool = True,
+         tablefmt: bool = False,
+         precision: int = 0) -> pd.DataFrame:
     '''
     Show first n records of a dataframe.
 
@@ -1265,12 +1298,15 @@ def head(df: pd.DataFrame, n: int = 4, shape: bool = True, rst: bool = False) ->
     ----------
     df
         pandas dataframe
-    n Default n=4
-        number of rows to display, default n=4
-    shape Default True
-        Show shape information
-    rst Default False
-        If True, output dataframe rows in RST markdown format
+    n
+        Default n=4. number of rows to display, default n=4
+    shape
+        Default True. Show shape information
+    tablefmt
+        Default False. If supplied, tablefmt keyword value can be any valid
+        format supplied by the tabulate package
+    precision
+        Default 0. Number precision shown if tablefmt specified
 
 
     Returns
@@ -1280,8 +1316,8 @@ def head(df: pd.DataFrame, n: int = 4, shape: bool = True, rst: bool = False) ->
     if shape:
         _shape(df)
 
-    if rst:
-        print(df.head(n=n).to_markdown(tablefmt='rst', floatfmt=".0f"))
+    if tablefmt:
+        print(df.head(n=n).to_markdown(tablefmt=tablefmt, floatfmt=f".{precision}f"))
         return
 
     return df.head(n=n)
@@ -1835,9 +1871,29 @@ def relocate(df: pd.DataFrame,
 
         %%piper
         sample_sales()
+        >> select(('location', 'target_profit'))
+        >> pd.DataFrame.set_index(['location', 'product'])
+        >> head(tablefmt='plain')
+
+                                 month                  target_sales    target_profit
+        ('London', 'Beachwear')  2021-01-01 00:00:00           31749             1905
+        ('London', 'Beachwear')  2021-01-01 00:00:00           37833             6053
+        ('London', 'Jeans')      2021-01-01 00:00:00           29485             4128
+        ('London', 'Jeans')      2021-01-01 00:00:00           37524             3752
+
+        %%piper
+        sample_sales()
+        >> select(('location', 'target_profit'))
         >> pd.DataFrame.set_index(['location', 'product'])
         >> relocate(column='location', loc='after', ref_column='product', index=True)
-        >> head()
+        >> head(tablefmt='plain')
+
+                                 month                  target_sales    target_profit
+        ('Beachwear', 'London')  2021-01-01 00:00:00           31749             1905
+        ('Beachwear', 'London')  2021-01-01 00:00:00           37833             6053
+        ('Jeans', 'London')      2021-01-01 00:00:00           29485             4128
+        ('Jeans', 'London')      2021-01-01 00:00:00           37524             3752
+
 
     **NOTE**
     If you omit the keyword parameters, it probably 'reads' better ;)
@@ -1966,19 +2022,28 @@ def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     .. code-block::
 
         %%piper
+        sample_sales()
+        >> pivot_wider(index=['location', 'product'], values='target_sales')
+        >> reset_index()
+        >> head(tablefmt='plain')
 
+            location    product       target_sales
+         0  London      Beachwear            25478
+         1  London      Footwear             25055
+         2  London      Jeans                25906
+         3  London      Sportswear           26671
+
+        %%piper
         sample_sales()
         >> pivot_wider(index=['location', 'product'], values='target_sales')
         >> rename_axis(('AAA', 'BBB'), axis='rows')
-        >> head()
+        >> head(tablefmt='plain')
 
-        |                          |   target_sales |
-        |    AAA          BBB      |                |
-        |:-------------------------|---------------:|
-        | ('London', 'Beachwear')  |        31379.8 |
-        | ('London', 'Footwear')   |        27302.6 |
-        | ('London', 'Jeans')      |        28959.8 |
-        | ('London', 'Sportswear') |        29466.4 |
+            AAA     BBB           target_sales
+         0  London  Beachwear            25478
+         1  London  Footwear             25055
+         2  London  Jeans                25906
+         3  London  Sportswear           26671
 
 
     Parameters

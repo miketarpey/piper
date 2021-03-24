@@ -1,4 +1,4 @@
-from piper.pandas import generate_summary_df
+from piper.pandas import summary_df
 from piper.pandas import is_type
 from piper.pandas import read_sql
 from piper.factory import bad_quality_orders
@@ -69,18 +69,18 @@ def test_istype_not_str():
 
     assert expected == actual
 
-# test_generate_summary_df {{{1
+# test_summary_df {{{1
 def test_generate_summary_df(sample_df4):
     """
     """
     df, df2 = sample_df4
 
     datasets = [('1st dataset', df), ('2nd dataset', df2)]
-    summary_df = generate_summary_df(datasets, title='Summary',
-                                     col_total='Total records',
-                                     add_grand_total=True,
-                                     grand_total='Grand total')
+    summary = summary_df(datasets, title='Summary',
+                            col_total='Total records',
+                            add_grand_total=True,
+                            grand_total='Grand total')
     expected = 24
-    actual = summary_df.loc['Grand total', 'Total records']
+    actual = summary.loc['Grand total', 'Total records']
 
     assert expected == actual
