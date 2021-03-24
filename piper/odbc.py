@@ -1,7 +1,7 @@
 import pypyodbc as pyodbc
 import cx_Oracle
 from psycopg2 import connect as pg_connect
-from piper.configure import get_config
+from piper.utils import get_config
 from piper.pandas import read_sql
 import pandas as pd
 

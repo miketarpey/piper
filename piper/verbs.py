@@ -704,7 +704,60 @@ def clean_columns(df: pd.DataFrame,
     --------
     .. code-block::
 
-        df = clean_columns(df, replace_char=('_', ' '))
+        column_list = [
+            'dupe**', 'Customer   ', 'mdm no. to use', 'Target-name   ', '     Public',
+            '_  Material', 'Prod type', '#Effective     ', 'Expired', 'Price%  ',
+            'Currency$'
+        ]
+
+        df = pd.DataFrame(None, columns=column_list)
+        df.columns.tolist()
+
+        ['dupe**',
+         'Customer   ',
+         'mdm no. to use',
+         'Target-name   ',
+         '     Public',
+         '_  Material',
+         'Prod type',
+         '#Effective     ',
+         'Expired',
+         'Price%  ',
+         'Currency$']
+
+    .. code-block::
+
+        df = clean_columns(df)
+        df.columns.tolist()
+
+        ['dupe',
+         'customer',
+         'mdm_no_to_use',
+         'target_name',
+         'public',
+         'material',
+         'prod_type',
+         'effective',
+         'expired',
+         'price',
+         'currency']
+
+    .. code-block::
+
+        df = clean_columns(df, ('_', ' '), title=True)
+        df.columns.tolist()
+
+        ['Dupe',
+         'Customer',
+         'Mdm No To Use',
+         'Target Name',
+         'Public',
+         'Material',
+         'Prod Type',
+         'Effective',
+         'Expired',
+         'Price',
+         'Currency']
 
 
     Parameters
@@ -1280,16 +1333,14 @@ def head(df: pd.DataFrame,
          shape: bool = True,
          tablefmt: bool = False,
          precision: int = 0) -> pd.DataFrame:
-    '''
-    Show first n records of a dataframe.
+    '''show first n records of a dataframe.
 
     Like the corresponding R function, displays the first n records.
     Alternative to using df.head()
 
     Examples
     --------
-
-    .. code-block:: python
+    .. code-block::
 
         head(df)
 
@@ -1299,7 +1350,7 @@ def head(df: pd.DataFrame,
     df
         pandas dataframe
     n
-        Default n=4. number of rows to display, default n=4
+        Default n=4. number of rows to display
     shape
         Default True. Show shape information
     tablefmt
@@ -1307,7 +1358,6 @@ def head(df: pd.DataFrame,
         format supplied by the tabulate package
     precision
         Default 0. Number precision shown if tablefmt specified
-
 
     Returns
     -------
@@ -2372,6 +2422,43 @@ def set_index(df: pd.DataFrame,
     return df.set_index(*args, **kwargs)
 
 
+# split_dataframe() {{{1
+def split_dataframe(df,
+                    chunk_size = 1000):
+    ''' Split dataframe by chunk_size rows, returning multiple dataframes
+
+    1. Define 'range' (start, stop, step/chunksize)
+    2. Use np.split() to examine dataframe indices using the calculated 'range'.
+
+    Parameters
+    ----------
+    df
+        dataframe to be split
+    chunksize
+        default=1000
+
+
+    Returns
+    -------
+    A list of pd.DataFrame 'chunks'
+
+
+    Examples
+    --------
+    .. code-block::
+
+        chunks = split(customer_orders_tofix, 1000)
+        for df in chunks:
+            display(head(df, 2))
+
+    '''
+    nrows = df.shape[0]
+    range_ = range(1 * chunk_size, (nrows // chunk_size + 1) * chunk_size, chunk_size)
+    logger.debug(range_)
+
+    return np.split(df, range_)
+
+
 # summarise() {{{1
 def summarise(df: pd.DataFrame,
               *args,
@@ -2513,6 +2600,61 @@ def summarise(df: pd.DataFrame,
     return group_df
 
 
+# summary_df() {{{1
+def summary_df(datasets,
+               title = 'Summary',
+               col_total = 'Total records',
+               add_grand_total = True,
+               grand_total = 'Grand total'):
+    ''' Given a dictionary of dataframes, transform into a summary
+    of these dataframes with (optional) grand total row sum.
+
+    Parameters
+    ----------
+    datasets
+        a list tuples containing dataframe description and dataframe(s)
+    title
+        title to be used in the summary dataframe.
+    col_total
+        column total title
+    add_grand_total
+        Default True
+    grand_total
+        grand total title
+
+
+    Returns
+    -------
+    pandas dataframe containing summary info
+
+
+    Examples
+    --------
+
+    .. code-block::
+
+        datasets = [('1st dataset', df), ('2nd dataset', df2)]
+        summary_df = summary_df(datasets, title='Summary',
+                                col_total='Total records',
+                                add_grand_total=True,
+                                grand_total='Grand total')
+    '''
+    today_str = f"@ {datetime.now().strftime('%d, %b %Y')}"
+    summary_title = ' '.join((title, today_str))
+
+    dict1 = {descr: dataset.shape[0] for descr, dataset in datasets}
+    summary = pd.DataFrame(data=dict1, index=range(1)).T
+    summary.columns = [col_total]
+    summary.rename_axis(summary_title, axis=1, inplace=True)
+
+    if add_grand_total:
+        s1 = pd.Series({col_total: summary[col_total].sum()},
+                       name=grand_total)
+        summary = summary.append(s1)
+
+    return summary
+
+
 # stack() {{{1
 def stack(df: pd.DataFrame,
           *args,
@@ -2543,8 +2685,11 @@ def stack(df: pd.DataFrame,
 # tail() {{{1
 def tail(df: pd.DataFrame,
          n: int = 4,
-         shape: bool = True) -> pd.DataFrame:
-    '''show last n records
+         shape: bool = True,
+         tablefmt: bool = False,
+         precision: int = 0) -> pd.DataFrame:
+    '''show last n records of a dataframe
+
     Like the corresponding R function, displays the last n records
     Alternative to df.tail().
 
@@ -2560,10 +2705,14 @@ def tail(df: pd.DataFrame,
     df
         dataframe
     n
-        number of rows to display, default n=4
+        Default n=4. number of rows to display
     shape
         Default True, show shape information
-
+    tablefmt
+        Default False. If supplied, tablefmt keyword value can be any valid
+        format supplied by the tabulate package
+    precision
+        Default 0. Number precision shown if tablefmt specified
 
     Returns
     -------
@@ -2571,6 +2720,10 @@ def tail(df: pd.DataFrame,
     '''
     if shape:
         _shape(df)
+
+    if tablefmt:
+        print(df.tail(n=n).to_markdown(tablefmt=tablefmt, floatfmt=f".{precision}f"))
+        return
 
     return df.tail(n=n)
 

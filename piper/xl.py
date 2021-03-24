@@ -1,7 +1,7 @@
 from copy import deepcopy
 from os.path import split, join
 from pathlib import Path
-from piper.configure import get_config
+from piper.utils import get_config
 from piper.text import _file_with_ext
 from piper.text import _get_qual_file
 from xlsxwriter.utility import xl_col_to_name

@@ -1,5 +1,5 @@
-from piper.pandas import summary_df
-from piper.pandas import is_type
+from piper.verbs import summary_df
+from piper.utils import is_type
 from piper.pandas import read_sql
 from piper.factory import bad_quality_orders
 from piper.factory import get_sample_df4

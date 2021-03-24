@@ -2,8 +2,8 @@ import pytest
 import json
 import pandas as pd
 import numpy as np
-from piper.configure import get_config
-from piper.configure import get_dict_df
+from piper.utils import get_config
+from piper.utils import get_dict_df
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-from piper.configure import get_config
+from piper.utils import get_config
 import json
 import logging
 from pathlib import Path

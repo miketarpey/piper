@@ -261,6 +261,40 @@ def get_sql_text(file_or_text, variables, debug=False):
         return sql
 
 
+# paste() {{{1
+def paste(source='text'):
+    '''
+    Convert clipboard sourced list from either a text list or from excel file
+
+    columns = paste(source='text')
+
+    Parameters
+    ----------
+    source
+        Default 'vertical'
+        vertical        - copy from a vertical list of values (usually Excel)
+        horizontal      - copy from a horizontal list of values (usually Excel)
+        horizontal_list - return a horizontal list
+
+    Returns
+    -------
+    Clipboard contents
+    '''
+    if source == 'vertical':
+        dx = pd.read_clipboard(header=None, names=['x'])
+        data = "['" + "', '".join(dx.x.values.tolist()) + "']"
+
+    if source == 'horizontal':
+        dx = pd.read_clipboard(sep='\t')
+        data = dx.columns.tolist()
+
+    if source == 'horizontal_list':
+        dx = pd.read_clipboard(sep='\t')
+        data = "['" + "', '".join(dx.columns.tolist()) + "']"
+
+    return data
+
+
 # set_sql_file {{{1
 def set_sql_file(from_file=None, to_file=None, template_values=True):
     ''' Set SQL file text to 'template' substitutional values

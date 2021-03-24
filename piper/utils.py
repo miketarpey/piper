@@ -7,7 +7,7 @@ from os.path import dirname, abspath
 
 logger = logging.getLogger(__name__)
 
-
+# get_config() {{{1
 def get_config(file_name=None, info=False):
     ''' Given piper configuration file 'config.json' or
     odbc user/passwords connections file 'connections.json'
@@ -56,6 +56,7 @@ def get_config(file_name=None, info=False):
     return config
 
 
+# get_dict_df() {{{1
 def get_dict_df(dict, colnames=None):
     ''' get dataframe from a dictionary
 
@@ -78,3 +79,29 @@ def get_dict_df(dict, colnames=None):
         logger.debug(df)
 
     return df
+
+
+# is_type() {{{1
+def is_type(value, type_=str):
+    ''' is type is useful when determining if a dataframe column
+    contains a certain datatype (e.g. str, int, float)
+
+    Parameters
+    ----------
+    value
+        value to be checked
+    type
+        data type (e.g. str, int, float etc.)
+
+    Examples
+    --------
+    df[df.bgexdj.apply(is_type)]
+
+    Returns
+    -------
+    boolean
+    '''
+    if isinstance(value, type_):
+        return True
+
+    return False
