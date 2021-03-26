@@ -210,7 +210,23 @@ def make_null_dates(df: pd.DataFrame,
                     cols: Union[str, List[str]] = ['effective', 'expired'],
                     null_values_percent: float = .2,
                     seed: int = 42) -> pd.DataFrame:
-    ''' Generate 'random' null, pd.NaT values
+    ''' Generate 'random' null, pd.NaT values from supplied dataframe
+
+    .. code-block::
+
+        %%piper
+
+        sample_data()
+        >> make_null_dates(cols=['dates', 'order_dates'])
+        >> head(6)
+
+            dates                order_dates          countries    regions    ids      values_1    values_2
+         0  2020-01-01 00:00:00  2020-01-07 00:00:00  Italy        East       A             311          26
+         1  2020-01-02 00:00:00  2020-01-08 00:00:00  Portugal     South      D             150         375
+         2  NaT                  2020-01-09 00:00:00  Spain        East       A             396          88
+         3  2020-01-04 00:00:00  2020-01-10 00:00:00  Italy        East       B             319         233
+         4  2020-01-05 00:00:00  2020-01-11 00:00:00  Italy        East       D             261         187
+         5  2020-01-06 00:00:00  NaT                  Switzerland  North      D             155         253
 
     Parameters
     ----------
@@ -449,8 +465,8 @@ def sample_sales(number_of_rows: int = 200,
     return df
 
 
-# simple_series_01 {{{1
-def simple_series_01(rows: int = 5,
+# simple_series {{{1
+def simple_series(rows: int = 5,
                      seed: int = 42) -> pd.Series:
     ''' Simple series, one column of alphabetical values
 
@@ -458,7 +474,7 @@ def simple_series_01(rows: int = 5,
 
         %%piper
 
-        simple_series_01(rows=5, seed=42)
+        simple_series(rows=5, seed=42)
         >> head(5, tablefmt='plain')
 
             ids
@@ -486,8 +502,8 @@ def simple_series_01(rows: int = 5,
     return s1
 
 
-# single_column_dataframe_messy_text {{{1
-def single_column_dataframe_messy_text():
+# sample_column_clean_text {{{1
+def sample_column_clean_text():
     ''' Series with string data to be cleaned.
 
     Used for testing string based functions.

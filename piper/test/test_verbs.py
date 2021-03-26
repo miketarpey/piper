@@ -42,8 +42,8 @@ from piper.factory import bad_quality_orders
 from piper.factory import sample_data
 from piper.factory import sample_sales
 from piper.factory import two_columns_five_rows
-from piper.factory import single_column_dataframe_messy_text
-from piper.factory import simple_series_01
+from piper.factory import sample_column_clean_text
+from piper.factory import simple_series
 from piper.factory import dummy_dataframe
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
@@ -76,10 +76,10 @@ def t_two_columns_five_rows():
     return two_columns_five_rows()
 
 
-# t_single_col_messy_text {{{1
+# t_sample_column_clean_text {{{1
 @pytest.fixture
-def t_single_col_messy_text():
-    return single_column_dataframe_messy_text()
+def t_sample_column_clean_text():
+    return sample_column_clean_text()
 
 
 # t_dummy_dataframe {{{1
@@ -91,7 +91,7 @@ def t_dummy_dataframe():
 # t_simple_series_01 {{{1
 @pytest.fixture
 def t_simple_series_01():
-    return simple_series_01()
+    return simple_series()
 
 
 # get_column_list {{{1
@@ -1553,10 +1553,10 @@ def test_transform_custom_function(t_sample_data):
 
 
 # test_str_trim_blanks {{{1
-def test_str_trim_blanks(t_single_col_messy_text):
+def test_str_trim_blanks(t_sample_column_clean_text):
     """
     """
-    df = t_single_col_messy_text
+    df = t_sample_column_clean_text
 
     df['test_col'] = (df['test_col'].str.replace(r'(\w)\s+(\w)', r'\1 \2', regex=True)
                                     .str.title())
