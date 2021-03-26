@@ -261,7 +261,7 @@ def sample_data(start: int = 2020,
                 end: int = 2021,
                 freq: str = 'D',
                 seed: int = 30) -> pd.DataFrame:
-    ''' TEST - Regions, countries, dates, values
+    ''' Generate Regions, countries, dates, values
 
     Examples
     --------
