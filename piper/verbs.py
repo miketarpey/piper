@@ -34,7 +34,7 @@ def across(df: pd.DataFrame,
                function: Callable = None,
                series_obj: bool = False,
                *args, **kwargs) -> pd.DataFrame:
-    '''Apply a function across multiple columns
+    '''Apply function across multiple columns
 
     Across allows you to apply a function across a number of columns in one
     statement. Functions can be applied to series values (via apply()) or access
@@ -78,9 +78,10 @@ def across(df: pd.DataFrame,
         pandas dataframe
     columns
         column(s) to apply function.
-        - If a list is provided, only the columns listed are affected by the function.
-        - If a tuple is supplied, the first and second values will correspond to
-        the from and to column(s) range used to apply the function to.
+            - If a list is provided, only the columns listed are affected by the
+              function.
+            - If a tuple is supplied, the first and second values will
+              correspond to the from and to column(s) range used to apply the function to.
     function
         function to be called.
     series_obj
@@ -2397,6 +2398,7 @@ def split_dataframe(df: pd.DataFrame,
 
     Examples
     --------
+
     .. code-block::
 
         chunks = split(customer_orders_tofix, 1000)
@@ -2466,7 +2468,7 @@ def str_combine(df: pd.DataFrame,
     for col in columns:
         if not pd.api.types.is_string_dtype(df[col]) and \
                not pd.api.types.is_object_dtype(df[col]):
-            print(df[col].name, df[col].dtype)
+
             df[col] = df[col].astype(str)
 
     new_col = df[columns[0]].str.cat(df[columns[1]], sep=sep)
@@ -2481,7 +2483,8 @@ def str_combine(df: pd.DataFrame,
             new_col = new_col.str.cat(df[col], sep=sep)
 
     df = pd.concat([df, new_col], axis=1)
-    df = relocate(df, new_col.name, loc='after', ref_column=columns[0])
+
+    df = relocate(df, new_col.name, loc=loc, ref_column=columns[0])
 
     if drop:
         df = df.drop(columns=columns)
@@ -2546,31 +2549,42 @@ def str_split(df: pd.DataFrame,
     if not isinstance(column, str):
         raise NameError(f"Column name '{column}' must be a string")
 
+    # Make sure column to be split is of string type
+    if not pd.api.types.is_string_dtype(df[column]) and \
+           not pd.api.types.is_object_dtype(df[column]):
+        df[column] = df[column].astype(str)
+
     if not expand:
         df[column] = df[column].str.split(pat=pat, n=n, expand=False)
     else:
-
         split_cols = df[column].str.split(pat=pat, n=n, expand=True)
+
+        duplicate_column_name = False
 
         if columns is None:
             df = pd.concat([df, split_cols], axis=1)
             cols_to_move = split_cols.columns.tolist()
-            print(column, cols_to_move, loc)
             df = relocate(df, cols_to_move, loc=loc, ref_column=column)
         else:
-
             if isinstance(columns, str):
                 columns = [columns]
 
-            rename_cols = dict(zip(columns, split_cols.columns.tolist()))
+            # If one of the new split columns has the same name
+            # as the original column, append '_' to the split column name.
+            for idx, col in enumerate(columns):
+                if col in column:
+                    columns[idx] = columns[idx] + '_'
+                    duplicate_column_name = True
 
-            for col, split_col in rename_cols.items():
-                df[col] = split_cols[split_col]
-
+            split_cols.columns = columns
+            df = pd.concat([df, split_cols], axis=1)
             df = relocate(df, columns, loc=loc, ref_column=column)
 
         if drop:
             df = df.drop(columns=column)
+
+            if duplicate_column_name:
+                df = df.rename(columns={column + '_': column})
 
     return df
 
@@ -3227,7 +3241,8 @@ def _set_grouper(df: pd.DataFrame,
 
 
 # _dataframe_copy() {{{1
-def _dataframe_copy(df: pd.DataFrame, inplace: int = False) -> pd.DataFrame:
+def _dataframe_copy(df: pd.DataFrame,
+                    inplace: int = False) -> pd.DataFrame:
     '''Return a copy of the dataframe
 
     Helper function to return either a copy of dataframe or a reference to the
@@ -3244,15 +3259,14 @@ def _dataframe_copy(df: pd.DataFrame, inplace: int = False) -> pd.DataFrame:
     df
         pandas dataframe
 
-
     Returns
     -------
     A pandas dataframe
     '''
     if inplace:
         return df
-    else:
-        return df.copy(deep=True)
+
+    return df.copy(deep=True)
 
 
 # _shape() {{{1

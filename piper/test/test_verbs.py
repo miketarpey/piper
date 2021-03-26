@@ -1,6 +1,13 @@
+from piper.custom import to_julian
+from piper.factory import bad_quality_orders
+from piper.factory import dummy_dataframe
+from piper.factory import sample_column_clean_text
+from piper.factory import sample_data
+from piper.factory import sample_sales
+from piper.factory import simple_series
 from piper.io import read_csv
-from piper.verbs import add_xl_formula
 from piper.verbs import across
+from piper.verbs import add_xl_formula
 from piper.verbs import adorn
 from piper.verbs import assign
 from piper.verbs import clean_columns
@@ -15,15 +22,14 @@ from piper.verbs import explode
 from piper.verbs import flatten_cols
 from piper.verbs import fmt_dateidx
 from piper.verbs import group_by
-from piper.verbs import transform
-from piper.verbs import non_alpha
 from piper.verbs import head
 from piper.verbs import info
 from piper.verbs import inner_join
 from piper.verbs import left_join
+from piper.verbs import non_alpha
+from piper.verbs import order_by
 from piper.verbs import outer_join
 from piper.verbs import overlaps
-from piper.verbs import order_by
 from piper.verbs import pivot_wider
 from piper.verbs import relocate
 from piper.verbs import rename
@@ -32,26 +38,23 @@ from piper.verbs import right_join
 from piper.verbs import sample
 from piper.verbs import select
 from piper.verbs import set_columns
+from piper.verbs import str_trim
 from piper.verbs import summarise
 from piper.verbs import summary_df
+from piper.verbs import split_dataframe
+from piper.verbs import str_split
+from piper.verbs import str_combine
 from piper.verbs import tail
 from piper.verbs import to_tsv
-from piper.verbs import str_trim
+from piper.verbs import transform
 from piper.verbs import where
-from piper.custom import to_julian
-from piper.factory import bad_quality_orders
-from piper.factory import sample_data
-from piper.factory import sample_sales
-from piper.factory import sample_column_clean_text
-from piper.factory import simple_series
-from piper.factory import dummy_dataframe
+from pandas.api.types import is_float_dtype
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
-import random
 import numpy as np
 import pandas as pd
-from pandas.api.types import is_float_dtype
 import pytest
+import random
 
 # t_bad_quality_orders {{{1
 @pytest.fixture
@@ -725,6 +728,17 @@ def test_flatten_cols_remove_prefix(t_sample_data):
 
     expected = ['East', 'North', 'South', 'West']
     actual = df.columns.to_list()
+
+    assert expected == actual
+
+
+# test_split_dataframe {{{1
+def test_split_dataframe(t_sample_data):
+
+    dataframes = split_dataframe(sample_data(), chunk_size=100)
+
+    expected = 367
+    actual = sum([df.shape[0] for df in dataframes])
 
     assert expected == actual
 
@@ -1459,6 +1473,60 @@ def test_set_columns():
     actual = df.columns.to_list()
 
     assert expected == actual
+
+# test_str_split_str_column_drop_false {{{1
+def test_str_split_str_column_drop_false(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_split(df, 'product', pat=' ', drop=False)
+
+    # Since columns not specified, default field names provided
+    actual[[0, 1, 2]].shape == (200, 3)
+
+    assert actual.shape == (200, 10)
+
+    return actual
+
+
+# test_str_split_str_column_drop_true {{{1
+def test_str_split_str_column_drop_true(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_split(df, 'product', pat=' ', drop=True)
+
+    # Since columns not specified, default field names provided
+    actual[[0, 1, 2]].shape == (200, 3)
+
+    assert actual.shape == (200, 9)
+
+    return actual
+
+
+# test_str_split_date_column_drop_true_expand_false {{{1
+def test_str_split_date_column_drop_true_expand_false(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_split(df, 'month', pat='-', drop=True, expand=False)
+
+    assert actual.loc[4:4, 'month'].values[0] == ['2021', '01', '01']
+
+    return actual
+
+
+# test_str_split_date_column_drop_true_expand_True {{{1
+def test_str_split_date_column_drop_true_expand_True(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_split(df, 'month', columns=['year', 'month', 'day'],
+                       pat='-', drop=True, expand=True)
+
+    assert actual.loc[4:4, 'year'].values[0] == '2021'
+
+    return actual
 
 
 # test_summarise_default{{{1
