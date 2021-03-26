@@ -7,7 +7,6 @@ from .factory import *
 from .io import *
 from .xl import *
 from .custom import *
-from .pandas import *
 from IPython import get_ipython
 from IPython.core.magic import magics_class
 import numpy as np

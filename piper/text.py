@@ -36,56 +36,60 @@ def pipe_parser(text: str,
 
     Examples
     --------
-    ```python
-    %%piper --info
-    get_sample_sales() >>
-    select('-target_profit') >>
-    reset_index(drop=True) >>
-    head()
-    ```
+
+    .. code-block::
+
+        %%piper --info
+        get_sample_sales() >>
+        select('-target_profit') >>
+        reset_index(drop=True) >>
+        head()
 
     is rendered by the parser as:
 
-    ```python
-    %%piper --info
-    get_sample_sales() >>
-    select('-target_profit') >>
-    reset_index(drop=True) >>
-    head()
-    ```
+    .. code-block::
+
+        (get_sample_sales()
+        .pipe(select, '-target_profit')
+        .pipe(reset_index, drop=True)
+        .pipe(head))
+
 
     **Expression assignment**
     The parser also understands assignment in either R form (i.e. using <-) or Python (using '=').
-    ```python
-    df <- pd.read_csv('inputs/test.csv')
-    df =  pd.read_csv('inputs/test.csv')
-    ```
+
+    .. code-block::
+
+        df <- pd.read_csv('inputs/test.csv')
+        df =  pd.read_csv('inputs/test.csv')
+
 
     Parameters
     ----------
-    text: text to be parsed
-
-    pipe_symbol: default '>>' pipe character used to uniquely identify to
-        the piper parse when to replace it with the .pipe() statement.
-
-    info: default False. If True - print rendered linked 'pipe' statement
+    text
+        text to be parsed
+    pipe_symbol
+        default '>>' pipe character used to uniquely identify to the piper parse
+        when to replace it with the .pipe() statement.
+    info
+        default False. If True - print rendered linked 'pipe' statement
 
 
     Returns
     -------
-    revised_stmt: revised 'piped' pandas pipeline statement
-
-    execute: 'exec/eval' - for magic run_cmd to determine whether the
-             python statement returned should executed or evaluated.
-             if revised_stmt is 'assigned' to another variable
-             then 'exec' is used otherwise 'eval'
+    revised_stmt
+        revised 'piped' pandas pipeline statement
+    execute
+        'exec/eval' - for magic run_cmd to determine whether the python
+        statement returned should executed or evaluated. if revised_stmt is
+        'assigned' to another variable then 'exec' is used otherwise 'eval'
 
     '''
     if pipe_symbol in (None, False):
         pipe_symbol = '>>'
 
     # Check if text contains an R or Pythonic assignment symbol
-    assignment, revised_text = check_assignment(text)
+    assignment, revised_text = pipe_assignment(text)
 
     # 1. Split into a list by newline
     text_as_list = revised_text.split('\n')
@@ -108,7 +112,7 @@ def pipe_parser(text: str,
 
     # 5. Replace chosen pipe_symbol (e.g. >>) with '.pipe' chain function,
     # appending function + parameters
-    piped_list = [join_function_parms(ix, x) for ix, x in enumerate(piped_list)] # type: ignore
+    piped_list = [pipe_function_parms(ix, x) for ix, x in enumerate(piped_list)] # type: ignore
     revised_stmt = ''.join(piped_list) # type: ignore
 
     text_as_list = revised_stmt.split('.pipe')
@@ -130,15 +134,14 @@ def pipe_parser(text: str,
     return (revised_stmt, call_function)
 
 
-# check_assignment() {{{1
-def check_assignment(text: str) -> Tuple[str, str]:
+# pipe_assignment() {{{1
+def pipe_assignment(text: str) -> Tuple[str, str]:
     ''' Check if R or Pythonic assignment defined in text
 
     Parameters
     ----------
     text
         text string to be parsed
-
 
     Returns
     -------
@@ -168,21 +171,24 @@ def check_assignment(text: str) -> Tuple[str, str]:
     return assignment, text_output
 
 
-# join_function_parms() {{{1
-def join_function_parms(idx: int, value: str) -> str:
+# pipe_function_parms() {{{1
+def pipe_function_parms(idx: int, value: str) -> str:
     ''' pipe_parser() - join function with associated parameters
 
     Each statement within the pipeline is individually parsed into two sections:
-    - the function name
-    - the corresponding parameters
 
+        - the function name
+        - the corresponding parameters
 
     Examples
     --------
-    statements = [('head(', 'n=10)')]
-    result = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
-    result
-    > ['head(n=10)']
+
+    .. code-block::
+
+        statements = [('head(', 'n=10)')]
+        result = [pipe_function_parms(idx, x) for idx, x in enumerate(statements)]
+        result
+        > ['head(n=10)']
 
 
     Parameters
@@ -216,15 +222,13 @@ def get_sql_text(file_or_text, variables, debug=False):
 
     Parameters
     ----------
-    file_or_text :
+    file_or_text
         file name containing sql or actual text to
         convert
-
-    variables :
+    variables
         dictionary of variables to be used for replacing
         substitutional variables.
-
-    debug :
+    debug
         True, False
         If True, provide logging/debug information
 

@@ -1,4 +1,4 @@
-from piper.pandas import read_csv
+from piper.io import read_csv
 from piper.verbs import add_xl_formula
 from piper.verbs import across
 from piper.verbs import adorn
@@ -33,6 +33,7 @@ from piper.verbs import sample
 from piper.verbs import select
 from piper.verbs import set_columns
 from piper.verbs import summarise
+from piper.verbs import summary_df
 from piper.verbs import tail
 from piper.verbs import to_tsv
 from piper.verbs import str_trim
@@ -41,7 +42,6 @@ from piper.custom import to_julian
 from piper.factory import bad_quality_orders
 from piper.factory import sample_data
 from piper.factory import sample_sales
-from piper.factory import two_columns_five_rows
 from piper.factory import sample_column_clean_text
 from piper.factory import simple_series
 from piper.factory import dummy_dataframe
@@ -69,11 +69,6 @@ def t_sample_sales():
 @pytest.fixture
 def t_sample_data():
     return sample_data()
-
-# t_dataframe_two_columns {{{1
-@pytest.fixture
-def t_two_columns_five_rows():
-    return two_columns_five_rows()
 
 
 # t_sample_column_clean_text {{{1
@@ -163,14 +158,14 @@ def test_across_list_column_series_values_raise_attr_error(t_sample_data):
 
 
 # test_add_xl_formula {{{1
-def test_add_xl_formula(t_two_columns_five_rows):
+def test_add_xl_formula(t_sample_data):
 
-    df = t_two_columns_five_rows
+    df = t_sample_data
 
     formula = '=CONCATENATE(A{row}, B{row}, C{row})'
     add_xl_formula(df, column_name='X7', formula=formula)
 
-    expected = (5, )
+    expected = (367, )
 
     assert expected == df.X7.shape
 
@@ -340,33 +335,35 @@ def test_clean_column_list_using_df_columns(get_column_list):
 
 
 # test_columns_as_list {{{1
-def test_columns_dataframe(t_two_columns_five_rows):
+def test_columns_dataframe(t_sample_data):
 
-    df = t_two_columns_five_rows
+    df = t_sample_data
 
-    expected = ['ids', 'regions']
+    expected = ['dates', 'order_dates', 'countries', 'regions', 'ids', 'values_1', 'values_2']
+
     actual = columns(df, astype='list')
     assert expected == actual
 
     expected = {'ids': 'ids', 'regions': 'regions'}
-    actual = columns(df, astype='dict')
+    actual = columns(df[['ids', 'regions']], astype='dict')
     assert expected == actual
 
     expected = pd.DataFrame(['ids', 'regions'], columns=['column_names'])
-    actual = columns(df, astype='dataframe')
+    actual = columns(df[['ids', 'regions']], astype='dataframe')
     assert_frame_equal(expected, actual)
 
     expected = "['ids', 'regions']"
-    actual = columns(df, astype='text')
+    actual = columns(df[['ids', 'regions']], astype='text')
     assert expected == actual
 
 
 # test_columns_as_series {{{1
-def test_columns_as_series(t_two_columns_five_rows):
+def test_columns_as_series(t_sample_data):
 
-    df = t_two_columns_five_rows
+    df = t_sample_data
 
-    expected = pd.Series(['ids', 'regions'], index=range(2), name='column_names')
+    cols = ['dates', 'order_dates', 'countries', 'regions', 'ids', 'values_1', 'values_2']
+    expected = pd.Series(cols, index=range(len(cols)), name='column_names')
     actual = columns(df, astype='series')
 
     assert_series_equal(expected, actual)
@@ -732,6 +729,36 @@ def test_flatten_cols_remove_prefix(t_sample_data):
     assert expected == actual
 
 
+# test_summary_df {{{1
+def test_generate_summary_df():
+    """
+    """
+    dict_a = {'column_A': {'0': 'A100',  '1': 'A101',  '2': 'A101',
+                           '3': 'A102',  '4': 'A103',  '5': 'A103',
+                           '6': 'A103',  '7': 'A104',  '8': 'A105',
+                           '9': 'A105', '10': 'A102', '11': 'A103'}}
+    df = pd.DataFrame(dict_a)
+
+    dict_b = {'column_B': {'0': 'First Row',  '1': 'Second Row',
+                           '2': 'Fourth Row', '3': 'Fifth Row',
+                           '4': 'Third Row',  '5': 'Fourth Row',
+                           '6': 'Fifth Row',   '7': 'Sixth Row',
+                           '8': 'Seventh Row', '9': 'Eighth Row',
+                           '10': 'Ninth Row', ' 11': 'Tenth Row'}}
+    df2 = pd.DataFrame(dict_b)
+
+    datasets = [('1st dataset', df), ('2nd dataset', df2)]
+
+    summary = summary_df(datasets, title='Summary',
+                            col_total='Total records',
+                            add_grand_total=True,
+                            grand_total='Grand total')
+
+    expected = 24
+    actual = summary.loc['Grand total', 'Total records']
+
+    assert expected == actual
+
 # test_has_special_chars {{{1
 def test_non_alpha(t_sample_data):
     """
@@ -764,14 +791,15 @@ def test_head_with_series(t_simple_series_01):
 
 
 # test_head_with_dataframe {{{1
-def test_head_with_dataframe(t_two_columns_five_rows):
+def test_head_with_dataframe(t_sample_data):
     """
     """
-    df = t_two_columns_five_rows
+    df = t_sample_data
 
-    expected = (4, 2)
+    expected = (4, 7)
     actual = head(df).shape
     assert expected == actual
+
 
 # test_head_with_columns_function {{{1
 def test_head_with_columns_function(t_sample_data):
@@ -1059,10 +1087,10 @@ def test_read_csv_with_data(t_bad_quality_orders):
 
     assert expected == actual
 # test_relocate_no_column {{{1
-def test_relocate_no_column(t_two_columns_five_rows):
+def test_relocate_no_column(t_sample_data):
     """
     """
-    df = t_two_columns_five_rows
+    df = t_sample_data
 
     with pytest.raises(KeyError):
         actual = relocate(df, column=None, loc='first')
@@ -1083,25 +1111,25 @@ def test_relocate_index(t_sample_data):
 
 
 # test_relocate_single_column {{{1
-def test_relocate_single_column(t_two_columns_five_rows):
+def test_relocate_single_column(t_sample_data):
     """
     """
-    df = t_two_columns_five_rows
+    df = t_sample_data
     df = relocate(df, 'regions', loc='first')
 
-    expected = ['regions', 'ids']
+    expected = ['regions', 'dates', 'order_dates', 'countries', 'ids', 'values_1', 'values_2']
     actual = df.columns.values.tolist()
     assert expected == actual
 
 
 # test_relocate_single_column_last_column {{{1
-def test_relocate_single_column_last_column(t_two_columns_five_rows):
+def test_relocate_single_column_last_column(t_sample_data):
     """
     """
-    df = t_two_columns_five_rows
+    df = t_sample_data
     df = relocate(df, 'regions', loc='last')
 
-    expected = ['ids', 'regions']
+    expected = ['dates', 'order_dates', 'countries', 'ids', 'values_1', 'values_2', 'regions']
     actual = df.columns.values.tolist()
     assert expected == actual
 
@@ -1466,15 +1494,14 @@ def test_tail_with_series(t_simple_series_01):
     assert expected == actual
 
 # test_tail_with_dataframe {{{1
-def test_tail_with_dataframe(t_two_columns_five_rows):
+def test_tail_with_dataframe(t_sample_data):
     """
     """
-    df = t_two_columns_five_rows
+    df = t_sample_data
 
-    expected = (4, 2)
+    expected = (4, 7)
     actual = tail(df).shape
     assert expected == actual
-
 
 
 # test_to_tsv_with_data {{{1

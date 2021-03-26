@@ -547,37 +547,6 @@ def sample_column_clean_text():
     return df
 
 
-# two_columns_five_rows {{{1
-def two_columns_five_rows(rows: int = 5,
-                          seed: int = 42) -> pd.DataFrame:
-    ''' Dataframe with two columns
-
-    Parameters
-    ----------
-    rows
-        number of rows required
-    seed
-        default 42 - for testing, provide consistent outcome by setting the
-        random seed value
-
-    Returns
-    -------
-    a pandas dataframe
-    '''
-    if seed:
-        np.random.seed(seed)
-
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    s1 = pd.Series(np.random.choice(id_list, size=rows), name='ids')
-
-    region_list = ['East', 'West', 'North', 'South']
-    s2 = pd.Series(np.random.choice(region_list, size=rows), name='regions')
-
-    df = pd.concat([s1, s2], axis=1)
-
-    return df
-
-
 # xl_test_data() {{{1
 def xl_test_data():
     '''

@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from os.path import join
 from piper.text import pipe_parser
-from piper.text import join_function_parms
+from piper.text import pipe_function_parms
 from piper.text import set_sql_text
 from piper.text import get_sql_text
 from piper.text import _get_qual_file
@@ -230,19 +230,19 @@ def test_set_sql_text_with_auto_template_values():
     assert expected == actual
 
 
-# test_join_function_parms_single_statement {{{1
-def test_join_function_parms_single_statement():
+# test_pipe_function_parms_single_statement {{{1
+def test_pipe_function_parms_single_statement():
 
     statements = [('get_sample_sales(', ')')]
 
     expected = ['get_sample_sales()']
-    actual = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
+    actual = [pipe_function_parms(idx, x) for idx, x in enumerate(statements)]
 
     assert expected == actual
 
 
-# test_join_function_parms_no_parms {{{1
-def test_join_function_parms_no_parms():
+# test_pipe_function_parms_no_parms {{{1
+def test_pipe_function_parms_no_parms():
 
     statements = [('get_sample_sales(', ')'),
                   ('select(', ')'),
@@ -251,13 +251,13 @@ def test_join_function_parms_no_parms():
     expected = ['get_sample_sales()',
                 '.pipe(select)', '.pipe(head)']
 
-    actual = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
+    actual = [pipe_function_parms(idx, x) for idx, x in enumerate(statements)]
 
     assert expected == actual
 
 
-# test_join_function_parms_single_parm {{{1
-def test_join_function_parms_single_parm():
+# test_pipe_function_parms_single_parm {{{1
+def test_pipe_function_parms_single_parm():
 
     statements = [('get_sample_sales(', ')'),
                   ('select(', ')'),
@@ -266,13 +266,13 @@ def test_join_function_parms_single_parm():
     expected = ['get_sample_sales()',
                 '.pipe(select)', '.pipe(head, n=4)']
 
-    actual = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
+    actual = [pipe_function_parms(idx, x) for idx, x in enumerate(statements)]
 
     assert expected == actual
 
 
-# test_join_function_parms_multi_parms {{{1
-def test_join_function_parms_multi_parms():
+# test_pipe_function_parms_multi_parms {{{1
+def test_pipe_function_parms_multi_parms():
 
     statements = [('get_sample_sales(', ')'),
                   ('select(', "['-date', 'something_else'])"),
@@ -282,6 +282,6 @@ def test_join_function_parms_multi_parms():
                 ".pipe(select, ['-date', 'something_else'])",
                 '.pipe(head, n=4)']
 
-    actual = [join_function_parms(idx, x) for idx, x in enumerate(statements)]
+    actual = [pipe_function_parms(idx, x) for idx, x in enumerate(statements)]
 
     assert expected == actual

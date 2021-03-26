@@ -7,6 +7,32 @@ import pytest
 
 directory = 'piper/temp/sql'
 
+@pytest.fixture
+def sql():
+    return ''' select * from eudta.f0006 where rownum=1'''
+
+
+# test_read_sql_valid_info_true {{{1
+@pytest.mark.skip(reason="no way of currently testing this")
+def test_read_sql_valid_info_true(sql):
+    """
+    """
+    env = 'JDE9E2P'
+    con, schema, schema_ctl = connect(env)
+    df = read_sql(sql, sql_info=True, con=con, info=False)
+    assert (1, 152) == df.shape
+
+
+# test_read_sql_valid_info_false
+@pytest.mark.skip(reason="no way of currently testing this")
+def test_read_sql_valid_info_false(sql):
+    """
+    """
+    env = 'JDE9E2P'
+    con, schema, schema_ctl = connect(env)
+    df = read_sql(sql, sql_info=False, con=con, info=True)
+    assert (1, 152) == df.shape
+
 # write_text_file {{{1
 @pytest.fixture
 def write_text_file():
@@ -37,7 +63,7 @@ def test_list_files_with_data():
 
     test_files = list_files(source=source, glob_pattern='*.py')
 
-    expected = 18
+    expected = 17
     actual = len(test_files)
 
     assert expected == actual
