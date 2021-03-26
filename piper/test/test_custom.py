@@ -197,7 +197,7 @@ def test_dividing_numbers_floats():
 def test_dividing_numbers_float_percent():
     ''' '''
 
-    exp = 100.0
+    exp = '100.0%'
     got = ratio(2.0, 2.0, percent=True)
 
     assert exp == got
@@ -208,12 +208,12 @@ def test_dividing_numbers_float_percent_with_round():
     ''' '''
 
     exp = 100.0000
-    got = ratio(2.0, 2.0, percent=True, precision=4)
+    got = ratio(2.0, 2.0, percent=True, format=False, precision=4)
 
     assert exp == got
 
     exp = 50.00
-    got = ratio(1.0, 2.0, percent=True, precision=2)
+    got = ratio(1.0, 2.0, percent=True, format=False, precision=2)
 
     assert exp == got
 
@@ -223,12 +223,12 @@ def test_dividing_numbers_int_percent_with_round():
     ''' '''
 
     exp = 100.0000
-    got = ratio(2, 2, percent=True, precision=4)
+    got = ratio(2, 2, percent=True, format=False, precision=4)
 
     assert exp == got
 
     exp = 50.00
-    got = ratio(1, 2, percent=True, precision=2)
+    got = ratio(1, 2, percent=True, format=False, precision=2)
 
     assert exp == got
 

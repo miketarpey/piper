@@ -35,17 +35,13 @@ from piper.verbs import set_columns
 from piper.verbs import summarise
 from piper.verbs import tail
 from piper.verbs import to_tsv
-from piper.verbs import trim
+from piper.verbs import str_trim
 from piper.verbs import where
 from piper.custom import to_julian
 from piper.factory import bad_quality_orders
 from piper.factory import sample_data
 from piper.factory import sample_sales
 from piper.factory import two_columns_five_rows
-from piper.factory import get_sample_df3
-from piper.factory import get_sample_df4
-from piper.factory import get_sample_df5
-from piper.factory import get_sample_df6
 from piper.factory import single_column_dataframe_messy_text
 from piper.factory import simple_series_01
 from piper.factory import dummy_dataframe
@@ -57,9 +53,9 @@ import pandas as pd
 from pandas.api.types import is_float_dtype
 import pytest
 
-# sample_orders_01 {{{1
+# t_bad_quality_orders {{{1
 @pytest.fixture
-def sample_orders_01():
+def t_bad_quality_orders():
     return bad_quality_orders()
 
 
@@ -79,25 +75,6 @@ def t_sample_data():
 def t_two_columns_five_rows():
     return two_columns_five_rows()
 
-# sample_df3 {{{1
-@pytest.fixture
-def sample_df3():
-    return get_sample_df3()
-
-# sample_df4 {{{1
-@pytest.fixture
-def sample_df4():
-    return get_sample_df4()
-
-# sample_df5 {{{1
-@pytest.fixture
-def sample_df5():
-    return get_sample_df5()
-
-# sample_df6 {{{1
-@pytest.fixture
-def sample_df6():
-    return get_sample_df6()
 
 # t_single_col_messy_text {{{1
 @pytest.fixture
@@ -111,7 +88,7 @@ def t_dummy_dataframe():
     return dummy_dataframe()
 
 
-# sample_s1 {{{1
+# t_simple_series_01 {{{1
 @pytest.fixture
 def t_simple_series_01():
     return simple_series_01()
@@ -298,6 +275,8 @@ def test_assign(t_sample_data):
     actual = df.columns.tolist()
 
     assert expected == actual
+
+
 # test_assign_with_str_formulas {{{1
 def test_assign_with_str_formulas(t_sample_data):
     """
@@ -314,6 +293,7 @@ def test_assign_with_str_formulas(t_sample_data):
     actual = df.columns.tolist()
 
     assert expected == actual
+
 
 # test_assign_with_str_formulas_info {{{1
 def test_assign_with_str_formulas_info(t_sample_data):
@@ -455,67 +435,62 @@ def test_combine_header_rows_title_bad_data():
     assert expected == actual
 
 
-# test_count {{{1
-def test_count(sample_df5):
+# test_count_series{ {{1
+def test_count_series(t_simple_series_01):
 
-    df = sample_df5
+    s1 = t_simple_series_01
 
-    expected = (1, 3)
-    actual = count(df, 'bgy56icnt').shape
-
-    assert expected == actual
-
-
-# test_count_series {{{1
-def test_count_series(sample_df5):
-
-    df = sample_df5
-
-    expected = (1, 3)
-    actual = count(df.bgy56icnt).shape
+    expected = (3, 3)
+    actual = count(s1).shape
 
     assert expected == actual
+
 
 # test_count_sort {{{1
-def test_count_sort(sample_df5):
+def test_count_sort(t_simple_series_01):
 
-    df = sample_df5
+    s1 = t_simple_series_01
 
-    expected = (1, 3)
-    actual = count(df, 'bgy56icnt', sort_values=True).shape
+    expected = 3
+
+    count_ = count(s1, sort_values=False)
+    actual = count_.loc['E', 'n']
 
     assert expected == actual
 
 # test_count_with_total {{{1
-def test_count_with_total(sample_df5):
+def test_count_with_total(t_simple_series_01):
 
-    df = sample_df5
+    s1 = t_simple_series_01
 
-    expected = (2, 3)
-    actual = count(df, 'bgy56icnt', totals=True, sort_values=True).shape
+    expected = 100.0
+    count_ = count(s1, totals=True)
+    actual = count_.loc['Total', '%']
 
     assert expected == actual
 
 
 # test_count_with_total_percent_cum_percent {{{1
-def test_count_with_total_percent_cum_percent(sample_df5):
+def test_count_with_total_percent_cum_percent(t_simple_series_01):
 
-    df = sample_df5
+    s1 = t_simple_series_01
 
-    expected = (2, 3)
-    actual = count(df, 'bgy56icnt', totals=True, sort_values=True,
+    expected = (4, 3)
+    actual = count(s1, totals=True, sort_values=True,
                    percent=True, cum_percent=True).shape
 
     assert expected == actual
 
 
 # test_count_with_cum_percent_with_threshold {{{1
-def test_count_with_cum_percent_with_threshold(t_sample_data):
+def test_count_with_cum_percent_with_threshold(t_simple_series_01):
 
-    expected = (6, 3)
+    s1 = t_simple_series_01
 
-    df = count(t_sample_data, 'countries', threshold = 80, cum_percent=True)
-    actual = df.shape
+    expected = (2, 3)
+
+    count_ = count(s1, threshold=81, cum_percent=True)
+    actual = count_.shape
 
     assert expected == actual
 
@@ -646,32 +621,30 @@ def test_drop_columns(t_dummy_dataframe):
 
 
 # test_duplicated {{{1
-def test_duplicated(sample_df5):
+def test_duplicated(t_simple_series_01):
     """
     """
-    df = sample_df5
+    df = t_simple_series_01.to_frame()
+    df = duplicated(df, keep=False, sort=True)
 
-    duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-    df2 = duplicated(df[duplicated_fields], subset=duplicated_fields,
-                     keep='first', sort=True)
+    expected = 3  # Duplicate records
+    actual = df.duplicate.value_counts()[1]
 
-    expected = 2  # Duplicate records
-    actual = df2.duplicate.value_counts()[1]
     assert expected == actual
 
 
 # test_duplicated_duplicates_only {{{1
-def test_duplicated_duplicates_only(sample_df5):
+def test_duplicated_duplicates_only(t_simple_series_01):
     """
     """
-    df = sample_df5
+    df = t_simple_series_01.to_frame()
 
-    duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-    df2 = duplicated(df[duplicated_fields], subset=duplicated_fields,
-                     keep='first', duplicates=True, sort=True)
+    df = t_simple_series_01.to_frame()
+    df = duplicated(df, keep='first', duplicates=True, sort=True)
 
-    expected = (2, 3)
-    actual = df2.shape
+    expected = (2, 2)
+    actual = df.shape
+
     assert expected == actual
 
 
@@ -814,29 +787,29 @@ def test_head_with_columns_function(t_sample_data):
     assert expected == actual
 
 # test_info {{{1
-def test_info(sample_df5):
+def test_info(t_simple_series_01):
 
-    df = sample_df5
+    df = t_simple_series_01.to_frame()
 
-    expected = (2, 6)
+    expected = (1, 6)
     actual = info(df).shape
 
     assert expected == actual
 
 # test_info_with_dupes {{{1
-def test_info_with_dupes(sample_df5):
+def test_info_with_dupes(t_simple_series_01):
 
-    df = sample_df5
+    df = t_simple_series_01.to_frame()
 
-    expected = (2, 7)
+    expected = (1, 7)
     actual = info(df, n_dupes=True).shape
 
     assert expected == actual
 
 # test_info_with_na_cols {{{1
-def test_info_with_na_cols(sample_df5):
+def test_info_with_na_cols(t_simple_series_01):
 
-    df = sample_df5
+    df = t_simple_series_01.to_frame()
 
     expected = (0, 6)
     actual = info(df, fillna=True).shape
@@ -1010,8 +983,6 @@ def test_pivot_name_error(t_sample_data):
 
     with pytest.raises(KeyError):
         pv = pivot_wider(df, index=['countries_wrong_name'], values='values_1')
-        pv.sort_values(by='values_1', ascending=False, inplace=True)
-        pv.shape
 
 # test_pivot_percent_calc {{{1
 def test_pivot_percent_calc(t_sample_data):
@@ -1075,11 +1046,11 @@ def test_pivot_wider_single_grouper(t_sample_data):
 
 
 # test_read_csv_with_data {{{1
-def test_read_csv_with_data(sample_orders_01):
+def test_read_csv_with_data(t_bad_quality_orders):
     """
     """
     file_name = 'piper/temp/to_tsv_with_data.tsv'
-    df_json = pd.DataFrame(sample_orders_01)
+    df_json = pd.DataFrame(t_bad_quality_orders)
 
     df = read_csv(file_name, sep='\t')
 
@@ -1507,12 +1478,12 @@ def test_tail_with_dataframe(t_two_columns_five_rows):
 
 
 # test_to_tsv_with_data {{{1
-def test_to_tsv_with_data(sample_orders_01):
+def test_to_tsv_with_data(t_bad_quality_orders):
     """
     Write sample dataframe, no value is return from to_tsv
     """
     file_name = 'piper/temp/to_tsv_with_data.tsv'
-    df = pd.DataFrame(sample_orders_01)
+    df = pd.DataFrame(t_bad_quality_orders)
 
     expected = None
     actual = to_tsv(df, file_name, sep='\t')
@@ -1581,8 +1552,8 @@ def test_transform_custom_function(t_sample_data):
     assert expected == actual
 
 
-# test_trim_blanks {{{1
-def test_trim_blanks(t_single_col_messy_text):
+# test_str_trim_blanks {{{1
+def test_str_trim_blanks(t_single_col_messy_text):
     """
     """
     df = t_single_col_messy_text
@@ -1594,24 +1565,24 @@ def test_trim_blanks(t_single_col_messy_text):
                 'Thrid Row', 'Fourth Row', 'Fifth Row', 'Sixth Row',
                 'Seventh Row', 'Eighth Row', 'Ninth Row', 'Tenth Row']
 
-    df2 = trim(df, str_columns=['test_col'])
+    df2 = str_trim(df, str_columns=['test_col'])
 
     actual = df2['test_col'].to_list()
     assert expected == actual
 
-    trim(df, str_columns=None)
+    str_trim(df, str_columns=None)
 
     actual = df['test_col'].to_list()
     assert expected == actual
 
-# test_trim_blanks_duplicate_column_name {{{1
-def test_trim_blanks_duplicate_column_name(t_sample_data):
+# test_str_trim_blanks_duplicate_column_name {{{1
+def test_str_trim_blanks_duplicate_column_name(t_sample_data):
     """
     """
     df = t_sample_data
     df.columns = ['dates', 'order_dates', 'regions', 'regions', 'ids', 'values_1', 'values_2']
 
-    df2 = trim(df)
+    df2 = str_trim(df)
 
     expected = ['dates', 'order_dates', 'regions', 'regions2', 'ids', 'values_1', 'values_2']
     actual = df2.columns.tolist()
@@ -1628,7 +1599,7 @@ def test_where(t_sample_data):
     assert expected == actual.shape
 
 # test_inner_join {{{1
-def test_inner_join(sample_df6):
+def test_inner_join():
     """
     """
     order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
@@ -1654,7 +1625,7 @@ def test_inner_join(sample_df6):
 
 
 # test_left_join {{{1
-def test_left_join(sample_df6):
+def test_left_join():
     """
     """
     order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
@@ -1680,7 +1651,7 @@ def test_left_join(sample_df6):
 
 
 # test_right_join {{{1
-def test_right_join(sample_df6):
+def test_right_join():
     """
     """
     order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
@@ -1706,7 +1677,7 @@ def test_right_join(sample_df6):
 
 
 # test_outer_join {{{1
-def test_outer_join(sample_df6):
+def test_outer_join():
     """
     """
     order_data = {'OrderNo': [1001, 1002, 1003, 1004, 1005],
@@ -1729,5 +1700,3 @@ def test_outer_join(sample_df6):
     actual = merged_df.shape
 
     assert expected == actual
-
-

@@ -2114,6 +2114,33 @@ def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     return df.rename_axis(*args, **kwargs)
 
 
+# reset_index() {{{1
+def reset_index(df: pd.DataFrame,
+          *args,
+          **kwargs) -> pd.DataFrame:
+    '''reset_index dataframe
+
+    This is a wrapper function rather than using e.g. df.reset_index()
+    For details of args, kwargs - see help(pd.DataFrame.reset_index)
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    return df.reset_index(*args, **kwargs)
+
+
 # right_join() {{{1
 def right_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     '''right_join => df (All/na) | df2 (All) df2 always returned
@@ -2322,79 +2349,6 @@ def set_columns(df: pd.DataFrame,
     return df
 
 
-# where() {{{1
-def where(df: pd.DataFrame,
-          *args,
-          **kwargs) -> pd.DataFrame:
-    '''where/filter dataframe rows
-
-    This is a wrapper function rather than using e.g. df.query()
-    For details of args, kwargs - see help(pd.DataFrame.query)
-
-    Examples
-    --------
-    .. code-block::
-
-        (select(customers)
-         .pipe(clean_columns)
-         .pipe(select, ['client_code', 'establishment_type', 'address_1', 'address_2', 'town'])
-         .pipe(where, 'establishment_type != 91')
-         .pipe(where, "town != 'LISBOA' & establishment_type != 91"))
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    *args
-        arguments for wrapped function
-    **kwargs
-        keyword-parameters for wrapped function
-
-
-    Returns
-    -------
-    A pandas DataFrame
-    '''
-    logger.debug(args)
-    logger.debug(kwargs)
-
-    args_copy = list(args)
-    args_copy[0] = re.sub('\n', '', args_copy[0])
-
-    try:
-        return df.query(*args_copy, **kwargs)
-    except (pd.core.computation.ops.UndefinedVariableError) as e:
-        logger.info("ERROR: External @variable? use: where(..., global_dict=globals())")
-
-
-# reset_index() {{{1
-def reset_index(df: pd.DataFrame,
-          *args,
-          **kwargs) -> pd.DataFrame:
-    '''reset_index dataframe
-
-    This is a wrapper function rather than using e.g. df.reset_index()
-    For details of args, kwargs - see help(pd.DataFrame.reset_index)
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    *args
-        arguments for wrapped function
-    **kwargs
-        keyword-parameters for wrapped function
-
-
-    Returns
-    -------
-    A pandas DataFrame
-    '''
-    return df.reset_index(*args, **kwargs)
-
-
 # set_index() {{{1
 def set_index(df: pd.DataFrame,
           *args,
@@ -2423,8 +2377,8 @@ def set_index(df: pd.DataFrame,
 
 
 # split_dataframe() {{{1
-def split_dataframe(df,
-                    chunk_size = 1000):
+def split_dataframe(df: pd.DataFrame,
+                    chunk_size: int = 1000) -> List:
     ''' Split dataframe by chunk_size rows, returning multiple dataframes
 
     1. Define 'range' (start, stop, step/chunksize)
@@ -2437,11 +2391,9 @@ def split_dataframe(df,
     chunksize
         default=1000
 
-
     Returns
     -------
     A list of pd.DataFrame 'chunks'
-
 
     Examples
     --------
@@ -2457,6 +2409,170 @@ def split_dataframe(df,
     logger.debug(range_)
 
     return np.split(df, range_)
+
+
+# str_combine() {{{1
+def str_combine(df: pd.DataFrame,
+                columns: Union[str, list] = None,
+                column: str = None,
+                sep: str = '-',
+                loc: str = 'after',
+                drop: bool = True) -> pd.DataFrame:
+    ''' combine columns with a separator
+
+
+    Parameters
+    ----------
+    df
+        a pandas dataframe
+    columns
+        list of column names to combine
+    column
+        (optional) column name to store the results of combined columns
+    loc
+        location to place the split column output within the dataframe
+        Default is 'after' meaning place the output after the column.
+
+        Valid locations are: 'before' or 'after' the column.
+        You can also specify 'first' or 'last' corresponding to the first and last
+        columns of the dataframe.
+
+        For more information about relocating columns - see the relocate() function.
+    drop
+        drop original columns used in combine function
+
+    Returns
+    -------
+    A copy of the pandas dataframe
+
+    Examples
+    --------
+
+    '''
+    df = _dataframe_copy(df, inplace=False)
+
+    if not isinstance(columns, list):
+            raise NameError(f"Columns '{columns}' must be a list")
+
+    for col in columns:
+        if col not in df.columns.tolist():
+                raise NameError(f"Please check column name '{col}' specified")
+
+    if len(columns) < 2:
+        msg = f'Length of columns parameter is {len(columns)} must be at least 2, please check'
+        raise ValueError(msg)
+
+    # Make sure ALL columns to be concatenated are string type
+    for col in columns:
+        if not pd.api.types.is_string_dtype(df[col]) and \
+               not pd.api.types.is_object_dtype(df[col]):
+            print(df[col].name, df[col].dtype)
+            df[col] = df[col].astype(str)
+
+    new_col = df[columns[0]].str.cat(df[columns[1]], sep=sep)
+
+    if column is None:
+        new_col.name = '0'
+    else:
+        new_col.name = column
+
+    if len(columns) > 2:
+        for col in columns[2:]:
+            new_col = new_col.str.cat(df[col], sep=sep)
+
+    df = pd.concat([df, new_col], axis=1)
+    df = relocate(df, new_col.name, loc='after', ref_column=columns[0])
+
+    if drop:
+        df = df.drop(columns=columns)
+
+    return df
+
+
+# str_split() {{{1
+def str_split(df: pd.DataFrame,
+              column: str = None,
+              columns: Union[str, list] = None,
+              pat: str = ',',
+              n: int = -1,
+              expand: bool = True,
+              loc: str = 'after',
+              drop: bool = False) -> pd.DataFrame:
+    ''' split column
+
+    Function accepts a column to split, a pattern/delimitter values and optional
+    list of column names to store the result. By default the result is placed just
+    after the specified column.
+
+
+    Parameters
+    ----------
+    df
+        a pandas dataframe
+    column
+        column to be split
+    columns
+        (optional) str or list of column names to store the results of the split
+        column values
+    pat
+        regular expression pattern
+    n
+        default -1. Number of splits to capture. -1 means capture ALL splits
+    loc
+        location to place the split column output within the dataframe
+        Default is 'after' meaning place the output after the column.
+
+        Valid locations are: 'before' or 'after' the column.
+        You can also specify 'first' or 'last' corresponding to the first and last
+        columns of the dataframe.
+
+        For more information about relocating columns - see the relocate() function.
+    drop
+        drop original column to be split
+
+    Returns
+    -------
+    A copy of the pandas dataframe
+
+    Examples
+    --------
+
+    '''
+    df = _dataframe_copy(df, inplace=False)
+
+    if column not in df.columns:
+        raise NameError(f"Please check column name '{column}' specified")
+
+    if not isinstance(column, str):
+        raise NameError(f"Column name '{column}' must be a string")
+
+    if not expand:
+        df[column] = df[column].str.split(pat=pat, n=n, expand=False)
+    else:
+
+        split_cols = df[column].str.split(pat=pat, n=n, expand=True)
+
+        if columns is None:
+            df = pd.concat([df, split_cols], axis=1)
+            cols_to_move = split_cols.columns.tolist()
+            print(column, cols_to_move, loc)
+            df = relocate(df, cols_to_move, loc=loc, ref_column=column)
+        else:
+
+            if isinstance(columns, str):
+                columns = [columns]
+
+            rename_cols = dict(zip(columns, split_cols.columns.tolist()))
+
+            for col, split_col in rename_cols.items():
+                df[col] = split_cols[split_col]
+
+            df = relocate(df, columns, loc=loc, ref_column=column)
+
+        if drop:
+            df = df.drop(columns=column)
+
+    return df
 
 
 # summarise() {{{1
@@ -2703,7 +2819,7 @@ def tail(df: pd.DataFrame,
     Parameters
     ----------
     df
-        dataframe
+        pandas dataframe
     n
         Default n=4. number of rows to display
     shape
@@ -2957,8 +3073,8 @@ def transform(df: pd.DataFrame,
     return df
 
 
-# trim() {{{1
-def trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
+# str_trim() {{{1
+def str_trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
     '''strip leading/trailing blanks
 
     Parameters
@@ -3019,6 +3135,52 @@ def unstack(df: pd.DataFrame,
     return df.unstack(*args, **kwargs)
 
 
+# where() {{{1
+def where(df: pd.DataFrame,
+          *args,
+          **kwargs) -> pd.DataFrame:
+    '''where/filter dataframe rows
+
+    This is a wrapper function rather than using e.g. df.query()
+    For details of args, kwargs - see help(pd.DataFrame.query)
+
+    Examples
+    --------
+    .. code-block::
+
+        (select(customers)
+         .pipe(clean_columns)
+         .pipe(select, ['client_code', 'establishment_type', 'address_1', 'address_2', 'town'])
+         .pipe(where, 'establishment_type != 91')
+         .pipe(where, "town != 'LISBOA' & establishment_type != 91"))
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    logger.debug(args)
+    logger.debug(kwargs)
+
+    args_copy = list(args)
+    args_copy[0] = re.sub('\n', '', args_copy[0])
+
+    try:
+        return df.query(*args_copy, **kwargs)
+    except (pd.core.computation.ops.UndefinedVariableError) as e:
+        logger.info("ERROR: External @variable? use: where(..., global_dict=globals())")
+
+
 # _set_grouper() {{{1
 def _set_grouper(df: pd.DataFrame,
                 index: Union[Any, List[Any]],
@@ -3064,13 +3226,18 @@ def _set_grouper(df: pd.DataFrame,
         return [grouper(df, col, freq) for col in index]
 
 
-# _inplace() {{{1
-def _inplace(df: pd.DataFrame, inplace: int = False) -> pd.DataFrame:
+# _dataframe_copy() {{{1
+def _dataframe_copy(df: pd.DataFrame, inplace: int = False) -> pd.DataFrame:
     '''Return a copy of the dataframe
 
     Helper function to return either a copy of dataframe or a reference to the
-    passed dataframe
+    passed dataframe based on the passed 'inplace' parameter.
 
+    Basically, if we need to implement 'inplace' keyword in a main function, we
+    can just copy the below line, and the function will either work directly on
+    the received dataframe or a copy.
+
+    df = _dataframe_copy(inplace=False)
 
     Parameters
     ----------

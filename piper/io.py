@@ -73,9 +73,15 @@ def duplicate_files(source=None,
 
     .. code-block::
 
+        from piper.io import duplicate_files
+
         source = '/home/mike/Documents'
-        duplicate_files(source, glob_pattern='*.*', recurse=True,
-                    filesize=2000000, keep=False).query("duplicate == True")
+
+        duplicate_files(source,
+                        glob_pattern='*.*',
+                        recurse=True,
+                        filesize=2000000,
+                        keep=False).query("duplicate == True")
 
     **References**
     https://docs.python.org/3/library/pathlib.html

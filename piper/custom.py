@@ -224,7 +224,7 @@ def ratio(value1: Union[int, float, pd.Series],
           value2: Union[int, float, pd.Series],
           precision: int = 2,
           percent: bool = False,
-          format: bool = False) -> Any:
+          format: bool = True) -> Any:
     ''' Calculate the Ratio / percentage of two values
 
     Custom function which calculate the ratio and optionally
@@ -288,16 +288,20 @@ def ratio(value1: Union[int, float, pd.Series],
 
     '''
     if isinstance(value1, pd.Series):
+
         if percent:
             result = (value1 * 100 / value2)
+
+            if precision is not None:
+                result = result.round(precision)
+
+            if format:
+                result = result.astype(str) + '%'
         else:
             result = (value1 / value2)
 
-        if precision is not None:
-            result = result.round(precision)
-
-        if format:
-            result = result.astype(str) + '%'
+            if precision is not None:
+                result = result.round(precision)
 
         return result
 
@@ -306,14 +310,17 @@ def ratio(value1: Union[int, float, pd.Series],
     try:
         if percent:
             result = ((value1 * 100) / value2)
+
+            if precision is not None:
+                result = round(result, precision)
+
+            if format:
+                result = f'{result}%'
         else:
             result = value1 / value2
 
-        if precision is not None:
-            result = round(result, precision)
-
-        if format:
-            result = f'{result}%'
+            if precision is not None:
+                result = round(result, precision)
 
     except ZeroDivisionError as e:
         logger.info(e)

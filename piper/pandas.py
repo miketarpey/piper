@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime
-from piper.verbs import trim
+from piper.verbs import str_trim
 from piper.verbs import clean_columns
 from piper.io import list_files
 from piper.decorators import shape
@@ -59,7 +59,7 @@ def read_sql(sql,
         logger.info(sql)
 
     if trim_blanks:
-        trim(df, inplace=True)
+        str_trim(df, inplace=True)
         if info:
             msg = f'Warning: Dataframe strip_blanks = {trim_blanks}'
             logger.info(msg)
@@ -112,7 +112,7 @@ def read_csv(file_name,
         if info:
             logger.info(f'Warning: Dataframe strip_blanks = {strip_blanks}')
 
-        df = trim(df)
+        df = str_trim(df)
 
     if clean_cols:
         df = clean_columns(df)
@@ -162,7 +162,7 @@ def read_csvs(source = 'inputs/',
         dx = pd.read_csv(file_.as_posix(), sep=sep)
 
         if strip_blanks:
-            dx = trim(dx)
+            dx = str_trim(dx)
             if info:
                 logger.info(f'Warning: Dataframe strip_blanks = {strip_blanks}')
 

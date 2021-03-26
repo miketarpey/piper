@@ -23,329 +23,23 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 
-# sample_data {{{1
-def sample_data(start: int = 2020,
-                end: int = 2021,
-                freq: str = 'D',
-                seed: int = 30) -> pd.DataFrame:
-    ''' TEST - Regions, countries, dates, values
-
-    Examples
-    --------
-    get_sample_data().head()
-
-    dates       order_dates countries regions idsvalues_1 values_2
-    2020-01-01  2020-01-07  Italy     East    A       311       26
-    2020-01-02  2020-01-08  Portugal  South   D       150      375
-    2020-01-03  2020-01-09  Spain     East    A       396       88
-    2020-01-04  2020-01-10  Italy     East    B       319      233
-    2020-01-05  2020-01-11  Italy     East    D       261      187
-
-
-    Parameters
-    ----------
-    start: start year
-
-    end: end year
-
-    freq: frequency (default 'D' days)
-
-    seed: random seed, default 42
-
-
-    Returns
-    -------
-    A pandas Dataframe
-    '''
-
-    if seed is not None:
-        np.random.seed(seed)
-
-    sample_period = pd.date_range(start=str(start), end=str(end), freq=freq)
-    len_period = len(sample_period)
-    dates = pd.Series(sample_period, name='dates')
-
-    order_year_offset = np.random.randint(1, 10)
-    order_dates = (pd.date_range(start=str(start), end=str(end), freq=freq)
-                     .shift(freq=freq, periods=np.random.randint(1, 30)))
-
-    values1 = pd.Series(np.random.randint(low=10,
-                                          high=400, 
-                                          size=len_period),
-                                          name='values_1')
-
-    values2 = pd.Series(np.random.randint(low=10,
-                                          high=400,
-                                          size=len_period),
-                                          name='values_2')
-
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    ids = pd.Series(np.random.choice(id_list, size=len_period), name='ids')
-
-    region_list = ['East', 'West', 'North', 'South']
-    regions = pd.Series(np.random.choice(region_list, size=len_period), name='regions')
-
-    country_list = ['Germany', 'Italy', 'France', 'Spain', 'Sweden', 'Portugal', 'Norway', 'Switzerland']
-    countries = pd.Series(np.random.choice(country_list, size=len_period), name='countries')
-
-    data_dictionary = {
-        'dates': dates,
-        'order_dates': order_dates,
-        'countries': countries,
-        'regions': regions,
-        'ids': ids,
-        'values_1': values1,
-        'values_2': values2
-    }
-
-    df = pd.DataFrame(data_dictionary)
-
-    return df
-
-
-# sample_sales {{{1
-def sample_sales(number_of_rows: int = 200,
-                 year: int = 2021,
-                 seed: int = 42) -> pd.DataFrame:
-    ''' Generate sales product data
-
-    location, product, month, target_sales,
-    target_profit, actual_sales, actual profit.
-
-    Examples
-    --------
-
-    .. code-block::
-
-        get_sample_sales().head()
-
-        | location| product   | month     |target_sales |target_profit |actual_sales |actual_profit |
-        | London  | Beachwear | 2021-01-01|       31749 |      1904.94 |     29209.1 |      1752.54 |
-        | London  | Beachwear | 2021-01-01|       37833 |      6053.28 |     34049.7 |      5447.95 |
-        | London  | Jeans     | 2021-01-01|       29485 |      4127.9  |     31549   |      4416.85 |
-        | London  | Jeans     | 2021-01-01|       37524 |      3752.4  |     40901.2 |      4090.12 |
-        | London  | Sportswear| 2021-01-01|       27216 |      4354.56 |     29121.1 |      4659.38 |
-
-
-    Parameters
-    ----------
-    number_of_rows
-        number of records/rows required.
-    year
-        sales year to generate data for.
-    seed
-        random seed, default 42
-
-
-    Returns
-    -------
-    Pandas Dataframe
-
-    '''
-    if seed is not None:
-        np.random.seed(seed)
-
-    locations = ['London', 'Paris', 'Milan']
-    products = ['Tops & Blouses', 'Jeans', 'Footwear',
-                'Beachwear', 'Sportswear']
-
-    data = {
-        'location': np.random.choice(locations, size=number_of_rows),
-        'product': np.random.choice(products, size=number_of_rows),
-        'month': np.random.choice(range(1, 13), size=number_of_rows),
-        'target_sales': np.random.randint(14000, 40000, size=number_of_rows),
-        'target%_profit': np.random.randint(10, size=number_of_rows) * .02
-    }
-
-    df = pd.DataFrame(data)
-
-    df['month'] = df['month'].apply(
-        lambda x: pd.Period(f'{year}-{str(x).zfill(2)}'))
-
-    df['target_profit'] = df['target_sales'] * df['target%_profit']
-
-    f = lambda x: x + (x * np.random.choice(range(-10, 10)) / 100)
-    df['actual_sales'] = df['target_sales'].apply(f)
-
-    df['actual_profit'] = (df['actual_sales'] * df['target%_profit']).round(2)
-
-    df.drop(columns=['target%_profit'], inplace=True)
-    df.month = pd.PeriodIndex(df.month).to_timestamp()
-
-    df = df.sort_values(['month', 'location', 'product'])
-
-    return df
-
-
-# sample_matrix {{{1
-def sample_matrix(size: Tuple = (5, 5),
-                  loc: int = 10,
-                  scale: int = 10,
-                  lowercase_cols: bool = True,
-                  round: int = 3,
-                  seed: int = 42) -> pd.DataFrame:
-    ''' Generate sample data for given size (tuple)
-
-    Draw random samples from a normal (Gaussian) distribution.
-    (Uses np.random.normal)
-
-    Examples
-    --------
-    .. code-block::
-
-        df = sample_matrix()
-        head(df, output=print)
-
-                a       b       c       d       e
-        0  14.967   8.617  16.477  25.230   7.658
-        1   7.659  25.792  17.674   5.305  15.426
-        2   5.366   5.343  12.420  -9.133  -7.249
-        3   4.377  -0.128  13.142   0.920  -4.123
-        4  24.656   7.742  10.675  -4.247   4.556
-
-    Parameters
-    ----------
-    size
-        tuple - (row, column) size required.
-
-    loc
-        float or array_like of floats. Mean ("centre") of the distribution.
-
-    scale
-        float or array_like of floats. Standard deviation (spread or "width") of
-        the distribution. Must be non-negative.
-
-    lowercase_cols
-        Alphabetical column names are lowercase by default.
-
-
-    Returns
-    -------
-    a pandas DataFrame
-    '''
-    if seed:
-        np.random.seed(seed)
-
-    rows, cols = size
-
-    data = np.random.normal(loc=loc, scale=scale, size=(rows, cols))
-    cols = [xl_col_to_name(x - 1) for x in range(1, cols + 1)]
-
-    if lowercase_cols:
-        cols = list(map(str.lower, cols))
-
-    df = pd.DataFrame(data, columns=cols).round(round)
-
-    return df
-
-
-# generate_periods {{{1
-def generate_periods(year: int = 2021,
-                     month_range: Tuple = (1, 12),
-                     delta_range: Tuple = (1, 10),
-                     rows: int = 20,
-                     seed: int = 42) -> pd.DataFrame:
-    ''' Generate random effective and expired period pair values
-
-    Examples
-    --------
-    head(generate_periods(year=2022, rows=5))
-
-    | effective   | expired    |
-    | 2022-07-07  | 2022-07-15 |
-    | 2022-04-26  | 2022-05-01 |
-    | 2022-11-19  | 2022-11-23 |
-    | 2022-08-23  | 2022-08-31 |
-
-    Parameters
-    ----------
-    year: int - desired year
-
-    month_range: tuple - range of months required for effective date range.count
-
-    delta_range: tuple - range of delta periods to add to effective
-
-    rows: int - number of rows or records needed
-
-    seed: int - default 42 - for testing, provide consistent outcome by
-                setting the random seed value
-
-    Returns
-    -------
-    A pandas dataframe containing generated effective and expired pair values.
-   '''
-    def create_date(period):
-        '''
-        '''
-
-        period_str = period.strftime('%Y-%m')
-        day_str = str(np.random.randint(1, period.daysinmonth))
-
-        return f'{period_str}-{day_str.zfill(2)}'
-
-    if seed:
-        np.random.seed(seed)
-
-    low, high = month_range
-    months = np.random.randint(low, high, size=rows)
-    periods = [pd.Period(f'{year}-{str(month).zfill(2)}') for month in months]
-    periods = pd.Series(periods, name='Periods')
-
-    effective = pd.Series([pd.to_datetime(create_date(period)) for period in periods], name='effective')
-
-    low, high = delta_range
-    deltas = pd.Series(pd.to_timedelta(np.random.randint(low, high, rows), 'd'), name='duration')
-
-    expired = effective + deltas
-    expired.name = 'expired'
-
-    df = pd.concat([effective, expired], axis=1)
-
-    return df
-
-
-# make_null_dates(): {{{1
-def make_null_dates(df: pd.DataFrame,
-                    cols: Union[str, List[str]] = ['effective', 'expired'],
-                    null_values_percent: float = .2,
-                    seed: int = 42) -> pd.DataFrame:
-    ''' Generate 'random' null, pd.NaT values
-
-    Parameters
-    ----------
-    df: pandas DataFrame
-
-    cols: column(s) within dataframe to generate random null values for
-
-    null_value_percent: % number of rows to generate null values
-
-
-    Returns
-    -------
-    A pandas DataFrame
-    '''
-    if seed:
-        np.random.seed(seed)
-
-    rows = df.shape[0]
-    percent_to_make_null = int(rows * null_values_percent)
-
-    for col in cols:
-
-        for row in np.random.randint(1, rows, percent_to_make_null):
-            df.loc[row, col] = pd.NaT
-
-    return df
-
-
 # bad_quality_orders(): {{{1
 def bad_quality_orders():
-    '''
-    Generate a dataset with a number of issues to be 'cleaned'.
-    - column names too long
-    - invalid numeric data
-    - invalid/uneven character data
-    - invalid date data
+    ''' Generate sample data cleaning orders dataset
+
+    Contains the following problems:
+        - column names too long
+        - invalid numeric data
+        - invalid/uneven character data
+        - invalid date data
+
+    .. code::
+
+            Gropuing cde_      Order_NBR  This column name is too long      Second column          Quantity  Price
+         0  A100                23899001  First                        row  Scally, Aidan                14  1,23
+         1  A101                23899002  SECOnd   Row                      McAllister, Eoin            103  4,32
+         2  A101                23899003  Thrid        Row                  Tarpey, Mike                  1  3  4,32
+         3  A102                23899004  fOuRth        ROW                 Denton,        Alan          13  49
 
     Returns
     -------
@@ -408,14 +102,460 @@ def bad_quality_orders():
     return df
 
 
-# two_columns_five_rows {{{1
-def two_columns_five_rows():
+# dummy_dataframe {{{1
+def dummy_dataframe(rows: int = 5, cols:int = 5) -> pd.DataFrame:
+    ''' Create dummy dataframe with blank and zero values.
+
+    Used for testing drop_columns()
+
+    .. code::
+
+        dummy_dataframe(rows=2, cols=2)
+
+              zero_1    zero_2  blank_1    blank_2
+         0         0         0
+         1         0         0
+
+    Parameters
+    ----------
+    rows
+        number of rows required
+    cols
+        number of columns required
+
+
+    Returns
+    -------
+    a pandas dataframe
+    '''
+    zeros = pd.Series(np.zeros(rows).astype(int))
+    blanks = pd.Series(['' for x in range(1, rows+1)])
+
+    dummy_zero_cols = {f'zero_{x}': zeros for x in range(1, cols+1)}
+    dummy_blank_cols = {f'blank_{x}': blanks for x in range(1, cols+1)}
+
+    dummy_zero_cols.update(**dummy_blank_cols)
+
+    return pd.DataFrame(dummy_zero_cols)
+
+
+# generate_periods {{{1
+def generate_periods(year: int = 2021,
+                     month_range: Tuple = (1, 12),
+                     delta_range: Tuple = (1, 10),
+                     rows: int = 20,
+                     seed: int = 42) -> pd.DataFrame:
+    ''' Generate random effective and expired period pair values
+
+    Examples
+    --------
+    head(generate_periods(year=2022, rows=5))
+
+    | effective   | expired    |
+    | 2022-07-07  | 2022-07-15 |
+    | 2022-04-26  | 2022-05-01 |
+    | 2022-11-19  | 2022-11-23 |
+    | 2022-08-23  | 2022-08-31 |
+
+    Parameters
+    ----------
+    year
+        desired year
+    month_range
+        range of months required for effective date range.count
+    delta_range
+        range of delta periods to add to effective
+    rows
+        number of rows or records needed
+    seed
+        default 42 - for testing, provide consistent outcome by setting the
+        random seed value
+
+    Returns
+    -------
+    A pandas dataframe containing generated effective and expired pair values.
+   '''
+    def create_date(period):
+        '''
+        '''
+
+        period_str = period.strftime('%Y-%m')
+        day_str = str(np.random.randint(1, period.daysinmonth))
+
+        return f'{period_str}-{day_str.zfill(2)}'
+
+    if seed:
+        np.random.seed(seed)
+
+    low, high = month_range
+    months = np.random.randint(low, high, size=rows)
+    periods = [pd.Period(f'{year}-{str(month).zfill(2)}') for month in months]
+    periods = pd.Series(periods, name='Periods')
+
+    effective = pd.Series([pd.to_datetime(create_date(period)) for period in periods], name='effective')
+
+    low, high = delta_range
+    deltas = pd.Series(pd.to_timedelta(np.random.randint(low, high, rows), 'd'), name='duration')
+
+    expired = effective + deltas
+    expired.name = 'expired'
+
+    df = pd.concat([effective, expired], axis=1)
+
+    return df
+
+
+# make_null_dates(): {{{1
+def make_null_dates(df: pd.DataFrame,
+                    cols: Union[str, List[str]] = ['effective', 'expired'],
+                    null_values_percent: float = .2,
+                    seed: int = 42) -> pd.DataFrame:
+    ''' Generate 'random' null, pd.NaT values
+
+    Parameters
+    ----------
+    df
+        pandas DataFrame
+    cols
+        column(s) within dataframe to generate random null values for
+    null_value_percent
+        % number of rows to generate null values
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    if seed:
+        np.random.seed(seed)
+
+    rows = df.shape[0]
+    percent_to_make_null = int(rows * null_values_percent)
+
+    for col in cols:
+
+        for row in np.random.randint(1, rows, percent_to_make_null):
+            df.loc[row, col] = pd.NaT
+
+    return df
+
+
+# sample_data {{{1
+def sample_data(start: int = 2020,
+                end: int = 2021,
+                freq: str = 'D',
+                seed: int = 30) -> pd.DataFrame:
+    ''' TEST - Regions, countries, dates, values
+
+    Examples
+    --------
+    get_sample_data().head()
+
+    dates       order_dates countries regions idsvalues_1 values_2
+    2020-01-01  2020-01-07  Italy     East    A       311       26
+    2020-01-02  2020-01-08  Portugal  South   D       150      375
+    2020-01-03  2020-01-09  Spain     East    A       396       88
+    2020-01-04  2020-01-10  Italy     East    B       319      233
+    2020-01-05  2020-01-11  Italy     East    D       261      187
+
+
+    Parameters
+    ----------
+    start
+        start year
+    end
+        end year
+    freq
+        frequency (default 'D' days)
+    seed
+        random seed, default 42
+
+
+    Returns
+    -------
+    A pandas Dataframe
+    '''
+
+    if seed is not None:
+        np.random.seed(seed)
+
+    sample_period = pd.date_range(start=str(start), end=str(end), freq=freq)
+    len_period = len(sample_period)
+    dates = pd.Series(sample_period, name='dates')
+
+    order_year_offset = np.random.randint(1, 10)
+    order_dates = (pd.date_range(start=str(start), end=str(end), freq=freq)
+                     .shift(freq=freq, periods=np.random.randint(1, 30)))
+
+    values1 = pd.Series(np.random.randint(low=10, high=400, size=len_period),
+                                          name='values_1')
+
+    values2 = pd.Series(np.random.randint(low=10, high=400, size=len_period),
+                                          name='values_2')
 
     id_list = ['A', 'B', 'C', 'D', 'E']
-    s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
+    ids = pd.Series(np.random.choice(id_list, size=len_period), name='ids')
 
     region_list = ['East', 'West', 'North', 'South']
-    s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
+    regions = pd.Series(np.random.choice(region_list, size=len_period), name='regions')
+
+    country_list = ['Germany', 'Italy', 'France', 'Spain', 'Sweden', 'Portugal', 'Norway', 'Switzerland']
+    countries = pd.Series(np.random.choice(country_list, size=len_period), name='countries')
+
+    data_dictionary = {
+        'dates': dates,
+        'order_dates': order_dates,
+        'countries': countries,
+        'regions': regions,
+        'ids': ids,
+        'values_1': values1,
+        'values_2': values2
+    }
+
+    df = pd.DataFrame(data_dictionary)
+
+    return df
+
+
+# sample_matrix {{{1
+def sample_matrix(size: Tuple = (5, 5),
+                  loc: int = 10,
+                  scale: int = 10,
+                  lowercase_cols: bool = True,
+                  round: int = 3,
+                  seed: int = 42) -> pd.DataFrame:
+    ''' Generate sample data for given size (tuple)
+
+    Draw random samples from a normal (Gaussian) distribution.
+    (Uses np.random.normal)
+
+    Examples
+    --------
+    .. code-block::
+
+        df = sample_matrix()
+        head(df, output=print)
+
+                a       b       c       d       e
+        0  14.967   8.617  16.477  25.230   7.658
+        1   7.659  25.792  17.674   5.305  15.426
+        2   5.366   5.343  12.420  -9.133  -7.249
+        3   4.377  -0.128  13.142   0.920  -4.123
+        4  24.656   7.742  10.675  -4.247   4.556
+
+    Parameters
+    ----------
+    size
+        tuple - (row, column) size required.
+    loc
+        float or array_like of floats. Mean ("centre") of the distribution.
+    scale
+        float or array_like of floats. Standard deviation (spread or "width") of
+        the distribution. Must be non-negative.
+    lowercase_cols
+        Alphabetical column names are lowercase by default.
+
+
+    Returns
+    -------
+    a pandas DataFrame
+    '''
+    if seed:
+        np.random.seed(seed)
+
+    rows, cols = size
+
+    data = np.random.normal(loc=loc, scale=scale, size=(rows, cols))
+    cols = [xl_col_to_name(x - 1) for x in range(1, cols + 1)]
+
+    if lowercase_cols:
+        cols = list(map(str.lower, cols))
+
+    df = pd.DataFrame(data, columns=cols).round(round)
+
+    return df
+
+
+# sample_sales {{{1
+def sample_sales(number_of_rows: int = 200,
+                 year: int = 2021,
+                 seed: int = 42) -> pd.DataFrame:
+    ''' Generate sales product data
+
+    location, product, month, target_sales,
+    target_profit, actual_sales, actual profit.
+
+    Examples
+    --------
+
+    .. code-block::
+
+        get_sample_sales().head()
+
+        | location| product   | month     |target_sales |target_profit |actual_sales |actual_profit |
+        | London  | Beachwear | 2021-01-01|       31749 |      1904.94 |     29209.1 |      1752.54 |
+        | London  | Beachwear | 2021-01-01|       37833 |      6053.28 |     34049.7 |      5447.95 |
+        | London  | Jeans     | 2021-01-01|       29485 |      4127.9  |     31549   |      4416.85 |
+        | London  | Jeans     | 2021-01-01|       37524 |      3752.4  |     40901.2 |      4090.12 |
+        | London  | Sportswear| 2021-01-01|       27216 |      4354.56 |     29121.1 |      4659.38 |
+
+
+    Parameters
+    ----------
+    number_of_rows
+        number of records/rows required.
+    year
+        sales year to generate data for.
+    seed
+        random seed, default 42
+
+
+    Returns
+    -------
+    Pandas Dataframe
+
+    '''
+    if seed is not None:
+        np.random.seed(seed)
+
+    locations = ['London', 'Paris', 'Milan']
+    products = ['Tops & Blouses', 'Jeans', 'Footwear', 'Beachwear', 'Sportswear']
+
+    data = {
+        'location': np.random.choice(locations, size=number_of_rows),
+        'product': np.random.choice(products, size=number_of_rows),
+        'month': np.random.choice(range(1, 13), size=number_of_rows),
+        'target_sales': np.random.randint(14000, 40000, size=number_of_rows),
+        'target%_profit': np.random.randint(10, size=number_of_rows) * .02
+    }
+
+    df = pd.DataFrame(data)
+
+    df['month'] = df['month'].apply(
+        lambda x: pd.Period(f'{year}-{str(x).zfill(2)}'))
+
+    df['target_profit'] = df['target_sales'] * df['target%_profit']
+
+    f = lambda x: x + (x * np.random.choice(range(-10, 10)) / 100)
+    df['actual_sales'] = df['target_sales'].apply(f)
+
+    df['actual_profit'] = (df['actual_sales'] * df['target%_profit']).round(2)
+
+    df.drop(columns=['target%_profit'], inplace=True)
+    df.month = pd.PeriodIndex(df.month).to_timestamp()
+
+    df = df.sort_values(['month', 'location', 'product'])
+
+    return df
+
+
+# simple_series_01 {{{1
+def simple_series_01(rows: int = 5,
+                     seed: int = 42) -> pd.Series:
+    ''' Simple series, one column of alphabetical values
+
+    .. code::
+
+        %%piper
+
+        simple_series_01(rows=5, seed=42)
+        >> head(5, tablefmt='plain')
+
+            ids
+         0  D
+         1  E
+         2  C
+         3  E
+         4  E
+
+    Parameters
+    ----------
+    rows
+        number of rows required
+    seed
+        default 42 - for testing, provide consistent outcome by setting the
+        random seed value
+
+    '''
+    if seed:
+        np.random.seed(seed)
+
+    id_list = ['A', 'B', 'C', 'D', 'E']
+    s1 = pd.Series(np.random.choice(id_list, size=rows), name='ids')
+
+    return s1
+
+
+# single_column_dataframe_messy_text {{{1
+def single_column_dataframe_messy_text():
+    ''' Series with string data to be cleaned.
+
+    Used for testing string based functions.
+
+    .. code::
+
+        df = pd.DataFrame(data, columns=['test_col'])
+        df
+
+                test_col
+             0  First                        row
+             1  SECOnd   Row
+             2  fOuRth      Row
+             3  fIFTH      rOw
+             4  Thrid        Row
+             5  fOuRth        ROW
+             6  fIFTH rOw
+             7  sIxTH        rOw
+             8  SeVENtH roW
+             9  EIghTh RoW
+            10  NINTH      row
+            11  TEnTh           rOW
+
+    '''
+
+    data = [['First                        row'],
+            ['SECOnd   Row '],
+            ['fOuRth      Row          '],
+            ['fIFTH      rOw         '],
+            ['Thrid        Row          '],
+            ['fOuRth        ROW  '],
+            ['fIFTH rOw'],
+            ['sIxTH        rOw      '],
+            ['SeVENtH roW     '],
+            ['EIghTh RoW     '],
+            ['NINTH      row'],
+            ['TEnTh           rOW         ']]
+
+    df = pd.DataFrame(data, columns=['test_col'])
+
+    return df
+
+
+# two_columns_five_rows {{{1
+def two_columns_five_rows(rows: int = 5,
+                          seed: int = 42) -> pd.DataFrame:
+    ''' Dataframe with two columns
+
+    Parameters
+    ----------
+    rows
+        number of rows required
+    seed
+        default 42 - for testing, provide consistent outcome by setting the
+        random seed value
+
+    Returns
+    -------
+    a pandas dataframe
+    '''
+    if seed:
+        np.random.seed(seed)
+
+    id_list = ['A', 'B', 'C', 'D', 'E']
+    s1 = pd.Series(np.random.choice(id_list, size=rows), name='ids')
+
+    region_list = ['East', 'West', 'North', 'South']
+    s2 = pd.Series(np.random.choice(region_list, size=rows), name='regions')
 
     df = pd.concat([s1, s2], axis=1)
 
@@ -478,120 +618,3 @@ def xl_test_data():
     return df
 
 
-# simple_series_01 {{{1
-def simple_series_01():
-    ''' Simple series, one column of alphabetical values '''
-    np.random.seed(42)
-
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
-
-    return s1
-
-
-# get_sample_df3 {{{1
-def get_sample_df3():
-
-    id_list = ['A', 'B', 'C', 'D', 'E']
-    s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
-
-    region_list = ['East', 'West', 'North', 'South']
-    s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
-
-    region_list = ['UK', 'France', 'Germany', 'Italy']
-    s3 = pd.Series(np.random.choice(region_list, size=5), name='countries')
-
-    df = pd.concat([s1, s2, s3], axis=1)
-
-    return df
-
-
-# get_sample_df4 {{{1
-def get_sample_df4():
-
-    dict_a = {'column_A': {'0': 'A100',  '1': 'A101',  '2': 'A101',
-                           '3': 'A102',  '4': 'A103',  '5': 'A103',
-                           '6': 'A103',  '7': 'A104',  '8': 'A105',
-                           '9': 'A105', '10': 'A102', '11': 'A103'}}
-
-    df = pd.DataFrame(dict_a)
-
-    dict_b = {'column_B': {'0': 'First Row',  '1': 'Second Row',
-                           '2': 'Fourth Row', '3': 'Fifth Row',
-                           '4': 'Third Row',  '5': 'Fourth Row',
-                           '6': 'Fifth Row',   '7': 'Sixth Row',
-                           '8': 'Seventh Row', '9': 'Eighth Row',
-                           '10': 'Ninth Row', ' 11': 'Tenth Row'}}
-    df2 = pd.DataFrame(dict_b)
-
-    return df, df2
-
-
-# get_sample_df5 {{{1
-def get_sample_df5():
-
-    test = ''' {"bgy56icnt":{"0":"BE","1":"BE","2":"BE","3":"BE","4":"BE"},
-                "bgz56ccode":{"0":46065502,"1":46065502,"2":46065502,
-                "3":46065798,"4":46066013}} '''
-
-    df = pd.DataFrame(json.loads(test))
-
-    return df
-
-
-# get_sample_df6 {{{1
-def get_sample_df6():
-
-    test = ''' {"column_A":{"0":"AA","1":"BB","2":"CC","3":"DD","4":"EE"},
-                "column_B":{"0":100,"1":200,"2":300,"3":400,"4":500}} '''
-    df = pd.DataFrame(json.loads(test))
-
-    test = ''' {"column_A":{"0":"A_","1":"AA","2":"AA","3":"BB","4":"CC"},
-                "column_B":{"0":100,"1":200,"2":300,"3":400,"4":500}} '''
-    df2 = pd.DataFrame(json.loads(test))
-
-    return df, df2
-
-
-# single_column_dataframe_messy_text {{{1
-def single_column_dataframe_messy_text():
-
-    test = ''' {"test_col": {
-            "0": "First                        row",
-            "1": "SECOnd   Row ",
-            "2": "Thrid        Row          ",
-            "3": "fOuRth        ROW  ",
-            "4": "fIFTH rOw",
-            "5": "sIxTH        rOw      ",
-            "6": "SeVENtH roW     ",
-            "7": "EIghTh RoW     ",
-            "8": "NINTH      row",
-            "9": "TEnTh           rOW         ",
-            "10": "fOuRth      Row          ",
-            "11": "fIFTH      rOw         "
-        } }'''
-    df = pd.DataFrame(json.loads(test))
-
-    return df
-
-
-# dummy_dataframe {{{1
-def dummy_dataframe(rows: int = 5, cols:int = 5) -> pd.DataFrame:
-    '''
-    Create a dummy dataframe with blank and zero values.
-    Used for testing drop_columns()
-
-    Examples
-    --------
-    dummy_dataframe(rows=5, cols=5)
-
-    '''
-    zeros = pd.Series(np.zeros(rows).astype(int))
-    blanks = pd.Series(['' for x in range(1, rows+1)])
-
-    dummy_zero_cols = {f'zero_{x}': zeros for x in range(1, cols+1)}
-    dummy_blank_cols = {f'blank_{x}': blanks for x in range(1, cols+1)}
-
-    dummy_zero_cols.update(**dummy_blank_cols)
-
-    return pd.DataFrame(dummy_zero_cols)

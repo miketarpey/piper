@@ -2,7 +2,7 @@ from piper.verbs import summary_df
 from piper.utils import is_type
 from piper.pandas import read_sql
 from piper.factory import bad_quality_orders
-from piper.factory import get_sample_df4
+import pandas as pd
 from pandas._testing import assert_frame_equal
 from pandas._testing import assert_series_equal
 import pytest
@@ -11,11 +11,6 @@ import pytest
 @pytest.fixture
 def sample_orders_01():
     return bad_quality_orders()
-
-
-@pytest.fixture
-def sample_df4():
-    return get_sample_df4()
 
 
 @pytest.fixture
@@ -70,16 +65,30 @@ def test_istype_not_str():
     assert expected == actual
 
 # test_summary_df {{{1
-def test_generate_summary_df(sample_df4):
+def test_generate_summary_df():
     """
     """
-    df, df2 = sample_df4
+    dict_a = {'column_A': {'0': 'A100',  '1': 'A101',  '2': 'A101',
+                           '3': 'A102',  '4': 'A103',  '5': 'A103',
+                           '6': 'A103',  '7': 'A104',  '8': 'A105',
+                           '9': 'A105', '10': 'A102', '11': 'A103'}}
+    df = pd.DataFrame(dict_a)
+
+    dict_b = {'column_B': {'0': 'First Row',  '1': 'Second Row',
+                           '2': 'Fourth Row', '3': 'Fifth Row',
+                           '4': 'Third Row',  '5': 'Fourth Row',
+                           '6': 'Fifth Row',   '7': 'Sixth Row',
+                           '8': 'Seventh Row', '9': 'Eighth Row',
+                           '10': 'Ninth Row', ' 11': 'Tenth Row'}}
+    df2 = pd.DataFrame(dict_b)
 
     datasets = [('1st dataset', df), ('2nd dataset', df2)]
+
     summary = summary_df(datasets, title='Summary',
                             col_total='Total records',
                             add_grand_total=True,
                             grand_total='Grand total')
+
     expected = 24
     actual = summary.loc['Grand total', 'Total records']
 
