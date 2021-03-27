@@ -25,6 +25,62 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# factorize {{{1
+def factorize(series: pd.Series,
+              categories: List = None,
+              ordered: int = False) -> pd.Series:
+    ''' factorize / make column a categorical dtype
+
+    Parameters
+    ----------
+    series
+        pd.Series object to be converted to categorical
+    categories
+        list of unique category values within pd.Series
+    ordered
+        If true, categorical is ordered.
+
+
+    Returns
+    -------
+    pd.Series
+        Returned series with categorical data type
+
+    Examples
+    --------
+
+    .. code-block::
+
+        cat_order = ['Tops & Blouses', 'Beachwear',
+                     'Footwear', 'Jeans', 'Sportswear']
+
+        %%piper
+        sample_sales()
+        >> assign(product=lambda x: factorize(x['product'],
+                                              categories=cat_order,
+                                              ordered=True))
+        >> group_by(['location', 'product'])
+        >> summarise(Total=('actual_sales', 'sum'))
+        >> unstack()
+        >> flatten_cols(remove_prefix='Total')
+        >> head(tablefmt='plain')
+
+        location Tops & Blouses Beachwear  Footwear   Jeans Sportswear
+        London           339236    388762    274674  404440     291561
+        Milan            523052    368373    444624  364343     319199
+        Paris            481787    464725    383093  178117     150222
+
+    '''
+    if categories is None:
+        series = series.astype('category')
+    else:
+        category_dtype = pd.CategoricalDtype(categories=categories,
+                                             ordered=ordered)
+        series = series.astype(category_dtype)
+
+    return series
+
+
 # fiscal_year {{{1
 def fiscal_year(date: Union[pd.Timestamp],
                 start_month: int = 7,

@@ -16,6 +16,7 @@ from piper.text import _get_qual_file
 from piper.verbs import clean_columns
 from piper.verbs import str_trim
 from zipfile import ZipFile, ZIP_DEFLATED
+from piper.xl import WorkBook
 
 logger = logging.getLogger(__name__)
 
@@ -600,6 +601,123 @@ def read_text(file_name, count=True):
         return total_records
     else:
         return text_data
+
+
+# to_csv() {{{1
+def to_csv(df: pd.DataFrame,
+          *args,
+          **kwargs) -> None:
+    '''to CSV
+
+    This is a wrapper function rather than using e.g. df.to_csv()
+    For details of args, kwargs - see help(pd.DataFrame.to_csv)
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+
+    return df.to_csv(*args, **kwargs, index=False)
+
+
+# to_tsv() {{{1
+def to_tsv(df: pd.DataFrame,
+           file_name: str,
+           sep='\t') -> None:
+    '''to TSV
+
+    This is a wrapper function rather than using e.g. df.to_tsv()
+    For details of args, kwargs - see help(pd.DataFrame.to_tsv)
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    file_name
+        output filename (extension assumed to be .tsv)
+    sep
+        separator - default \t (tab-delimitted)
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    file_name = _file_with_ext(file_name, extension='.tsv')
+
+    rows = df.shape[0]
+    if rows > 0:
+        df.to_csv(file_name, sep=sep, index=False)
+        logger.info(f'{file_name} exported, {df.shape[0]} rows.')
+
+
+# to_parquet() {{{1
+def to_parquet(df: pd.DataFrame, *args, **kwargs) -> None:
+    '''to parquet
+
+    This is a wrapper function rather than using e.g. df.to_parquet()
+    For details of args, kwargs - see help(pd.DataFrame.to_parquet)
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+
+    return df.to_parquet(*args, **kwargs)
+
+
+# to_excel() {{{1
+def to_excel(df: pd.DataFrame,
+             file_name: str = None,
+             *args,
+             **kwargs) -> None:
+    '''to excel
+
+    This is a wrapper function for piper WorkBook class
+    For details of args, kwargs - see help(piper.xl.WorkBook)
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    kwargs['file_name'] = file_name
+    kwargs['sheets'] = df
+
+    WorkBook(*args, **kwargs)
+
 
 # write_text() {{{1
 def write_text(file_name, text):

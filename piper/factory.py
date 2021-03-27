@@ -220,13 +220,13 @@ def make_null_dates(df: pd.DataFrame,
         >> make_null_dates(cols=['dates', 'order_dates'])
         >> head(6)
 
-            dates                order_dates          countries    regions    ids      values_1    values_2
-         0  2020-01-01 00:00:00  2020-01-07 00:00:00  Italy        East       A             311          26
-         1  2020-01-02 00:00:00  2020-01-08 00:00:00  Portugal     South      D             150         375
-         2  NaT                  2020-01-09 00:00:00  Spain        East       A             396          88
-         3  2020-01-04 00:00:00  2020-01-10 00:00:00  Italy        East       B             319         233
-         4  2020-01-05 00:00:00  2020-01-11 00:00:00  Italy        East       D             261         187
-         5  2020-01-06 00:00:00  NaT                  Switzerland  North      D             155         253
+            dates                order_dates          countries    regions  ids  values_1 values_2
+         0  2020-01-01 00:00:00  2020-01-07 00:00:00  Italy        East     A         311       26
+         1  2020-01-02 00:00:00  2020-01-08 00:00:00  Portugal     South    D         150      375
+         2  NaT                  2020-01-09 00:00:00  Spain        East     A         396       88
+         3  2020-01-04 00:00:00  2020-01-10 00:00:00  Italy        East     B         319      233
+         4  2020-01-05 00:00:00  2020-01-11 00:00:00  Italy        East     D         261      187
+         5  2020-01-06 00:00:00  NaT                  Switzerland  North    D         155      253
 
     Parameters
     ----------

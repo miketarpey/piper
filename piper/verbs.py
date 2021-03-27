@@ -466,6 +466,26 @@ def assign(df: pd.DataFrame,
          2  Jeans               29485  2021-01-02 00:00:00           6310          -27132  Jeans, TEST           5423715
          3  Jeans               37524  2021-01-02 00:00:00           8180          -36811  Jeans, TEST           5423715
 
+    An example of assign accessing the apply function of a series (column), converting
+    the row values from a string of comma separated values into a list object.
+
+    .. code-block::
+
+        %%piper
+        sample_sales()
+        >> select(['-target_profit', '-month', '-location', '-target_sales'])
+        >> str_join(columns=['actual_sales', 'product', 'actual_profit'],
+                    sep=',', column='actual_sales',
+                    drop=False)
+        >> assign(actual_sales_= lambda x: x.actual_sales_.apply(lambda x: x.split(',')))
+        >> head(tablefmt='plain')
+
+             product   actual_sales  actual_sales_                        actual_profit
+          4  Beachwear        29209  ['29209.08', 'Beachwear', '1752.54']          1753
+        125  Beachwear        34050  ['34049.7', 'Beachwear', '5447.95']           5448
+         21  Jeans            31549  ['31548.95', 'Jeans', '4416.85']              4417
+        148  Jeans            40901  ['40901.16', 'Jeans', '4090.12']              4090
+
     '''
     if kwargs:
         for keyword, value in kwargs.items():
@@ -902,9 +922,9 @@ def distinct(df: pd.DataFrame,
     .. code-block::
 
         from piper.verbs import select, distinct
-        from piper.test.factory import get_sample_df1
+        from piper.factory import sample_data
 
-        df = get_sample_df1()
+        df = sample_data()
         df = select(df, ['countries', 'regions', 'ids'])
         df = distinct(df, 'ids', shape=False)
 
@@ -1039,25 +1059,25 @@ def duplicated(df: pd.DataFrame,
                duplicates: bool = False) -> pd.DataFrame:
     '''locate duplicate data
 
+    .. note::
+
+        Returns a copy of the input dataframe object
+
     Examples
     --------
     .. code-block::
 
-        from piper.test.factory import get_sample_df5
-        df = get_sample_df5()
+        from piper.factory import simple_series
+        df = simple_series().to_frame()
 
-        duplicated_fields = ['bgy56icnt', 'bgz56ccode']
-        df = duplicated(df[duplicated_fields],
-                        subset=duplicated_fields,
-                        keep='first', sort=True)
+        df = duplicated(df, keep='first', sort=True)
         df
-          duplicate  bgy56icnt       bgz56ccode
-          False      BE                46065502
-          True       BE                46065502
-          True       BE                46065502
-          False      BE                46065798
-          False      BE                46066013
 
+            ids    duplicate
+         2  C      False
+         0  D      False
+         1  E      False
+         3  E      True
 
     Parameters
     ----------
@@ -1085,20 +1105,20 @@ def duplicated(df: pd.DataFrame,
     -------
     pandas dataframe
     '''
-    dx = df.copy(deep=True)
+    df = _dataframe_copy(df, inplace=False)
 
     if subset is None:
-        subset = dx.columns.tolist()
+        subset = df.columns.tolist()
 
-    dx[column] = dx.duplicated(subset, keep=keep)
+    df[column] = df.duplicated(subset, keep=keep)
 
     if duplicates:
-        dx = dx[dx[column]]
+        df = df[df[column]]
 
     if sort:
-        dx = dx.sort_values(subset)
+        df = df.sort_values(subset)
 
-    return dx
+    return df
 
 
 # explode() {{{1
@@ -1107,16 +1127,16 @@ def explode(df: pd.DataFrame,
             **kwargs) -> pd.DataFrame:
     '''Transform list-like column values to rows
 
-    This is a wrapper function rather than using e.g. df.drop()
-    For details of args, kwargs - see help(pd.DataFrame.drop)
+    This is a wrapper function rather than using e.g. df.explode()
+    For details of args, kwargs - see help(pd.DataFrame.explode)
 
     Examples
     --------
     .. code-block::
 
-        from piper.test.factory import get_sample_df1
+        from piper.factory import sample_data
 
-        df = get_sample_df1()
+        df = sample_data()
         df = group_by(df, 'countries')
         df = summarise(df, ids=('ids', set))
         df.head()
@@ -1142,7 +1162,7 @@ def explode(df: pd.DataFrame,
           Portugal      C
           Portugal      A
 
-        Parameters
+    Parameters
     ----------
     df
         dataframe
@@ -1555,12 +1575,10 @@ def memory(df: pd.DataFrame) -> pd.DataFrame:
         memory(sample_sales())
         >> Dataframe consumes 0.03 Mb
 
-
     Parameters
     ----------
     df
         pandas dataframe
-
 
     Returns
     -------
@@ -1860,10 +1878,10 @@ def pivot_wider(df: pd.DataFrame,
     .. code-block::
 
         from piper.verbs import pivot_wider
-        from piper.test.factory import get_sample_df1
+        from piper.factory import sample_data
         import piper.defaults
 
-        df = get_sample_df1()
+        df = sample_data()
 
         index=['dates', 'order_dates', 'regions', 'ids']
         pvt = pivot_wider(df, index=index, freq='Q', format_date=True)
@@ -2413,24 +2431,37 @@ def split_dataframe(df: pd.DataFrame,
     return np.split(df, range_)
 
 
-# str_combine() {{{1
-def str_combine(df: pd.DataFrame,
-                columns: Union[str, list] = None,
+# str_join() {{{1
+def str_join(df: pd.DataFrame,
+                columns: List = None,
                 column: str = None,
-                sep: str = '-',
+                sep: str = '',
                 loc: str = 'after',
                 drop: bool = True) -> pd.DataFrame:
-    ''' combine columns with a separator
+    ''' join or combine columns with a separator
 
+    Join or combine a number of columns together into one column. Column(s) that
+    are not of 'string' data type are automatically converted to strings then
+    combined.
+
+    .. note::
+
+        If the column keyword value contains one of the combined columns, it will
+        automatically replace the original column if drop=True.
+
+        If drop=False, the function will rename and append an underscore to the
+        returned combined column name. See example for details:
 
     Parameters
     ----------
     df
         a pandas dataframe
     columns
-        list of column names to combine
+        list of column names to join/combine
     column
         (optional) column name to store the results of combined columns
+    sep
+        (optional) separator value. Default is ''.
     loc
         location to place the split column output within the dataframe
         Default is 'after' meaning place the output after the column.
@@ -2441,7 +2472,7 @@ def str_combine(df: pd.DataFrame,
 
         For more information about relocating columns - see the relocate() function.
     drop
-        drop original columns used in combine function
+        drop original columns used in str_join function
 
     Returns
     -------
@@ -2450,19 +2481,59 @@ def str_combine(df: pd.DataFrame,
     Examples
     --------
 
+    .. code-block::
+
+        %%piper
+        sample_sales()
+        >> str_join(columns=['actual_sales', 'product', 'actual_profit'],
+                    sep='|',
+                    column='actual_sales',
+                    drop=True)
+        >> head(tablefmt='plain')
+
+             location month               target_sales target_profit actual_sales
+          4  London   2021-01-01 00:00:00        31749          1905 29209.08|Beachwear|1752.54
+        125  London   2021-01-01 00:00:00        37833          6053 34049.7|Beachwear|5447.95
+         21  London   2021-01-01 00:00:00        29485          4128 31548.95|Jeans|4416.85
+        148  London   2021-01-01 00:00:00        37524          3752 40901.16|Jeans|4090.12
+
+    Same example, this time with drop=False, note the appended underscore in the
+    combined column name.
+
+    .. code-block::
+
+        %%piper
+
+        sample_sales()
+        >> select(['-target_profit', '-month'])
+        >> str_join(columns=['actual_sales', 'product', 'actual_profit'],
+                    sep='|',
+                    column='actual_sales',
+                    drop=False)
+        >> head(tablefmt='plain')
+
+             location product   target_sales actual_sales actual_sales_              actual_profit
+          4  London   Beachwear        31749        29209 29209.08|Beachwear|1752.54          1753
+        125  London   Beachwear        37833        34050 34049.7|Beachwear|5447.95           5448
+         21  London   Jeans            29485        31549 31548.95|Jeans|4416.85              4417
+        148  London   Jeans            37524        40901 40901.16|Jeans|4090.12              4090
+
     '''
     df = _dataframe_copy(df, inplace=False)
 
     if not isinstance(columns, list):
             raise NameError(f"Columns '{columns}' must be a list")
 
+    if column is not None:
+        if not isinstance(column, str):
+            raise TypeError(f"Column name '{column}' must be a string")
+
+    if len(columns) < 2:
+        raise ValueError(f"Please enter at least 2 columns")
+
     for col in columns:
         if col not in df.columns.tolist():
                 raise NameError(f"Please check column name '{col}' specified")
-
-    if len(columns) < 2:
-        msg = f'Length of columns parameter is {len(columns)} must be at least 2, please check'
-        raise ValueError(msg)
 
     # Make sure ALL columns to be concatenated are string type
     for col in columns:
@@ -2478,6 +2549,14 @@ def str_combine(df: pd.DataFrame,
     else:
         new_col.name = column
 
+    # If one of the columns to be combined has the same name
+    # as the new column, append '_' to the combined column name.
+    duplicate_column_name = False
+    for idx, col in enumerate(columns):
+        if col in new_col.name:
+            new_col.name = new_col.name + '_'
+            duplicate_column_name = True
+
     if len(columns) > 2:
         for col in columns[2:]:
             new_col = new_col.str.cat(df[col], sep=sep)
@@ -2489,13 +2568,16 @@ def str_combine(df: pd.DataFrame,
     if drop:
         df = df.drop(columns=columns)
 
+        if duplicate_column_name:
+            df = df.rename(columns={new_col.name: column})
+
     return df
 
 
 # str_split() {{{1
 def str_split(df: pd.DataFrame,
               column: str = None,
-              columns: Union[str, list] = None,
+              columns: List = None,
               pat: str = ',',
               n: int = -1,
               expand: bool = True,
@@ -2507,6 +2589,14 @@ def str_split(df: pd.DataFrame,
     list of column names to store the result. By default the result is placed just
     after the specified column.
 
+    .. note::
+
+        If one of the target split columns contains the same name as the column
+        to be split and drop=False, the function will append an underscore '_'
+        to the end of the corresponding new split column name.
+
+        If drop=True, the the new split column name will NOT be renamed and just
+        replace the original column name. See examples for details.
 
     Parameters
     ----------
@@ -2515,10 +2605,10 @@ def str_split(df: pd.DataFrame,
     column
         column to be split
     columns
-        (optional) str or list of column names to store the results of the split
+        list-like of column names to store the results of the split
         column values
     pat
-        regular expression pattern
+        regular expression pattern. Default is ','
     n
         default -1. Number of splits to capture. -1 means capture ALL splits
     loc
@@ -2539,15 +2629,57 @@ def str_split(df: pd.DataFrame,
 
     Examples
     --------
+    An example where the one of the new split column names is the same as the
+    split column.
+
+    .. code-block::
+
+        %%piper
+
+        sample_sales()
+        >> select(['-target_profit', '-actual_sales'])
+        >> str_split(column='month',
+                    pat='-',
+                    columns=['day', 'month', 'year'],
+                    drop=False)
+        >> head(tablefmt='plain')
+
+             location product    month        day month_ year target_sales actual_profit
+          4  London   Beachwear  2021-01-01  2021     01   01        31749          1753
+        125  London   Beachwear  2021-01-01  2021     01   01        37833          5448
+         21  London   Jeans      2021-01-01  2021     01   01        29485          4417
+        148  London   Jeans      2021-01-01  2021     01   01        37524          4090
+
+    The same example, this time with the drop=True parameter specified.
+
+    .. code-block::
+
+        sample_sales()
+        >> select(['-target_profit', '-actual_sales'])
+        >> str_split(column='month',
+                    pat='-',
+                    columns=['day', 'month', 'year'],
+                    drop=True)
+        >> head(tablefmt='plain')
+
+             location    product      day    month    year    target_sales    actual_profit
+          4  London      Beachwear   2021       01      01           31749             1753
+        125  London      Beachwear   2021       01      01           37833             5448
+         21  London      Jeans       2021       01      01           29485             4417
+        148  London      Jeans       2021       01      01           37524             4090
 
     '''
     df = _dataframe_copy(df, inplace=False)
 
+    if not isinstance(column, str):
+        raise TypeError(f"Column name '{column}' must be a string")
+
     if column not in df.columns:
         raise NameError(f"Please check column name '{column}' specified")
 
-    if not isinstance(column, str):
-        raise NameError(f"Column name '{column}' must be a string")
+    if columns is not None:
+        if not isinstance(columns, list):
+            raise TypeError(f"Columns '{columns}' must be list-like")
 
     # Make sure column to be split is of string type
     if not pd.api.types.is_string_dtype(df[column]) and \
@@ -2566,9 +2698,6 @@ def str_split(df: pd.DataFrame,
             cols_to_move = split_cols.columns.tolist()
             df = relocate(df, cols_to_move, loc=loc, ref_column=column)
         else:
-            if isinstance(columns, str):
-                columns = [columns]
-
             # If one of the new split columns has the same name
             # as the original column, append '_' to the split column name.
             for idx, col in enumerate(columns):
@@ -3252,7 +3381,7 @@ def _dataframe_copy(df: pd.DataFrame,
     can just copy the below line, and the function will either work directly on
     the received dataframe or a copy.
 
-    df = _dataframe_copy(inplace=False)
+    df = _dataframe_copy(df, inplace=False)
 
     Parameters
     ----------

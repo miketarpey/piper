@@ -43,7 +43,7 @@ from piper.verbs import summarise
 from piper.verbs import summary_df
 from piper.verbs import split_dataframe
 from piper.verbs import str_split
-from piper.verbs import str_combine
+from piper.verbs import str_join
 from piper.verbs import tail
 from piper.verbs import to_tsv
 from piper.verbs import transform
@@ -1474,6 +1474,87 @@ def test_set_columns():
 
     assert expected == actual
 
+# test_str_join_str_column_drop_false {{{1
+def test_str_join_str_column_drop_false(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_join(df,
+                      columns=['actual_sales', 'product'],
+                      sep='|',
+                      column='combined_col',
+                      drop=False)
+
+    assert actual.loc[4, 'combined_col'] == '29209.08|Beachwear'
+    assert 'actual_sales' in actual.columns.tolist()
+    assert 'product' in actual.columns.tolist()
+
+
+# test_str_join_str_3_columns_drop_true {{{1
+def test_str_join_str_3_columns_drop_true(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_join(df,
+                      columns=['actual_sales', 'product', 'actual_profit'],
+                      sep='|',
+                      column='combined_col',
+                      drop=True)
+
+    assert actual.loc[4, 'combined_col'] == '29209.08|Beachwear|1752.54'
+    assert 'actual_sales' not in actual.columns.tolist()
+    assert 'actual_profit' not in actual.columns.tolist()
+    assert 'product' not in actual.columns.tolist()
+
+
+# test_str_join_str_3_columns_default_join_column_drop_true {{{1
+def test_str_join_str_3_columns_default_join_column_drop_true(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_join(df,
+                      columns=['actual_sales', 'product', 'actual_profit'],
+                      sep='|',
+                      drop=True)
+
+    assert actual.loc[4, '0'] == '29209.08|Beachwear|1752.54'
+    assert 'actual_sales' not in actual.columns.tolist()
+    assert 'actual_profit' not in actual.columns.tolist()
+    assert 'product' not in actual.columns.tolist()
+
+
+# test_str_join_str_column_drop_true {{{1
+def test_str_join_str_column_drop_true(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_join(df,
+                      columns=['actual_sales', 'product'],
+                      sep='|',
+                      column='combined_col',
+                      drop=True)
+
+    assert actual.loc[4, 'combined_col'] == '29209.08|Beachwear'
+    assert 'actual_sales' not in actual.columns.tolist()
+    assert 'product' not in actual.columns.tolist()
+
+
+# test_str_join_str_column_replace_original_column_drop_true {{{1
+def test_str_join_str_column_replace_original_column_drop_true(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_join(df,
+                      columns=['actual_sales', 'product'],
+                      sep='|',
+                      column='actual_sales',
+                      drop=True)
+
+    assert actual.loc[4, 'actual_sales'] == '29209.08|Beachwear'
+    assert 'actual_sales' in actual.columns.tolist()
+    assert 'product' not in actual.columns.tolist()
+
+
 # test_str_split_str_column_drop_false {{{1
 def test_str_split_str_column_drop_false(t_sample_sales):
 
@@ -1485,8 +1566,6 @@ def test_str_split_str_column_drop_false(t_sample_sales):
     actual[[0, 1, 2]].shape == (200, 3)
 
     assert actual.shape == (200, 10)
-
-    return actual
 
 
 # test_str_split_str_column_drop_true {{{1
@@ -1501,8 +1580,6 @@ def test_str_split_str_column_drop_true(t_sample_sales):
 
     assert actual.shape == (200, 9)
 
-    return actual
-
 
 # test_str_split_date_column_drop_true_expand_false {{{1
 def test_str_split_date_column_drop_true_expand_false(t_sample_sales):
@@ -1512,8 +1589,6 @@ def test_str_split_date_column_drop_true_expand_false(t_sample_sales):
     actual = str_split(df, 'month', pat='-', drop=True, expand=False)
 
     assert actual.loc[4:4, 'month'].values[0] == ['2021', '01', '01']
-
-    return actual
 
 
 # test_str_split_date_column_drop_true_expand_True {{{1
@@ -1526,7 +1601,17 @@ def test_str_split_date_column_drop_true_expand_True(t_sample_sales):
 
     assert actual.loc[4:4, 'year'].values[0] == '2021'
 
-    return actual
+
+# test_str_split_number_column_drop_true_expand_True {{{1
+def test_str_split_number_column_drop_true_expand_True(t_sample_sales):
+
+    df = t_sample_sales
+
+    actual = str_split(df, 'actual_sales',
+                       columns=['number', 'precision'],
+                       pat='.', drop=True, expand=True)
+
+    assert actual.loc[4:4, 'number'].values[0] == '29209'
 
 
 # test_summarise_default{{{1
