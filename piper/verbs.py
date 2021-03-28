@@ -2,8 +2,6 @@ from datetime import datetime
 from pandas.api.types import is_datetime64_any_dtype
 from pandas.api.types import is_period_dtype
 from pandas.core.common import flatten
-from piper.text import _file_with_ext
-from piper.xl import WorkBook
 import logging
 import numpy as np
 import pandas as pd
@@ -2835,6 +2833,10 @@ def summarise(df: pd.DataFrame,
         sample_sales() >>
         group_by('location') >>
         summarise({'product': lambda x: set(x.tolist())}) >>
+
+        # Alternative coding of 'list' ;)
+        # summarise(products=('product', lambda x: list(set(x)))) >>
+
         # explode('product')
 
     '''
@@ -2985,123 +2987,6 @@ def tail(df: pd.DataFrame,
         return
 
     return df.tail(n=n)
-
-
-# to_csv() {{{1
-def to_csv(df: pd.DataFrame,
-          *args,
-          **kwargs) -> None:
-    '''to CSV
-
-    This is a wrapper function rather than using e.g. df.to_csv()
-    For details of args, kwargs - see help(pd.DataFrame.to_csv)
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    *args
-        arguments for wrapped function
-    **kwargs
-        keyword-parameters for wrapped function
-
-
-    Returns
-    -------
-    A pandas DataFrame
-    '''
-
-    return df.to_csv(*args, **kwargs, index=False)
-
-
-# to_tsv() {{{1
-def to_tsv(df: pd.DataFrame,
-           file_name: str,
-           sep='\t') -> None:
-    '''to TSV
-
-    This is a wrapper function rather than using e.g. df.to_tsv()
-    For details of args, kwargs - see help(pd.DataFrame.to_tsv)
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    file_name
-        output filename (extension assumed to be .tsv)
-    sep
-        separator - default \t (tab-delimitted)
-
-
-    Returns
-    -------
-    A pandas DataFrame
-    '''
-    file_name = _file_with_ext(file_name, extension='.tsv')
-
-    rows = df.shape[0]
-    if rows > 0:
-        df.to_csv(file_name, sep=sep, index=False)
-        logger.info(f'{file_name} exported, {df.shape[0]} rows.')
-
-
-# to_parquet() {{{1
-def to_parquet(df: pd.DataFrame, *args, **kwargs) -> None:
-    '''to parquet
-
-    This is a wrapper function rather than using e.g. df.to_parquet()
-    For details of args, kwargs - see help(pd.DataFrame.to_parquet)
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    *args
-        arguments for wrapped function
-    **kwargs
-        keyword-parameters for wrapped function
-
-
-    Returns
-    -------
-    A pandas DataFrame
-    '''
-
-    return df.to_parquet(*args, **kwargs)
-
-
-# to_excel() {{{1
-def to_excel(df: pd.DataFrame,
-             file_name: str = None,
-             *args,
-             **kwargs) -> None:
-    '''to excel
-
-    This is a wrapper function for piper WorkBook class
-    For details of args, kwargs - see help(piper.xl.WorkBook)
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    *args
-        arguments for wrapped function
-    **kwargs
-        keyword-parameters for wrapped function
-
-
-    Returns
-    -------
-    A pandas DataFrame
-    '''
-    kwargs['file_name'] = file_name
-    kwargs['sheets'] = df
-
-    WorkBook(*args, **kwargs)
 
 
 # transform() {{{1

@@ -5,7 +5,6 @@ from piper.factory import sample_column_clean_text
 from piper.factory import sample_data
 from piper.factory import sample_sales
 from piper.factory import simple_series
-from piper.io import read_csv
 from piper.verbs import across
 from piper.verbs import add_xl_formula
 from piper.verbs import adorn
@@ -45,7 +44,6 @@ from piper.verbs import split_dataframe
 from piper.verbs import str_split
 from piper.verbs import str_join
 from piper.verbs import tail
-from piper.verbs import to_tsv
 from piper.verbs import transform
 from piper.verbs import where
 from pandas.api.types import is_float_dtype
@@ -1087,19 +1085,6 @@ def test_pivot_wider_single_grouper(t_sample_data):
     assert p2.loc[('Mar 2020', 'East', 'A'), 'values_1'] > 0
 
 
-# test_read_csv_with_data {{{1
-def test_read_csv_with_data(t_bad_quality_orders):
-    """
-    """
-    file_name = 'piper/temp/to_tsv_with_data.tsv'
-    df_json = pd.DataFrame(t_bad_quality_orders)
-
-    df = read_csv(file_name, sep='\t')
-
-    expected = df_json.shape
-    actual = df.shape
-
-    assert expected == actual
 # test_relocate_no_column {{{1
 def test_relocate_no_column(t_sample_data):
     """
@@ -1654,20 +1639,6 @@ def test_tail_with_dataframe(t_sample_data):
 
     expected = (4, 7)
     actual = tail(df).shape
-    assert expected == actual
-
-
-# test_to_tsv_with_data {{{1
-def test_to_tsv_with_data(t_bad_quality_orders):
-    """
-    Write sample dataframe, no value is return from to_tsv
-    """
-    file_name = 'piper/temp/to_tsv_with_data.tsv'
-    df = pd.DataFrame(t_bad_quality_orders)
-
-    expected = None
-    actual = to_tsv(df, file_name, sep='\t')
-
     assert expected == actual
 
 

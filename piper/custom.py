@@ -4,6 +4,8 @@ from time import strptime
 import logging
 import numpy as np #type: ignore
 import pandas as pd #type: ignore
+from pandas.api.types import is_numeric_dtype
+from pandas.api.types import is_timedelta64_dtype
 import re
 from typing import (
     Any,
@@ -21,8 +23,99 @@ from typing import (
 )
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def duration(s1: pd.Series,
+             s2: pd.Series = None,
+             unit: Union[str, None] = None,
+             round: Union[bool, int] = 2,
+             freq: str = 'd') -> pd.Series:
+    ''' calculate duration between two columns (series)
+
+    Parameters
+    ----------
+    s1
+        'from' datetime series
+    s2
+        'to' datetime series.
+        Default None. If None, defaults to today.
+    interval
+        default None - returns timedelta in days
+                'd' - days as an integer,
+                'years' (based on 365.25 days per year),
+                'months' (based on 30 day month)
+
+        Other possible options are:
+            - ‘W’, ‘D’, ‘T’, ‘S’, ‘L’, ‘U’, or ‘N’
+            - ‘days’ or ‘day’
+            - ‘hours’, ‘hour’, ‘hr’, or ‘h’
+            - ‘minutes’, ‘minute’, ‘min’, or ‘m’
+            - ‘seconds’, ‘second’, or ‘sec’
+            - ‘milliseconds’, ‘millisecond’, ‘millis’, or ‘milli’
+            - ‘microseconds’, ‘microsecond’, ‘micros’, or ‘micro’-
+            - ‘nanoseconds’, ‘nanosecond’, ‘nanos’, ‘nano’, or ‘ns’.
+
+        check out pandas `timedelta object
+        <https://pandas.pydata.org/docs/reference/api/pandas.Timedelta.html>`_
+        for details.
+    round
+        Default False. If duration result is an integer and this
+        parameter contains a positive integer, the result is round to this
+        decimal precision.
+    freq
+        Default is 'd'(days). If the duration result is a pd.Timedelta dtype,
+        the value can be 'rounded' using this frequency parameter.
+
+        Must be a fixed frequency like 'S' (second) not 'ME' (month end).
+        See :ref:`frequency aliases <timeseries.offset_aliases>` for a list
+        of possible `freq` values.
+
+
+    Returns
+    -------
+    series
+        if unit is None - series is of data type timedelta64[ns]
+        otherwise series of type int.
+
+    Examples
+    --------
+
+    .. code-block::
+
+        %%piper
+        sample_data()
+        >> select(['-countries', '-regions', '-ids', '-values_1', '-values_2'])
+        >> assign(new_date_col=pd.to_datetime('2018-01-01'))
+        >> assign(duration = lambda x: duration(x.new_date_col, x.order_dates, unit='months'))
+        >> assign(duration_dates_age = lambda x: duration(x['dates']))
+        >> head(tablefmt='plain')
+
+            dates       rder_dates new_date_col duration duration_dates_age
+         0  2020-01-01  2020-01-07   2018-01-01       25           452 days
+         1  2020-01-02  2020-01-08   2018-01-01       25           451 days
+         2  2020-01-03  2020-01-09   2018-01-01       25           450 days
+         3  2020-01-04  2020-01-10   2018-01-01       25           449 days
+
+    '''
+    if s2 is None:
+        s2 = datetime.today()
+
+    if unit is None:
+        result = s2 - s1
+    elif unit == 'years':
+        result = ((s2 - s1) / pd.Timedelta(365.25, 'd'))
+    elif unit == 'months':
+        result = ((s2 - s1) / pd.Timedelta(30, 'd'))
+    else:
+        result = ((s2 - s1)) / pd.Timedelta(1, unit)
+
+    if is_numeric_dtype(result):
+        result = result.round(round)
+    elif is_timedelta64_dtype(result):
+        result = result.dt.round(freq=freq)
+
+    return result
 
 
 # factorize {{{1
