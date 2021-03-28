@@ -4,25 +4,31 @@ import pandas as pd
 from pathlib import Path
 from os.path import dirname, abspath
 
+from IPython import get_ipython
+from IPython.core.magic import magics_class
+from .magics import PipeMagic
+
 
 logger = logging.getLogger(__name__)
 
 # get_config() {{{1
 def get_config(file_name=None, info=False):
-    ''' Given piper configuration file 'config.json' or
-    odbc user/passwords connections file 'connections.json'
-    retrieve dictionary contents and return
+    ''' Retrieve configuration file ('config.json')
+
+    For given filename, retrieve configuration details as a dictionary.
+    Odbc user/passwords connections are stored in file 'connections.json'
 
     Search strategy is as follows:
-    # 1. Look in current notebook directory
-    # 2. Look in home/piper
-    # 3. Look in package directory (failsafe)
+        1. Look in current notebook directory
+        2. Look in home/piper
+        3. Look in package directory (failsafe)
 
     Parameters
     ----------
-    filename : if None then return {}
-
-    info : True, return and display pd.DataFrame (via notebook)
+    filename
+        if None then return {}
+    info
+        Default True. Return and display pd.DataFrame (via notebook)
 
     Returns
     -------
@@ -32,7 +38,6 @@ def get_config(file_name=None, info=False):
     current_dir = Path.cwd()
     piper_dir = Path.home() / 'piper'
     package_dir = Path(abspath(dirname(__file__))) / 'config'
-    # package_dir = Path(abspath(dirname(__file__)))
 
     search_list = [current_dir, piper_dir, package_dir]
 
@@ -62,9 +67,10 @@ def get_dict_df(dict, colnames=None):
 
     Parameters
     ----------
-    dict : a dictionary containing values to be converted
-
-    colnames : list of columns to subset the data
+    dict
+        a dictionary containing values to be converted
+    colnames
+        list of columns to subset the data
 
     Returns
     -------
@@ -105,3 +111,13 @@ def is_type(value, type_=str):
         return True
 
     return False
+
+
+# register_magic() {{{1
+def register_magic():
+    '''Register pipe magic '''
+
+    ip = get_ipython()
+    ip.register_magics(PipeMagic)
+
+    return ip

@@ -1,12 +1,10 @@
 from piper.custom import to_julian
-from piper.factory import bad_quality_orders
 from piper.factory import dummy_dataframe
 from piper.factory import sample_column_clean_text
 from piper.factory import sample_data
 from piper.factory import sample_sales
 from piper.factory import simple_series
 from piper.verbs import across
-from piper.verbs import add_xl_formula
 from piper.verbs import adorn
 from piper.verbs import assign
 from piper.verbs import clean_columns
@@ -53,11 +51,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import random
-
-# t_bad_quality_orders {{{1
-@pytest.fixture
-def t_bad_quality_orders():
-    return bad_quality_orders()
 
 
 # t_sample_sales {{{1
@@ -156,19 +149,6 @@ def test_across_list_column_series_values_raise_attr_error(t_sample_data):
     with pytest.raises(AttributeError):
         across(df, columns=['values_1', 'values_2'],
                 function=lambda x: x.astype(int), series_obj=False)
-
-
-# test_add_xl_formula {{{1
-def test_add_xl_formula(t_sample_data):
-
-    df = t_sample_data
-
-    formula = '=CONCATENATE(A{row}, B{row}, C{row})'
-    add_xl_formula(df, column_name='X7', formula=formula)
-
-    expected = (367, )
-
-    assert expected == df.X7.shape
 
 
 # test_adorn_row_total {{{1

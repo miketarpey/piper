@@ -28,14 +28,14 @@ def boolean_filter(s, operator=None, value=0):
 
     Parameters
     ----------
-    s: value(int, float, str, pd.Series)
+    s
+        value(int, float, str, pd.Series)
         value(s) to be evaluated (True/False) against operator
-
-
-    operator: str - default '=' , possible values:
-                   '!=', '<', '<=', '>', '>=', 'min', 'max', 'null'
-
-    value: str/integer - value to compare against
+    operator
+        str - default '=' , possible values:
+       '!=', '<', '<=', '>', '>=', 'min', 'max', 'null'
+    value
+        str/integer - value to compare against
 
 
     Returns

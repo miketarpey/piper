@@ -1,10 +1,10 @@
-from piper.factory import bad_quality_orders
 from piper.io import list_files
 from piper.io import read_csv
 from piper.io import read_text
 from piper.io import to_tsv
 from piper.io import write_text
 from piper.io import zip_data
+from piper.factory import bad_quality_orders
 import pandas as pd
 
 import pytest
@@ -16,6 +16,7 @@ directory = 'piper/temp/sql'
 @pytest.fixture
 def sql():
     return ''' select * from eudta.f0006 where rownum=1'''
+
 
 # t_bad_quality_orders {{{1
 @pytest.fixture
@@ -36,8 +37,7 @@ def t_write_text_file():
 # test_read_sql_valid_info_true {{{1
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_read_sql_valid_info_true(sql):
-    """
-    """
+    """ """
     env = 'JDE9E2P'
     con, schema, schema_ctl = connect(env)
     df = read_sql(sql, sql_info=True, con=con, info=False)
@@ -47,8 +47,7 @@ def test_read_sql_valid_info_true(sql):
 # test_read_sql_valid_info_false {{{1
 @pytest.mark.skip(reason="no way of currently testing this")
 def test_read_sql_valid_info_false(sql):
-    """
-    """
+    """ """
     env = 'JDE9E2P'
     con, schema, schema_ctl = connect(env)
     df = read_sql(sql, sql_info=False, con=con, info=True)
@@ -72,13 +71,11 @@ def test_list_files_no_files():
 def test_list_files_with_data():
 
     source = 'piper/'
-
     test_files = list_files(source=source, glob_pattern='*.py')
 
-    expected = 17
     actual = len(test_files)
 
-    assert expected == actual
+    assert actual == 17
 
 
 # test_list_files_with_data_as_posix() {{{1
@@ -162,8 +159,8 @@ def test_zip_data_test_mode(t_write_text_file):
 
     assert expected == actual
 
+
 # test_zip_data_nofiles() {{{1
-@pytest.fixture
 def test_zip_data_nofiles(t_write_text_file):
 
     filename = 'piper/temp/test_zip_file'

@@ -26,6 +26,58 @@ from typing import (
 logger = logging.getLogger(__name__)
 
 
+# add_xl_formula() {{{1
+def add_xl_formula(df: pd.DataFrame,
+                   column_name: str = 'xl_calc',
+                   formula: str = '=CONCATENATE(A{row}, B{row}, C{row})',
+                   offset: int = 2) -> pd.DataFrame:
+
+    '''add Excel (xl) formula column
+
+    Parameters
+    ----------
+    df
+        pandas dataframe
+    column_name
+        the column name to be associated with the column formula values, default
+        'xl_calc'
+    formula
+        Excel formula to be applied. As an example:
+
+        .. code-block::
+
+            '=CONCATENATE(A{row}, B{row}, C{row})'
+
+        where {row} is the defined replacement variable which will be replaced
+        with actual individual row value.
+    offset
+        starting row value, default = 2 (resultant xl sheet includes headers)
+
+
+    Examples
+    --------
+
+    .. code-block::
+
+        formula = '=CONCATENATE(A{row}, B{row}, C{row})'
+        add_xl_formula(df, column_name='X7', formula=formula)
+
+
+    Returns
+    -------
+    pandas dataframe
+    '''
+    col_values = []
+    for x in range(offset, df.shape[0] + offset):
+        repl_str = re.sub('{ROW}', str(x), string=formula, flags=re.I)
+        col_values.append(repl_str)
+
+    df[column_name] = col_values
+
+    return df
+
+
+# duration {{{1
 def duration(s1: pd.Series,
              s2: pd.Series = None,
              unit: Union[str, None] = None,
@@ -56,8 +108,8 @@ def duration(s1: pd.Series,
             - ‘microseconds’, ‘microsecond’, ‘micros’, or ‘micro’-
             - ‘nanoseconds’, ‘nanosecond’, ‘nanos’, ‘nano’, or ‘ns’.
 
-        check out pandas `timedelta object
-        <https://pandas.pydata.org/docs/reference/api/pandas.Timedelta.html>`_
+        check out pandas
+        `timedelta object <https://pandas.pydata.org/docs/reference/api/pandas.Timedelta.html>`_
         for details.
     round
         Default False. If duration result is an integer and this
@@ -68,8 +120,8 @@ def duration(s1: pd.Series,
         the value can be 'rounded' using this frequency parameter.
 
         Must be a fixed frequency like 'S' (second) not 'ME' (month end).
-        See :ref:`frequency aliases <timeseries.offset_aliases>` for a list
-        of possible `freq` values.
+        For a list of valid values, check out
+        `pandas offset aliases <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`_
 
 
     Returns
@@ -209,6 +261,7 @@ def fiscal_year(date: Union[pd.Timestamp],
         df = pd.DataFrame()
         df['Date'] = pd.date_range('2020-01-01', periods=12, freq='M')
         df['Date'] = df['Date'].apply(fiscal_year)
+
         df.head()
 
         0     FY 2018/2019
@@ -217,6 +270,7 @@ def fiscal_year(date: Union[pd.Timestamp],
         3     FY 2018/2019
         4     FY 2018/2019
         Name: Date, dtype: object
+
     '''
     prefix = 'FY'
 
@@ -314,23 +368,24 @@ def from_excel(excel_date: Union[str, float, int, pd.Timestamp]
 
     Examples
     --------
-    assert from_excel(pd.Timestamp('2014-01-01 08:00:00')) == pd.Timestamp('2014-01-01 08:00:00')
-    assert from_excel('41640.3333') == pd.Timestamp('2014-01-01 08:00:00')
-    assert from_excel(41640.3333) == pd.Timestamp('2014-01-01 08:00:00')
-    assert from_excel(44001) == pd.Timestamp('2020-06-19 00:00:00')
-    assert from_excel('44001') == pd.Timestamp('2020-06-19 00:00:00')
-    assert from_excel(43141) == pd.Timestamp('2018-02-10 00:00:00')
-    assert from_excel('43962') == pd.Timestamp('2020-05-11 00:00:00')
-    assert from_excel('') == ''
-    assert from_excel(0) == 0
-    assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)
-    assert pd.isna(from_excel(pd.NaT)) == pd.isna(pd.NaT)
 
+    .. code-block::
+
+        assert from_excel(pd.Timestamp('2014-01-01 08:00:00')) == pd.Timestamp('2014-01-01 08:00:00')
+        assert from_excel('41640.3333') == pd.Timestamp('2014-01-01 08:00:00')
+        assert from_excel(41640.3333) == pd.Timestamp('2014-01-01 08:00:00')
+        assert from_excel(44001) == pd.Timestamp('2020-06-19 00:00:00')
+        assert from_excel('44001') == pd.Timestamp('2020-06-19 00:00:00')
+        assert from_excel(43141) == pd.Timestamp('2018-02-10 00:00:00')
+        assert from_excel('43962') == pd.Timestamp('2020-05-11 00:00:00')
+        assert from_excel('') == ''
+        assert from_excel(0) == 0
+        assert pd.isna(from_excel(np.nan)) == pd.isna(np.nan)
+        assert pd.isna(from_excel(pd.NaT)) == pd.isna(pd.NaT)
 
     Parameters
     ----------
     excel_date - serial excel date value
-
 
     Returns
     -------

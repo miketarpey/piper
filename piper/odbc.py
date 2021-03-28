@@ -1,9 +1,9 @@
 import pypyodbc as pyodbc
 import cx_Oracle
+import pandas as pd
 from psycopg2 import connect as pg_connect
 from piper.utils import get_config
 from piper.io import read_sql
-import pandas as pd
 
 import logging
 
@@ -16,23 +16,23 @@ def connections(file_name=None, return_type='dataframe'):
 
     Parameters
     ----------
-    file_name : json formatted connections file
-                (similar to tnsnames.ora)
-
-                if None (default) uses ../src/config.json
-
-    return type : return object type:
-                  'dataframe'(default)
-                  'dictionary'
+    file_name
+        json formatted connections file (similar to tnsnames.ora)
+        if None (default) uses ../src/config.json
+    return type
+        return object type: 'dataframe'(default) 'dictionary'
 
     Returns
     -------
     dictionary or dataframe
 
-    Example
-    -------
-    df = connections(return_type='dataframe')
-    dict_config = connections(return_type='dictionary')
+    Examples
+    --------
+
+    .. code-block::
+
+        df = connections(return_type='dataframe')
+        dict_config = connections(return_type='dictionary')
 
     '''
     if file_name == None:
@@ -62,28 +62,35 @@ def connections(file_name=None, return_type='dataframe'):
 def connect(connection=None, connection_type=None, file_name=None):
     ''' Return database connection
 
-    Example
-    -------
-    con = connect('beles8', connection_type='ibm')
-    con = connect('orders_db', connection_type='postgres')
-    con, schema, schema_ctl = connect('JDE8EPA')
+    Examples
+    --------
 
-    For list of available connections type connections()
+    .. code-block::
+
+        con = connect('beles8', connection_type='ibm')
+        con = connect('orders_db', connection_type='postgres')
+        con, schema, schema_ctl = connect('JDE8EPA')
+
+    For list of available connections type:
+
+    .. code-block::
+
+        connections()
 
     Parameters
     ----------
-    connection : connection name e.g. 'beles8', 'jde_prod'
-                 stored in connections.json in default ap folder
-
-    connection_type : values - 'postgres', 'ibm', 'oracle'
+    connection
+        connection name e.g. 'beles8', 'jde_prod'
+        stored in connections.json in default ap folder
+    connection_type
+        values - 'postgres', 'ibm', 'oracle'
 
     Returns
     -------
-    If connection_type is = '10.21.1.15')
-    iSeries connection
-
-    oracle connection (con, schema, schema_ctl)
-
+    If connection_type is = '10.21.1.15' then
+        return iSeries connection
+    else
+        oracle connection (con, schema, schema_ctl)
     '''
     if connection_type is None:
         connection_type = 'postgres'
@@ -111,13 +118,17 @@ def connect(connection=None, connection_type=None, file_name=None):
 def _get_iseries_con(connection_parms):
     ''' Return ibm connection for given system.
 
-    Example
-    -------
-    con = _get_iseries_con('beles8')
+    Examples
+    --------
+
+    .. code-block::
+
+        con = _get_iseries_con('beles8')
 
     Parameters
     ----------
-    connection_parms : connection parameters
+    connection_parms
+        connection parameters
 
     Returns
     -------
@@ -140,13 +151,17 @@ def _get_iseries_con(connection_parms):
 def _get_postgres_con(connection_parms):
     ''' Return postgres connection for given system.
 
-    Example
-    -------
-    con = _get_postgres_con('beles8')
+    Examples
+    --------
+
+    .. code-block::
+
+        con = _get_postgres_con('beles8')
 
     Parameters
     ----------
-    connection_parms : connection parameters
+    connection_parms
+        connection parameters
 
     Returns
     -------
@@ -166,14 +181,18 @@ def _get_postgres_con(connection_parms):
 def _get_oracle_con(connection_parms='JDE8EPA'):
     ''' Return Oracle connection and schema, schema_ctl.
 
-    Example
-    -------
-    con, schema, schema_ctl = _get_oracle_con('JDE8EPA')
+    Examples
+    --------
+
+    .. code-block::
+
+        con, schema, schema_ctl = _get_oracle_con('JDE8EPA')
 
     Parameters
     ----------
-    connection_parms : connection_parmsironment key connection (values)
-          stored in connections.json in default ap folder
+    connection_parms
+        connection_parms environment key connection (values)
+        stored in connections.json in default ap folder
 
     Returns
     -------

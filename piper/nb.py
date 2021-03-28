@@ -3,23 +3,39 @@ import json
 import logging
 from pathlib import Path
 
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    Union,
+)
+
 logger = logging.getLogger(__name__)
 
 
 # create_nb_proj {{{1
-def create_nb_proj(project='project', description='notebook project',
-                   relative_to='.', ):
+def create_nb_proj(project: str = 'project',
+                   description: str = 'notebook project',
+                   relative_to: str = '.'):
     '''
     Create notebook project.
 
-
     Parameters:
     -----------
-    project: str project folder name.
-
-    description: str project description.
-
-    relative_to: str relative path to current folder (default '.')
+    project
+        project folder name.
+    description
+        project description.
+    relative_to
+        relative path to current folder (default '.')
 
 
     Returns:
@@ -56,7 +72,8 @@ def create_nb_proj(project='project', description='notebook project',
 
 
 # create_nb_folders {{{1
-def create_nb_folders(project='project', relative_to='.', ):
+def create_nb_folders(project: str = 'project',
+                      relative_to: str = '.'):
     '''
     Create notebook folders based on config.json in
     project folder specified.
@@ -64,10 +81,10 @@ def create_nb_folders(project='project', relative_to='.', ):
 
     Parameters:
     -----------
-    project: str project folder name.
-
-    relative_to: str relative path to current folder
-                 (default '.')
+    project
+        project folder name.
+    relative_to
+        relative path to current folder (default '.')
 
 
     Returns:

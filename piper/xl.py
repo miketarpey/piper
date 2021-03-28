@@ -798,25 +798,3 @@ class WorkBook():
             logger.info(e)
 
         logger.info('Completed.')
-
-
-# sqldeveloper_xl() {{{1
-def sqldeveloper_xl(filename=None, target=None, ts_prefix='date',):
-    ''' Add sqldeveloper excel sheet '''
-
-    if filename is None:
-        project_dir = Path.home()
-        filename = project_dir / 'export.xlsx'
-
-    if target is None:
-        project_dir = Path.home()
-        target = project_dir / 'documents/export.xlsx'
-
-    data = pd.read_excel(filename)
-
-    sql_stmt = pd.read_excel(filename, sheet_name='SQL')
-    sql = sql_stmt.iloc[:1, 0].name
-
-    wb = WorkBook(target, ts_prefix=ts_prefix)
-    wb.add_sheet(data, sql=sql)
-    wb.close()

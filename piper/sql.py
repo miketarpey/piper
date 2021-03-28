@@ -70,7 +70,6 @@ def insert(df, tablename=None, info=False):
     ----------
     df
         pandas dataframe containing rows to be inserted
-
     table_name
         target database table name
 
@@ -252,7 +251,7 @@ def set_sql_text(sql, template_values=True):
 
     return sql
 
-    
+
 # _get_sql_text {{{1
 def _get_sql_text(sql, variables, debug=False):
     ''' Get SQL text string and substitute statement

@@ -4,12 +4,34 @@ import numpy as np
 import pandas as pd
 import pytest
 from time import strptime
+from piper.custom import add_xl_formula
+from piper.factory import sample_data
 from piper.factory import generate_periods, make_null_dates
 from piper.custom import from_julian
 from piper.custom import fiscal_year
 from piper.custom import from_excel
 from piper.custom import to_julian
 from piper.verbs import across
+
+
+# t_sample_data {{{1
+@pytest.fixture
+def t_sample_data():
+    return sample_data()
+
+
+# test_add_xl_formula {{{1
+def test_add_xl_formula(t_sample_data):
+
+    df = t_sample_data
+
+    formula = '=CONCATENATE(A{row}, B{row}, C{row})'
+    add_xl_formula(df, column_name='X7', formula=formula)
+
+    expected = (367, )
+
+    assert expected == df.X7.shape
+
 
 # test_across_str_date_single_col_pd_to_datetime {{{1
 def test_across_str_date_single_col_pd_to_datetime():

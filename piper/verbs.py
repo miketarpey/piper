@@ -213,6 +213,7 @@ def adorn(df: pd.DataFrame,
           axis: Union [int, str] = 0,
           ignore_index: bool = False) -> pd.DataFrame:
     '''add totals to a dataframe
+
     Based on R janitor package function add row and/or column totals to a
     dataframe.
 
@@ -315,53 +316,6 @@ def adorn(df: pd.DataFrame,
 
     if fillna is not None:
         df = df.fillna(fillna)
-
-    return df
-
-
-# add_xl_formula() {{{1
-def add_xl_formula(df: pd.DataFrame,
-                   column_name: str = 'xl_calc',
-                   formula: str = '=CONCATENATE(A{row}, B{row}, C{row})',
-                   offset: int = 2) -> pd.DataFrame:
-
-    '''add Excel (xl) formula column
-
-    Parameters
-    ----------
-    df : pandas dataframe
-
-    column_name : the column name to be associated with the column formula
-                  values, default 'xl_calc'
-
-    formula : Excel formula to be applied
-
-              e.g. '=CONCATENATE(A{row}, B{row}, C{row})'
-              {row} is the defined replacement variable which will be replaced
-              with actual individual row value.
-
-    offset : starting row value, default = 2 (resultant xl sheet includes headers)
-
-
-    Examples
-    --------
-    .. code-block::
-
-        formula = '=CONCATENATE(A{row}, B{row}, C{row})'
-        add_xl_formula(df, column_name='X7', formula=formula)
-
-
-    Returns
-    -------
-    pandas dataframe
-    '''
-
-    col_values = []
-    for x in range(offset, df.shape[0] + offset):
-        repl_str = re.sub('{ROW}', str(x), string=formula, flags=re.I)
-        col_values.append(repl_str)
-
-    df[column_name] = col_values
 
     return df
 
@@ -1398,6 +1352,7 @@ def info(df,
          fillna: bool = False,
          memory_info: bool = True) -> pd.DataFrame:
     '''show dataframe meta data
+
     Provides a summary of the structure of the dataframe data.
 
     Examples
@@ -1463,7 +1418,7 @@ def info(df,
 
 # inner_join() {{{1
 def inner_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    '''inner_join => df (All) | df2 (All) matching records only
+    '''df (All) | df2 (All) matching records only
 
     This is a wrapper function rather than using e.g. df.merge(how='inner')
     For details of args, kwargs - see help(pd.DataFrame.merge)
@@ -1518,7 +1473,7 @@ def inner_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
 
 # left_join() {{{1
 def left_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    '''left_join => df (All) | df2 (All/na) df always returned
+    '''df (All) | df2 (All/na) df always returned
 
     This is a wrapper function rather than using e.g. df.merge(how='left')
     For details of args, kwargs - see help(pd.DataFrame.merge)
@@ -1711,7 +1666,7 @@ def order_by(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
 
 # outer_join() {{{1
 def outer_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    '''outer_join => df (All/na) | df2 (All/na) All rows returned
+    '''df (All/na) | df2 (All/na) All rows returned
 
     This is a wrapper function rather than using e.g. df.merge(how='outer')
     For details of args, kwargs - see help(pd.DataFrame.merge)
@@ -1930,6 +1885,7 @@ def relocate(df: pd.DataFrame,
              ref_column: str = None,
              index: bool = False) -> pd.DataFrame:
     '''move column(s) in a dataframe
+
     Based on the corresponding R function - relocate
 
     Examples
@@ -2047,8 +2003,8 @@ def relocate(df: pd.DataFrame,
 # rename() {{{1
 def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     '''rename dataframe col(s)
-    This is a wrapper function rather than using e.g. df.rename()
 
+    This is a wrapper function rather than using e.g. df.rename()
     For details of args, kwargs - see help(pd.DataFrame.rename)
 
     Examples
@@ -2080,8 +2036,8 @@ def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
 # rename_axis() {{{1
 def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     '''rename dataframe axis
-    This is a wrapper function rather than using e.g. df.rename_axis()
 
+    This is a wrapper function rather than using e.g. df.rename_axis()
     For details of args, kwargs - see help(pd.DataFrame.rename_axis)
 
     Examples
@@ -2160,7 +2116,7 @@ def reset_index(df: pd.DataFrame,
 
 # right_join() {{{1
 def right_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
-    '''right_join => df (All/na) | df2 (All) df2 always returned
+    '''df (All/na) | df2 (All) df2 always returned
 
     This is a wrapper function rather than using e.g. df.merge(how='right')
     For details of args, kwargs - see help(pd.DataFrame.merge)
@@ -2205,8 +2161,8 @@ def sample(df: pd.DataFrame,
            *args,
            **kwargs):
     '''show sample data
-    This is a wrapper function rather than using e.g. df.sample()
 
+    This is a wrapper function rather than using e.g. df.sample()
     For details of args, kwargs - see help(pd.DataFrame.sample)
 
     Examples
@@ -2247,6 +2203,7 @@ def select(df: pd.DataFrame,
            expr: str = None,
            regex: bool = False) -> pd.DataFrame:
     '''select dataframe columns
+
     Based on select() function from R tidyverse.
 
     Given dataframe, select column names
@@ -2867,8 +2824,10 @@ def summary_df(datasets,
                col_total = 'Total records',
                add_grand_total = True,
                grand_total = 'Grand total'):
-    ''' Given a dictionary of dataframes, transform into a summary
-    of these dataframes with (optional) grand total row sum.
+    '''Summarise a dictionary of dataframes.
+
+    Summarises a list of dataframes and (optionally) provide a grand total row
+    sum.
 
     Parameters
     ----------
