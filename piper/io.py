@@ -189,12 +189,12 @@ def list_files(source='inputs/', glob_pattern='*.xls*', recurse=False,
 
 # read_csv() {{{1
 @shape(debug=False)
-def read_csv(file_name,
-             sep = ',',
-             strip_blanks = True,
-             clean_cols = True,
-             encoding = 'latin-1',
-             info = True):
+def read_csv(file_name: str,
+             sep: str = ',',
+             strip_blanks: bool = True,
+             clean_cols: bool = True,
+             encoding: str = None,
+             info: bool = True) -> pd.DataFrame:
     ''' pd.read_csv wrapper function
 
     Parameters
@@ -210,7 +210,7 @@ def read_csv(file_name,
         default True
         If True, lowercase column names, replace spaces with underscore ('_')
     encoding
-        default 'latin-1'
+        default None. Tip:: For EU data try 'latin-1'
     info
         if True, display additional logging information
 

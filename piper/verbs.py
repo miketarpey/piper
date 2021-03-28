@@ -3141,6 +3141,17 @@ def where(df: pd.DataFrame,
          .pipe(where, 'establishment_type != 91')
          .pipe(where, "town != 'LISBOA' & establishment_type != 91"))
 
+    .. code-block::
+
+        %%piper
+        get_sample_data()
+        >> str_trim()
+        >> select('-dates')
+        >> where(""" ~countries.isin(['Italy', 'Portugal']) &
+                    values_1 > 40 &
+                    values_2 < 25 """)
+        >> order_by('-countries')
+        >> head(5)
 
     Parameters
     ----------
