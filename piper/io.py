@@ -556,7 +556,7 @@ def read_sql(sql,
         logger.info(sql)
 
     if trim_blanks:
-        str_trim(df, inplace=True)
+        str_trim(df)
         if info:
             msg = f'Warning: Dataframe strip_blanks = {trim_blanks}'
             logger.info(msg)

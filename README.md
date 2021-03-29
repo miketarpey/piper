@@ -3,34 +3,51 @@
 ![PyPI version shields.io](https://img.shields.io/pypi/l/dpiper)
 
 # Piper
-__Piper__ is a python package designed to simplify data wrangling tasks with [pandas](https://pandas.pydata.org/). It provides a set of wrapper functions or 'verbs' that provide a simpler interface to standard Pandas functions.
 
-Piper functions accept and receive pandas dataframe objects. They can be used as standalone functions but are more powerful when used together in a [Jupyter](https://jupyter.org/) notebook cell to form a data pipeline. This is achieved by linking the functions using the __'>>'__ link operator within a cell using __%%piper__ magic command.
+__Piper__ is a python package designed to simplify data wrangling tasks with
+[pandas](https://pandas.pydata.org/). It provides a set of wrapper functions or
+'verbs' that provide a simpler interface to standard Pandas functions.
 
-So, instead of the traditional pandas method of calling a method associated with an object, in this case showing the 'head' (first 5 rows) of the dataframe:
+Piper functions accept and receive pandas dataframe objects. They can be used as
+standalone functions but are more powerful when used together in a
+[Jupyter](https://jupyter.org/) notebook cell to form a data pipeline. This is
+achieved by linking the functions using the __'>>'__ link operator within a cell
+using __%%piper__ magic command.
+
+So, instead of the traditional pandas method of calling a method associated with
+an object, in this case showing the 'head' (first 5 rows) of the dataframe:
+
 ```python
-df.head() 
+df.head()
 ```
 
-Piper passes the result of the dataframe object as the first parameter to the next function in the pipeline that, in turn, both accepts and returns dataframe objects. So the equivalent of above with piper is:
+Piper passes the result of the dataframe object as the first parameter to the
+next function in the pipeline that, in turn, both accepts and returns dataframe
+objects. So the equivalent of above with piper is:
+
 ```python
 %%piper
-df >> head() 
+df >> head()
 ```
 
-This 'chaining' or linking of functions provides a rapid, easy to use/remember approach to exploring, cleaning or building a data pipeline from csv, xml, excel, databases etc. Custom functions that accept and return dataframe objects can be linked together using this kind of syntax:
+This 'chaining' or linking of functions provides a rapid, easy to use/remember
+approach to exploring, cleaning or building a data pipeline from csv, xml,
+excel, databases etc. Custom functions that accept and return dataframe objects
+can be linked together using this kind of syntax:
+
 ```python
 %%piper
-read_oracle_database() 
+read_oracle_database()
 >> validate_data()
 >> cleanup_data()
 >> generate_summary()
 >> write_to_target_system()
 ```
 
-
-The concept is based on the approach used in the R language [tidyverse](https://www.tidyverse.org/) and 
+The concept is based on the approach used in the R language
+[tidyverse](https://www.tidyverse.org/) and
 [magrittr](https://magrittr.tidyverse.org/) packages. The main functions are:
+
 - select()
 - assign()
 - relocate()
@@ -39,11 +56,13 @@ The concept is based on the approach used in the R language [tidyverse](https://
 - summarise()
 - order_by()
 
-For other _piper_ functionality, please see the [Goals and Features](#Goals-and-Features) section.
+For other _piper_ functionality, please see the [Goals and
+Features](#Goals-and-Features) section.
 
-___Alternatives___ 
+___Alternatives___
 
-For a comprehensive alternative, please check out __Michael Chow's__ [siuba package](https://github.com/machow/siuba). 
+For a comprehensive alternative, please check out __Michael Chow's__ [siuba
+package](https://github.com/machow/siuba).
 
 <p>
 
@@ -55,7 +74,7 @@ For a comprehensive alternative, please check out __Michael Chow's__ [siuba pack
 * [Contact](#Contact)
 
 
-## Installation 
+## Installation
 To install the package, enter the following:
 
 ```unix
@@ -105,7 +124,7 @@ The equivalent in __piper__ would be:
 
 ```python
 %%piper
-df 
+df
 >> assign(C = lambda x: x.A + x.B,
           D = lambda x: x.C < 1000)
 >> where("~D")
@@ -118,12 +137,12 @@ __Example #2__ Suppose you need the following function to trim columnar text dat
 ```python
 def trim_columns(df):
     ''' Trim blanks for given dataframe '''
-    
+
     str_cols = df.select_dtypes(include='object').columns
-    
+
     for col in str_cols:
         df[col] = df[col].str.strip()
-    
+
     return df
 ```
 
@@ -160,20 +179,23 @@ Result:
 
 <p>
 
-The equivalent in __piper__ would be to import the piper magic function, and the required 'verbs'.
+The equivalent in __piper__ would be to import the piper magic function, and the
+required 'verbs'.
 
 ```python
 from piper import piper
 from piper.verbs import head, select, where, group_by, summarise, order_by
 ```
 
-Using the __%%piper__ magic function, piper verbs can be combined with standard python functions like trim_columns() using the linking symbol __'>>'__ to form a data pipeline.
+Using the __%%piper__ magic function, piper verbs can be combined with standard
+python functions like trim_columns() using the linking symbol __'>>'__ to form a
+data pipeline.
 
 ```python
 %%piper
 get_sample_data()
 >> trim_columns()
->> select('-dates') 
+>> select('-dates')
 >> where(""" ~countries.isin(['Italy', 'Portugal']) &
               values_1 > 40 &
               values_2 < 25 """)
@@ -188,7 +210,7 @@ version below the cell.
 %%piper --info
 get_sample_data()
 >> trim_columns()
->> select('-dates') 
+>> select('-dates')
 >> where(""" ~countries.isin(['Italy', 'Portugal']) &
               values_1 > 40 &
               values_2 < 25 """)
@@ -197,6 +219,7 @@ get_sample_data()
 ```
 
 gives:
+
 ```python
 (get_sample_data()
 .pipe(select, '-dates')
@@ -212,9 +235,6 @@ Further examples are available in these jupyter notebooks:
 
 ## Goals and Features
 
-- Enhance working with Excel files through the WorkBook class 
+- Enhance working with Excel files through the WorkBook class
     - Exporting high quality formatted Excel Workbooks using [xlsxwriter](https://xlsxwriter.readthedocs.io/)
 - Provide access to databases with support for SQL based scripting and connections.
-
-___To-do list___
-* TBD 
