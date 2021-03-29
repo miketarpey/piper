@@ -15,9 +15,23 @@ import sys
 import inspect
 from pathlib import Path
 
+# current_dir = Path(".").absolute()
+# module_dir = current_dir.parents[1] / "piper"
+# module_dir2 = current_dir.parents[1] / "piper/piper"
+# source_dir = current_dir / "source"
 
-sys.path.insert(0, os.path.abspath("../../piper"))
+# paths = [current_dir, source_dir, module_dir2, module_dir]
+
+# for p in paths:
+#     sys.path.insert(0, p.as_posix())
+#     print(f'Added path: {p}')
+
 sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('../'))
+
+# print('\n')
+# for path in sys.path:
+#     print(f'sys.path: {path}')
 
 
 # -- Project information -----------------------------------------------------
@@ -62,6 +76,9 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+
+autosummary_generate = True
 
 
 # -- Options for HTML output -------------------------------------------------
