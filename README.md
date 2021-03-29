@@ -183,7 +183,7 @@ get_sample_data()
 
 __--info__ option
 If you specify this option, you see the equivalent pandas 'piped'
-version below the cell.  
+version below the cell.
 ```
 %%piper --info
 get_sample_data()
@@ -218,10 +218,3 @@ Further examples are available in these jupyter notebooks:
 
 ___To-do list___
 * TBD 
-
-
-## Contact
-This is very much a personal library, in that its highly opinionated, flawed and probably of
-no use to anyone else :). However if it helps anyone else in their endeavours, that would be fantastic to hear about.
-
-If you'd like to contact me, I'm [miketarpey@gmx.net](mailto:miketarpey@gmx.net). 

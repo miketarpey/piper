@@ -335,7 +335,11 @@ def from_julian(julian: Union[str, int],
         return julian
 
     if isinstance(julian, int):
-        julian = str(julian)
+
+        if jde_format:
+            julian = str(julian).zfill(6)
+        else:
+            julian = str(julian)
 
     try:
         if isinstance(julian, float):
@@ -344,14 +348,22 @@ def from_julian(julian: Union[str, int],
         return julian
 
     if jde_format:
-        if len(julian) != 6:
+
+        if int(julian) < 70001:
             return julian
+
+        if len(julian) > 6 or len(julian) < 5:
+            return julian
+
+        if isinstance(julian, str):
+            julian = julian.zfill(6)
 
         century = int(julian[0]) + 19
         year = julian[1:3]
         days = julian[3:6]
         std_julian = f'{century}{year}{days}'
         greg_date = datetime.strptime(std_julian, '%Y%j').date()
+
     else:
         format_ = '%Y%j' if len(julian) == 7 else '%y%j'
         greg_date = datetime.strptime(julian, format_).date()
