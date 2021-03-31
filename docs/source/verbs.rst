@@ -7,6 +7,16 @@ verbs module
 
 .. currentmodule:: piper.verbs
 
+selecting / filtering / ordering
+--------------------------------
+
+.. autosummary::
+   :toctree: api
+
+   select
+   where
+   order_by
+
 data analysis / review
 ----------------------
 
@@ -31,16 +41,6 @@ column management
    rename
    set_columns
    combine_header_rows
-
-selecting / filtering / ordering
---------------------------------
-
-.. autosummary::
-   :toctree: api
-
-   select
-   where
-   order_by
 
 data cleaning
 -------------

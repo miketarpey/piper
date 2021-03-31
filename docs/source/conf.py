@@ -26,8 +26,8 @@ copyright = '2021, Mike Tarpey'
 author = 'Mike Tarpey'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
-
+from piper.version import __version__
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -76,7 +76,8 @@ html_theme = "pydata_sphinx_theme"
 html_logo = "../source/_static/piper_logo.png"
 
 html_theme_options = {
-    "search_bar_position": "navbar"
+    "search_bar_position": "navbar",
+    'display_version': True,
 }
 
 html_theme_options = {
