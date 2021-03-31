@@ -113,6 +113,36 @@ def pipe_parser(text: str,
         df <- pd.read_csv('inputs/test.csv')
         df =  pd.read_csv('inputs/test.csv')
 
+    .. note::
+        There are two other 'switches' that can parse alternative linking
+        symbols, namely --r and --dot
+
+    .. code-block::
+
+        %%piper --r
+        sample_sales() %>%
+        group_by('location') %>%
+        summarise(sales=('actual_sales', 'sum')) %>%
+        assign(abc = lambda x: x.sales * 15.43,
+               ratio = lambda x: ratio(x.sales, x.abc)) %>%
+        relocate(['abc', 'ratio'], 'before', 'sales') %>%
+        head(tablefmt='plain')
+
+        location         abc    ratio    sales
+        London      26210531        0  1698673
+        Milan       31162265        0  2019589
+        Paris       25582068        0  1657943
+
+    .. code-block::
+
+        %%piper --dot
+        sample_sales()
+        .. group_by('location')
+        .. summarise(sales=('actual_sales', 'sum'))
+        .. assign(abc = lambda x: x.sales * 15.43,
+                  ratio = lambda x: ratio(x.sales, x.abc))
+        .. relocate(['abc', 'ratio'], 'before', 'sales')
+        .. head(tablefmt='plain')
 
     Parameters
     ----------

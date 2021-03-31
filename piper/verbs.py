@@ -219,10 +219,22 @@ def adorn(df: pd.DataFrame,
 
     Examples
     --------
+
     .. code-block::
 
-        import pandas as pd
-        from piper.pandas import *
+        df = sample_matrix(seed=42)
+        df = adorn(df, ['a', 'c'], axis='row')
+        head(df, 10, tablefmt='plain')
+
+               a       b    c       d        e
+        0     15   8.617   16  25.23     7.658
+        1      8  25.792   18   5.305   15.426
+        2      5   5.343   12  -9.133   -7.249
+        3      4  -0.128   13   0.92    -4.123
+        4     25   7.742   11  -4.247    4.556
+        All   57           70
+
+    .. code-block::
 
         url = 'https://github.com/datagy/pivot_table_pandas/raw/master/sample_pivot.xlsx'
         df = pd.read_excel(url, parse_dates=['Date'])
@@ -1084,6 +1096,7 @@ def explode(df: pd.DataFrame,
 
     Examples
     --------
+
     .. code-block::
 
         from piper.factory import sample_data
@@ -1257,10 +1270,10 @@ def group_by(df: pd.DataFrame,
 
     Examples
     --------
+
     .. code-block::
 
         %%piper
-
         sample_data()
         >> where("ids == 'A'")
         >> where("values_1 > 300 & countries.isin(['Italy', 'Spain'])")
@@ -1893,6 +1906,21 @@ def relocate(df: pd.DataFrame,
     .. code-block::
 
         %%piper
+        sample_matrix()
+        >> relocate('e', 'before', 'b')
+        >> select('-c')
+        >> where("a < 20 and b > 1")
+        >> order_by(['-d'])
+        >> head(5, tablefmt='plain')
+
+              a    e    b    d
+         0   15    8    9   25
+         1    8   15   26    5
+         2    5   -7    5   -9
+
+    .. code-block::
+
+        %%piper
         sample_sales()
         >> select(('location', 'target_profit'))
         >> pd.DataFrame.set_index(['location', 'product'])
@@ -2216,28 +2244,35 @@ def select(df: pd.DataFrame,
 
     .. code-block::
 
+        df = sample_sales()
+
         select(df) # select ALL columns
 
         # select column column listed
-        select(df, 'column_name')
+        select(df, 'location')
 
         # select columns listed
-        select(df, ['column_name', 'other_column'])
+        select(df, ['product', 'target_sales'])
 
         # select ALL columns EXCEPT the column listed (identified by - minus sign prefix)
-        select(df, '-column_name')
+        select(df, '-target_profit')
 
         # select ALL columns EXCEPT the column specified with a minus sign within the list
-        select(df, ['-column_name', '-other_column'])
+        select(df, ['-target_sales', '-target_profit'])
 
-        # select column range from column up to and including the 'to' column.
-        # This is achieved by passing a 'tuple' -> e.g. ('from_col', 'to_col')
-        select(df, ('title', 'isbn'))
+        # select column range using a tuple from column up to and including the 'to' column.
+        select(df, ('month', 'actual_profit'))
+
+        # select all number data types
+        select(df, '-month', include='number')
+
+        # exclude all float data types including month column
+        select(df, '-month', exclude='float')
 
         # select using a regex string
-        select(df, regex='value') -> select fields containing 'value'
-        select(df, regex='^value') -> select fields starting with 'value'
-        select(df, regex='value$') -> select fields ending with 'value'
+        select(df, regex='sales') -> select fields containing 'sales'
+        select(df, regex='^sales') -> select fields starting with 'sales'
+        select(df, regex='sales$') -> select fields ending with 'sales'
 
     .. note ::
 
@@ -2602,6 +2637,11 @@ def str_split(df: pd.DataFrame,
         column values
     pat
         regular expression pattern. Default is ','
+
+        .. note::
+
+            For space(s), safer to use r'\\s' rather than ' '.
+
     n
         default -1. Number of splits to capture. -1 means capture ALL splits
     loc
@@ -2761,6 +2801,20 @@ def summarise(df: pd.DataFrame,
 
     The equivalent to:
     %pipe df >> group_by(['col1', 'col2']) >> summarise(sum)
+
+    .. code-block::
+
+        %%piper
+        sample_sales()
+        >> group_by(['location', 'product'])
+        >> summarise()
+        >> head(tablefmt='plain')
+
+                                    target_sales    target_profit    actual_sales    actual_profit
+        ('London', 'Beachwear')           407640            41372          388762            38940
+        ('London', 'Footwear')            275605            21449          274674            21411
+        ('London', 'Jeans')               414488            42200          404440            40691
+        ('London', 'Sportswear')          293384            28149          291561            28434
 
 
     Examples

@@ -36,6 +36,25 @@ def add_jde_batch(df: pd.DataFrame,
     Transaction Number (edtn)
     Line Number (edln)
 
+    Examples
+    --------
+    from piper.defaults import *
+    from piper.jde import *
+
+    .. code-block:
+
+        %%piper
+        sample_sales() >>
+        select('-target_profit', '-location', '-month') >>
+        reset_index(drop=True) >>
+        add_jde_batch(start=3) >>
+        head(tablefmt='plain')
+
+            edus    edbt            edtn    edln  product      target_sales    actual_sales    actual_profit
+         0  userid  ABC_20210331       1       3  Beachwear           31749           29209             1753
+         1  userid  ABC_20210331       1     103  Beachwear           37833           34050             5448
+         2  userid  ABC_20210331       1     203  Jeans               29485           31549             4417
+         3  userid  ABC_20210331       1     303  Jeans               37524           40901             4090
 
     Parameters
     ----------
