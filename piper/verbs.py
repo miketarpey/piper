@@ -2578,7 +2578,7 @@ def str_split(df: pd.DataFrame,
               drop: bool = False) -> pd.DataFrame:
     ''' split column
 
-    Function accepts a column to split, a pattern/delimitter values and optional
+    Function accepts a column to split, a pattern/delimitter value and optional
     list of column names to store the result. By default the result is placed just
     after the specified column.
 
