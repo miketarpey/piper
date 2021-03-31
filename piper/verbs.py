@@ -2200,16 +2200,20 @@ def sample(df: pd.DataFrame,
 
 # select() {{{1
 def select(df: pd.DataFrame,
-           expr: str = None,
-           regex: bool = False) -> pd.DataFrame:
+           *args,
+           regex: str = None,
+           like: str = None,
+           include: str = None,
+           exclude: str = None) -> pd.DataFrame:
     '''select dataframe columns
 
-    Based on select() function from R tidyverse.
+    Inspired by the select() function from R tidyverse.
 
-    Given dataframe, select column names
+    Select column names from a dataframe
 
     Examples
     --------
+
     .. code-block::
 
         select(df) # select ALL columns
@@ -2231,75 +2235,109 @@ def select(df: pd.DataFrame,
         select(df, ('title', 'isbn'))
 
         # select using a regex string
-        select(df, 'value') -> select fields containing 'value'
-        select(df, '^value') -> select fields starting with 'value'
-        select(df, 'value$') -> select fields ending with 'value'
+        select(df, regex='value') -> select fields containing 'value'
+        select(df, regex='^value') -> select fields starting with 'value'
+        select(df, regex='value$') -> select fields ending with 'value'
+
+    .. note ::
+
+        See the numpy dtype hierarchy. To select:
+            - strings use the 'object' dtype, but note that this will return
+              all object dtype columns
+            - all numeric types, use np.number or 'number'
+            - datetimes, use np.datetime64, 'datetime' or 'datetime64'
+            - timedeltas, use np.timedelta64, 'timedelta' or 'timedelta64'
+            - Pandas categorical dtypes, use 'category'
+            - Pandas datetimetz dtypes, use 'datetimetz' (new in 0.20.0) or 'datetime64[ns, tz]'
 
 
     Parameters
     ----------
     df
         dataframe
-    expr
-        default None
-        str - single column (in quotes)
-        list -> list of column names (in quotes)
+    args
+        if not specified, then ALL columns are selected
+            - str   : single column (in quotes)
+            - list  : list of column names (in quotes)
+            - tuple : specify a range of column names or column positions (1-based)
 
-        NOTE: prefixing column name with a minus sign filters out the column
-        from returned list of columns
+        .. note::
+
+            Prefixing column name with a minus sign filters out the column
+            from the returned list of columns e.g. '-sales', '-month'
+
     regex
-        default False. If True, treat column string as a regex
+        Default None. Wrapper for regex keyword in pd.DataFrame.filter()
+        Keep labels from axis for which re.search(regex, label) == True.
+    like
+        Default None. Wrapper for like keyword in pd.DataFrame.filter()
+        Keep labels from axis for which like in label == True.
+    include
+        Default None. Wrapper for include keyword in pd.DataFrame.select_dtypes()
+    exclude
+        Default None. Wrapper for exclude keyword in pd.DataFrame.select_dtypes()
 
 
     Returns
     -------
     pandas DataFrame object
     '''
-    returned_column_list = df.columns.tolist()
+    columns = list(df.columns)
+    selected: List = []
+    drop: List = []
 
-    try:
+    for column_arg in args:
+        if isinstance(column_arg, str):
+            selected, drop = _check_col(column_arg, selected, drop, columns)
 
-        if expr is None:
-            return df
+        # Tuples used to specify a 'range' of columns (from/to)
+        if isinstance(column_arg, tuple):
 
-        if isinstance(expr, tuple):
-            return df.loc[:, slice(*expr)]
+            if sum([isinstance(v, str) for v in column_arg]) == 2:
+                cols = list(df.loc[:, slice(*column_arg)].columns)
+                for col in cols:
+                    selected, drop = _check_col(col, selected, drop, columns)
 
-        if isinstance(expr, str):
+            if sum([isinstance(v, int) for v in column_arg]) == 2:
+                first, last = column_arg
+                cols = list(df.iloc[:, range(first-1, last)].columns)
+                for col in cols:
+                    selected, drop = _check_col(col, selected, drop, columns)
 
-            if regex:
-                return df.filter(regex=expr)
+        # Lists to be used for passing in a set of distinct values
+        if isinstance(column_arg, list):
+            for col in column_arg:
+                selected, drop = _check_col(col, selected, drop, columns)
 
-            if expr.startswith('-'):
-                returned_column_list.remove(expr[1:])
-                return df[returned_column_list]
-            else:
-                if expr not in returned_column_list:
-                    raise KeyError(f"Column '{expr}' not found!")
+    if like is not None:
+        cols = df.filter(like=like)
+        for col in cols:
+             selected, drop = _check_col(col, selected, drop, columns)
 
-                return df[expr].to_frame()
+    if regex is not None:
+        cols = df.filter(regex=regex)
+        for col in cols:
+             selected, drop = _check_col(col, selected, drop, columns)
 
-        if isinstance(expr, list):
+    if include is not None:
+        cols = df.select_dtypes(include=include)
+        for col in cols:
+            selected, drop = _check_col(col, selected, drop, columns)
 
-            selected_cols = [x for x in expr if not x.startswith('-')]
-            if len(selected_cols) > 0:
-                return df[selected_cols]
+    if exclude is not None:
+        cols = df.select_dtypes(exclude=exclude)
+        for col in cols:
+            selected, drop = _check_col(col, selected, drop, columns)
 
-            remove_cols = [x[1:] for x in expr if x.startswith('-')]
-            if len(remove_cols) > 0:
-                logger.debug(remove_cols)
-                logger.debug(len(remove_cols))
+    if selected == []:
+        selected = columns
 
-                returned_column_list = [x for x in returned_column_list if x not in remove_cols]
+    if drop != []:
+        for col in drop:
+            if col in selected:
+                selected.remove(col)
 
-                for col in returned_column_list:
-                    returned_column_list
-
-                return df[returned_column_list]
-
-    except (ValueError, KeyError) as e:
-        logger.info(e)
-
+    return df[selected]
 
 # set_columns() {{{1
 def set_columns(df: pd.DataFrame,
@@ -3177,6 +3215,50 @@ def where(df: pd.DataFrame,
         return df.query(*args_copy, **kwargs)
     except (pd.core.computation.ops.UndefinedVariableError) as e:
         logger.info("ERROR: External @variable? use: where(..., global_dict=globals())")
+
+# _check_col() {{{1
+def _check_col(column: str,
+               selected: List,
+               drop: List,
+               columns: List) -> Tuple[List, List]:
+    ''' Check column add/remove from column list
+
+    Used by select() function.
+
+    Parameter
+    ---------
+    column
+        column to be added/removed
+    selected
+        list of columns to be selected
+    drop
+        list of columns to be dropped
+    columns
+        all columns within dataframe (for validation)
+
+    Returns
+    -------
+    list
+        updated select column list
+    '''
+    remove = False
+
+    if isinstance(column, str):
+        if column.startswith('-'):
+            remove = True
+            column = column[1:]
+
+    if column not in columns:
+        raise KeyError(f"Column '{column}' not found!")
+
+    if remove:
+        if column not in drop:
+            drop.append(column)
+    else:
+        if column not in selected:
+            selected.append(column)
+
+    return selected, drop
 
 
 # _set_grouper() {{{1

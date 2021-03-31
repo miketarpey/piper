@@ -1316,7 +1316,7 @@ def test_select_no_parms(t_sample_data):
 def test_select_str_with_regex(t_sample_data):
 
     df = t_sample_data
-    df = select(df, 'values', regex=True)
+    df = select(df, regex='values')
 
     expected = ['values_1', 'values_2']
 
@@ -1325,8 +1325,34 @@ def test_select_str_with_regex(t_sample_data):
     assert expected == actual
 
 
-# test_select_slice {{{1
-def test_select_slice(t_sample_data):
+# test_select_str_with_regex {{{1
+def test_select_str_with_like(t_sample_data):
+
+    df = t_sample_data
+    df = select(df, like='values')
+
+    expected = ['values_1', 'values_2']
+
+    actual = df.columns.tolist()
+
+    assert expected == actual
+
+
+# test_select_slice_with_integers {{{1
+def test_select_slice_with_integers(t_sample_data):
+
+    df = t_sample_data
+    df = select(df, (3 , 6))
+
+    expected = ['countries', 'regions', 'ids', 'values_1']
+
+    actual = df.columns.tolist()
+
+    assert expected == actual
+
+
+# test_select_slice_with_column_names {{{1
+def test_select_slice_with_column_names(t_sample_data):
 
     df = t_sample_data
     df = select(df, ('countries', 'values_1'))
@@ -1414,15 +1440,37 @@ def test_select_columns(t_sample_data):
     assert expected == actual
 
 
+# test_select_include {{{1
+def test_select_include(t_sample_data):
+
+    df = t_sample_data
+    df = select(df, include='number')
+
+    expected = ['values_1', 'values_2']
+    actual = df.columns.tolist()
+
+    assert expected == actual
+
+
+# test_select_exclude {{{1
+def test_select_exclude(t_sample_data):
+
+    df = t_sample_data
+    df = select(df, exclude='number')
+
+    expected = ['dates', 'order_dates', 'countries', 'regions', 'ids']
+    actual = df.columns.tolist()
+
+    assert expected == actual
+
+
 # test_select_invalid_column {{{1
 def test_select_invalid_column(t_sample_data):
 
     df = t_sample_data
 
-    expected = None
-    actual = select(df, 'AAA')
-
-    assert expected == actual
+    with pytest.raises(KeyError):
+        actual = select(df, 'AAA')
 
 
 # test_set_columns {{{1
