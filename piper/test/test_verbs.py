@@ -811,7 +811,7 @@ def test_info(t_simple_series_01):
 
     df = t_simple_series_01.to_frame()
 
-    expected = (1, 6)
+    expected = (1, 7)
     actual = info(df).shape
 
     assert expected == actual
@@ -821,7 +821,7 @@ def test_info_with_dupes(t_simple_series_01):
 
     df = t_simple_series_01.to_frame()
 
-    expected = (1, 7)
+    expected = (1, 8)
     actual = info(df, n_dupes=True).shape
 
     assert expected == actual
@@ -831,7 +831,7 @@ def test_info_with_na_cols(t_simple_series_01):
 
     df = t_simple_series_01.to_frame()
 
-    expected = (0, 6)
+    expected = (0, 7)
     actual = info(df, fillna=True).shape
 
     assert expected == actual

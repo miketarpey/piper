@@ -631,14 +631,14 @@ def count(df: pd.DataFrame,
     # NOTE:: pd.groupby by default does not count nans!
     try:
         if isinstance(columns, str):
-            p1 = df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: np.count_nonzero(x)))
+            p1 = df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: x.value_counts(dropna=False)))
         elif isinstance(df, pd.Series):
             new_df = df.to_frame()
             columns = new_df.columns.tolist()[0]
-            p1 = new_df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: np.count_nonzero(x)))
+            p1 = new_df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: x.value_counts(dropna=False)))
         elif isinstance(df, pd.DataFrame):
             if columns is not None:
-                p1 = df.groupby(columns, dropna=False).agg(totals=(columns[0], lambda x: np.count_nonzero(x)))
+                p1 = df.groupby(columns, dropna=False).agg(totals=(columns[0], lambda x: x.value_counts(dropna=False)))
             else:
                 p1 = df.count().to_frame()
 
@@ -1410,10 +1410,11 @@ def info(df,
     nunique_list = [df[col].nunique() for col in df]
     dupes_list = [df.duplicated(col, keep=False).sum() for col in df]
     total_list = [df[col].value_counts(dropna=False).sum() for col in df]
+    infer_list = [pd.api.types.infer_dtype(df[col]) for col in df]
 
     dicta = {'columns': df.columns.values, 'type': dtypes_list,
-             'n': total_list, 'isna': na_list, 'isnull': null_list,
-             'unique': nunique_list}
+             'inferred': infer_list, 'n': total_list, 'isna': na_list,
+             'isnull': null_list, 'unique': nunique_list}
 
     if n_dupes:
         dicta.update({'n dupes': dupes_list})
