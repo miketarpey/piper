@@ -12,6 +12,7 @@ custom module
 
    add_xl_formula
    duration
+   factorize
    fiscal_year
    from_excel
    from_julian
