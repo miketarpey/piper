@@ -961,8 +961,9 @@ def drop(df: pd.DataFrame,
 
 # drop_columns() {{{1
 def drop_columns(df: pd.DataFrame,
-                 value: Union[str, int, float] = None) -> pd.DataFrame:
-    ''' drop columns containing blanks or zeros
+                 value: Union[str, int, float] = None,
+                 how: str = 'all') -> pd.DataFrame:
+    ''' drop columns containing blanks, zeros or na
 
     Examples
     --------
@@ -977,37 +978,33 @@ def drop_columns(df: pd.DataFrame,
     df
         pandas dataframe
     value
-        For each dataframe column, if the specified value is present within
-        EVERY row, drop the column.
+        Default is None. Drop a column if it contains a blank value in every row.
+        Enter a literal string or numeric value to check against.
 
-        Default is None which will drop a column if it contains blanks in every
-        row.
+        Special value - 'isna'. If specified, depending on the 'how' parameter
+        drop columns containing na / null values.
+    how
+        {None, 'any', 'all'}, default 'all'.
+        Determine if row or column is removed from DataFrame, when we have
+        at least one NA or all NA.
 
+        * 'any' : If any NA values are present, drop that row or column.
+        * 'all' : If all values are NA, drop that row or column.
 
     Returns
     -------
     A pandas DataFrame
     '''
-    if value is None:
-        value = "''"
-
-    if isinstance(value, int) or isinstance(value, float):
-        columns_to_check = df.select_dtypes(include='number').columns
+    if value == 'isna':
+        df = df.dropna(axis=1, how=how)
     else:
-        columns_to_check = df.select_dtypes(exclude='number').columns
+        if value is None:
+            value = ""
 
-    cols = []
-    for col in df.columns:
-
-        if col not in columns_to_check:
-            cols.append(col)
-        else:
-            # If not all records equal the value passed, keep column
-            keep = df.query(f"{col} != {value}").shape[0] == df.shape[0]
-            if keep:
-                cols.append(col)
-
-    df = df[cols]
+        for col in df.columns:
+            drop_column = np.where(df[col] == value, 1, 0).sum() == df.shape[0]
+            if drop_column:
+                df = df.drop(columns=col, axis=1)
 
     return df
 
