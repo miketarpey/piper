@@ -1826,8 +1826,8 @@ def pivot_longer(df: pd.DataFrame,
     return df.melt(*args, **kwargs)
 
 
-# pivot_wider() {{{1
-def pivot_wider(df: pd.DataFrame,
+# pivot_table() {{{1
+def pivot_table(df: pd.DataFrame,
                 *args,
                 freq: str = 'M',
                 format_date: bool = False,
