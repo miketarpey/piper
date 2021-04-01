@@ -10,20 +10,18 @@ __Piper__ is a python package to help simplify data wrangling tasks with
 
 Piper functions accept and receive pandas dataframe objects. They can be used as
 standalone functions but are more powerful when used together in a
-[Jupyter](https://jupyter.org/) notebook cell to form a data pipeline. This is
-achieved by linking the functions using the __'>>'__ link operator within a cell
-using __%%piper__ magic command.
+[Jupyter](https://jupyter.org/) notebook cell to form a data pipeline.
 
-Instead of the traditional pandas method of calling a method associated with
-an object, in this case showing the 'head' (first 5 rows) of the dataframe:
+Instead of the traditional the 'dot notation' or method calling technique from
+within an object, piper receives and passes on the dataframe object between
+functions using the piper magic command link operator (that is __'>>'__) within
+a cell. So, in traditional pandas, to see the first 5 rows of a dataframe:
 
 ```python
 df.head()
 ```
 
-Piper passes the result of the dataframe object as the first parameter to the
-next function in the pipeline that, in turn, both accepts and returns dataframe
-objects. So the equivalent of above with piper is:
+The equivalent in piper would be:
 
 ```python
 %%piper
@@ -96,9 +94,9 @@ def trim_columns(df):
     return df
 
 import pandas as pd
-from piper.factory import get_sample_data
+from piper.factory import sample_data
 
-df = get_sample_data()
+df = sample_data()
 
 # Select all columns EXCEPT 'dates'
 subset_cols = ['order_dates', 'regions', 'countries', 'values_1', 'values_2']
@@ -115,7 +113,8 @@ df2.head()
 
 ### __Piper equivalent__
 
-Using the __%%piper__ magic function, piper verbs can be combined with standard python functions.
+Using the __%%piper__ magic function, piper verbs can be combined with standard
+python functions.
 
 ```python
 from piper.defaults import *
