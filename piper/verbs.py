@@ -83,7 +83,7 @@ def across(df: pd.DataFrame,
     function
         function to be called.
     series_obj
-        Default is True.
+        Default is False.
         True - Function applied at Series or (DataFrame) 'object' level.
         False - Function applied to each Series row values.
 
@@ -356,9 +356,11 @@ def assign(df: pd.DataFrame,
         values are not callable, (e.g. a Series, scalar, or array), they are
         simply assigned.
 
-        If you wish to apply a function to a columns set of values:
-        pass a tuple with column name and function to call.
-        For example:
+        .. note::
+
+            If you wish to apply a function to a columns set of values:
+            pass a tuple with column name and function to call.
+            For example:
 
         .. code-block::
 
