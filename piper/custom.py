@@ -331,6 +331,10 @@ def from_julian(julian: Union[str, int],
     if julian is None:
         return julian
 
+    if isinstance(julian, str):
+        if len(julian) > 6:
+            return julian
+
     if isinstance(julian, date):
         return julian
 

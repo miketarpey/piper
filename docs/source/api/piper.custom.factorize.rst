@@ -1,4 +1,4 @@
-﻿piper.custom.factorize
+piper.custom.factorize
 ======================
 
 .. currentmodule:: piper.custom

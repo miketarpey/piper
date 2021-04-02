@@ -83,20 +83,16 @@ class WorkBook():
 
     .. code-block::
 
-        wb = WorkBook('outputs/excel workbook.xlsx', ts_prefix=False)
-        wb.add_sheet(df)
-        wb.close()
+        with WorkBook('outputs/excel workbook.xlsx', ts_prefix=False) as wb
+            wb.add_sheet(df)
 
         # Create an Excel workbook, with two worksheets,
         # one with red tab sheet and zoom of 120%
 
         xl_file = f'excel workbook with date prefix.xlsx'
-        wb = WorkBook(join('outputs', xl_file), ts_prefix='date')
-
-        wb.add_sheet(df, sheet_name='revised data', tab_color='red', zoom=120)
-        wb.add_sheet(df_original, sheet_name='original', tab_color='red')
-
-        wb.close()
+        with WorkBook(join('outputs', xl_file), ts_prefix='date') as wb:
+            wb.add_sheet(df, sheet_name='revised data', tab_color='red', zoom=120)
+            wb.add_sheet(df_original, sheet_name='original', tab_color='red')
 
     Create an Excel workbook, with worksheet containing conditional formatting.
 
@@ -110,15 +106,13 @@ class WorkBook():
         data = {'Name':['Tom', 'nick', 'krish', 'jack'], 'Age':[20, 21, 19, 18]}
         df = pd.DataFrame(data)
 
-        wb = WorkBook('outputs/excel workbook.xlsx', ts_prefix=False)
+        with WorkBook('outputs/excel workbook.xlsx', ts_prefix=False) as wb:
 
-        sheet_name = 'test_worksheet'
-        ws = wb.add_sheet(df, sheet_name=sheet_name, zoom=235)
+            sheet_name = 'test_worksheet'
+            ws = wb.add_sheet(df, sheet_name=sheet_name, zoom=235)
 
-        c = {'type': 'formula', 'criteria': '=$B2<21', 'format': 'accent2', 'range': 'B'}
-        wb.add_condition(ws, c)
-
-        wb.close()
+            c = {'type': 'formula', 'criteria': '=$B2<21', 'format': 'accent2', 'range': 'B'}
+            wb.add_condition(ws, c)
     '''
     sheet_dict: Dict[Tuple, Any] = {}
     last_sheet_idx = 0
@@ -151,6 +145,20 @@ class WorkBook():
         else:
             logger.info('<< mult-sheet mode >>')
             self._save_xl(sheets)
+
+
+    def __enter__(self):
+        ''' context manager helper function '''
+        return self
+
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        ''' context manager helper function '''
+
+        if self.wb:
+            self.wb.close()
+            self.wb = None
+            self = None
 
 
     def _save_xl(self, sheets=None):

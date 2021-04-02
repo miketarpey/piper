@@ -1,6 +1,6 @@
-piper.verbs.pivot\_wider
+piper.verbs.pivot\_table
 ========================
 
 .. currentmodule:: piper.verbs
 
-.. autofunction:: pivot_wider
+.. autofunction:: pivot_table
