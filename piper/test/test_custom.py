@@ -374,6 +374,7 @@ def test_from_julian_jde_format():
 
     assert from_julian('093121') == datetime.date(1993, 5, 1)
     assert from_julian('1234') == '1234'
+    assert from_julian('e1vh105b') == 'e1vh105b'
     assert from_julian('264144') == datetime.date(2164, 5, 23)
     assert from_julian(264144) == datetime.date(2164, 5, 23)
     assert from_julian(100001) == datetime.date(2000, 1, 1)

@@ -106,7 +106,7 @@ reshaping data
 
    explode
    pivot_longer
-   pivot_wider
+   pivot_table
    split_dataframe
    stack
    summary_df
