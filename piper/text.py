@@ -3,6 +3,7 @@ import logging
 from os.path import normpath, join
 from pathlib import Path
 from datetime import datetime
+import pandas as pd
 
 from typing import (
     Any,
@@ -294,9 +295,10 @@ def pipe_function_parms(idx: int, value: str) -> str:
 
 # paste() {{{1
 def paste(source='text'):
-    '''
-    Convert clipboard sourced list from either a text list or from excel file
+    ''' Convert a clipboard sourced list from text or excel file
 
+    Examples
+    --------
     columns = paste(source='text')
 
     Parameters

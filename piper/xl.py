@@ -153,6 +153,20 @@ class WorkBook():
             self._save_xl(sheets)
 
 
+    def __enter__(self):
+        ''' context manager helper function '''
+        return self
+
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        ''' context manager helper function '''
+
+        if self.wb:
+            self.wb.close()
+            self.wb = None
+            self = None
+
+
     def _save_xl(self, sheets=None):
         ''' Save multiple Excel sheets in one WorkBook.
 
