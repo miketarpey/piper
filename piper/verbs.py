@@ -335,9 +335,6 @@ def adorn(df: pd.DataFrame,
 # assign() {{{1
 def assign(df: pd.DataFrame,
            *args,
-           lambda_str: bool = False,
-           lambda_var: str = 'x',
-           info: bool = False,
            **kwargs) -> pd.DataFrame:
     '''Assign new columns to a DataFrame.
 
@@ -346,16 +343,10 @@ def assign(df: pd.DataFrame,
 
     Parameters
     ----------
-    lambda_str
-        Default is False. Treat string as a the 'body' of a lambda function.
-        Assign function will convert the string to a lambda before passing to
-        pd.DataFrame.assign()
-    lambda_var
-        Default is 'x'.
-    info
-        Default is False.
-        if True - output contents of kwargs where keyword value is being
-        converted from string to lambda function. (For debug purposes)
+    df
+        pandas dataframe
+    args
+        arbitrary arguments (for future use)
     **kwargs
         dict of {str: callable or Series}
 
@@ -365,19 +356,31 @@ def assign(df: pd.DataFrame,
         values are not callable, (e.g. a Series, scalar, or array), they are
         simply assigned.
 
+        If you wish to apply a function to a columns set of values:
+        pass a tuple with column name and function to call.
+        For example:
+
+        .. code-block::
+
+            assign(reversed=('regions', lambda x: x[::-1]))
+
+        is converted to:
+
+        .. code-block::
+
+            assign(reversed=lambda x: x['regions'].apply(lambda x: x[::-1]))
+
     Returns
     -------
     A pandas DataFrame
         A new DataFrame with the new columns in addition to
         all the existing columns.
 
-
     Notes
     -----
     Assigning multiple columns within the same ``assign`` is possible.
     Later items in '\\*\\*kwargs' may refer to newly created or modified
     columns in 'df'; items are computed and assigned into 'df' in order.
-
 
     Examples
     --------
@@ -387,82 +390,63 @@ def assign(df: pd.DataFrame,
     .. code-block::
 
         %%piper --dot
+
         sample_data()
-        .. assign(**{'reversed': 'x.regions.apply(lambda x: x[::-1])',
-                     'v1_x_10': 'x.values_1 * 10',
+        .. assign(**{'reversed': ('regions', lambda x: x[::-1]),
+                     'v1_x_10': lambda x: x.values_1 * 10,
                      'v2_div_4': lambda x: x.values_2 / 4,
                      'dow': lambda x: x.dates.dt.day_name(),
                      'ref': lambda x: x.v2_div_4 * 5,
-                     'values_1': 'x.values_1.astype(int)',
-                     'values_2': 'x.values_2.astype(int)',
-                     'ids': lambda x: x.ids.astype('category')}, lambda_str=True)
-        .. pd.DataFrame.astype({'values_1': float, 'values_2': float})
+                     'ids': lambda x: x.ids.astype('category')})
+        .. across(['values_1', 'values_2'], lambda x: x.astype(float),
+                  series_obj=True)
         .. relocate('dow', 'after', 'dates')
         .. select(['-dates', '-order_dates'])
-        .. head()
+        .. head(tablefmt='plain')
 
-          dow        countries  regions  ids values_1  values_2   reversed v1_x_10  v2_div_4      ref
-          Wednesday  Italy      East     A        311        26   tsaE        3110      6.5     32.5
-          Thursday   Portugal   South    D        150       375   htuoS       1500     93.75   468.75
-          Friday     Spain      East     A        396        88   tsaE        3960     22      110
-          Saturday   Italy      East     B        319       233   tsaE        3190     58.25   291.25
+            dow       countries regions  ids values_1 values_2 reversed v1_x_10 v2_div_4  ref
+         0  Wednesday Italy     East     A        311       26 tsaE        3110        6   32
+         1  Thursday  Portugal  South    D        150      375 htuoS       1500       94  469
+         2  Friday    Spain     East     A        396       88 tsaE        3960       22  110
+         3  Saturday  Italy     East     B        319      233 tsaE        3190       58  291
 
     .. code-block::
 
         %%piper
+
         sample_sales()
         >> select()
         >> assign(month_plus_one = lambda x: x.month + pd.Timedelta(1, 'D'),
-                  alt_formula = "x.actual_sales * .2", lambda_str=True)
+                  alt_formula = lambda x: x.actual_sales * .2)
         >> select(['-target_profit'])
-        >> assign(profit_sales = 'x.actual_profit - x.actual_sales',
-               month_value = "x.month.dt.month",
-               product_added = "x['product'] + ', TEST'",
-               salesthing = "x.target_sales.sum()", lambda_str=True)
+        >> assign(profit_sales = lambda x: x.actual_profit - x.actual_sales,
+                  month_value = lambda x: x.month.dt.month,
+                  product_added = lambda x: x['product'] + 'TEST',
+                  salesthing = lambda x: x.target_sales.sum())
         >> select(['-month', '-actual_sales', '-actual_profit', '-month_value', '-location'])
         >> assign(profit_sales = lambda x: x.profit_sales.astype(int))
         >> reset_index(drop=True)
         >> head(tablefmt='plain')
 
-            product      target_sales  month_plus_one         alt_formula    profit_sales  product_added      salesthing
-         0  Beachwear           31749  2021-01-02 00:00:00           5842          -27456  Beachwear, TEST       5423715
-         1  Beachwear           37833  2021-01-02 00:00:00           6810          -28601  Beachwear, TEST       5423715
-         2  Jeans               29485  2021-01-02 00:00:00           6310          -27132  Jeans, TEST           5423715
-         3  Jeans               37524  2021-01-02 00:00:00           8180          -36811  Jeans, TEST           5423715
-
-    An example of assign accessing the apply function of a series (column), converting
-    the row values from a string of comma separated values into a list object.
-
-    .. code-block::
-
-        %%piper
-        sample_sales()
-        >> select(['-target_profit', '-month', '-location', '-target_sales'])
-        >> str_join(columns=['actual_sales', 'product', 'actual_profit'],
-                    sep=',', column='actual_sales',
-                    drop=False)
-        >> assign(actual_sales_= lambda x: x.actual_sales_.apply(lambda x: x.split(',')))
-        >> head(tablefmt='plain')
-
-             product   actual_sales  actual_sales_                        actual_profit
-          4  Beachwear        29209  ['29209.08', 'Beachwear', '1752.54']          1753
-        125  Beachwear        34050  ['34049.7', 'Beachwear', '5447.95']           5448
-         21  Jeans            31549  ['31548.95', 'Jeans', '4416.85']              4417
-        148  Jeans            40901  ['40901.16', 'Jeans', '4090.12']              4090
+            product   target_sales month_plus_one alt_formula profit_sales product_added salesthing
+         0  Beachwear        31749     2021-01-02        5842       -27456 BeachwearTEST    5423715
+         1  Beachwear        37833     2021-01-02        6810       -28601 BeachwearTEST    5423715
+         2  Jeans            29485     2021-01-02        6310       -27132 JeansTEST        5423715
+         3  Jeans            37524     2021-01-02        8180       -36811 JeansTEST        5423715
 
     '''
     if kwargs:
         for keyword, value in kwargs.items():
-            if lambda_str:
-                if isinstance(value, str):
-                    text = f"lambda {lambda_var}: " + value
-                    function = eval(text)
-                    if info:
-                        logger.info(f'keyword {keyword} = {lambda_str}')
+            if isinstance(value, tuple):
+                column_to_apply_function, function = value
+                new_function = lambda x: x[column_to_apply_function].apply(function)
+                kwargs[keyword] = new_function
 
-                    kwargs[keyword] = function
-
-    df = df.assign(*args, **kwargs)
+    try:
+        df = df.assign(*args, **kwargs)
+    except ValueError as e:
+        logger.info(e)
+        raise ValueError('''Try assign(column='column_to_apply_func', function)''')
 
     return df
 
@@ -598,7 +582,6 @@ def count(df: pd.DataFrame,
         D        1   20  40.0
         E        3   60  100.0
         Total    5  100
-
 
     Parameters
     ----------

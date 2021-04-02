@@ -253,40 +253,43 @@ def test_assign(t_sample_data):
     assert expected == actual
 
 
-# test_assign_with_str_formulas {{{1
-def test_assign_with_str_formulas(t_sample_data):
+# test_assign_with_dataframe_object_formulas {{{1
+def test_assign_with_dataframe_object_formulas(t_sample_data):
     """
     """
     df = t_sample_data
     df = where(df, "ids == 'A'")
     df = where(df, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
-    df = assign(df, new_field='x.countries.str[:3]+x.regions',
-                       another='3*x.values_1', lambda_str=True, info=True)
+    df = assign(df, new_field=lambda x: x.countries.str[:3] + x.regions,
+                    another=lambda x: 3*x.values_1)
 
-    expected = ['dates', 'order_dates', 'countries',
-                'regions', 'ids', 'values_1',
+    expected = ['dates', 'order_dates', 'countries', 'regions', 'ids', 'values_1',
                 'values_2', 'new_field', 'another']
     actual = df.columns.tolist()
 
     assert expected == actual
 
+# test_assign_with_tuple_function {{{1
+def test_assign_with_tuple_function(t_sample_data):
 
-# test_assign_with_str_formulas_info {{{1
-def test_assign_with_str_formulas_info(t_sample_data):
-    """
-    """
     df = t_sample_data
-    df = where(df, "ids == 'A'")
-    df = where(df, "values_1 > 300 & countries.isin(['Italy', 'Spain'])")
-    df = assign(df, new_field='x.countries.str[:3]+x.regions',
-                       another='3*x.values_1', info=True)
+    df = assign(df, reversed=('regions', lambda x: x[::-1]))
+    df = select(df, ['-dates', '-order_dates'])
 
-    expected = ['dates', 'order_dates', 'countries',
-                'regions', 'ids', 'values_1',
-                'values_2', 'new_field', 'another']
+    expected = ['countries', 'regions', 'ids', 'values_1', 'values_2', 'reversed']
     actual = df.columns.tolist()
 
     assert expected == actual
+
+
+# test_assign_with_value_error {{{1
+def test_assign_with_value_error(t_sample_data):
+
+    df = t_sample_data
+
+    with pytest.raises(ValueError):
+        actual = assign(df, reversed=lambda x: x[::-1])
+
 
 # test_clean_column_list_using_list_and_title {{{1
 def test_clean_column_list_using_list_and_title(get_column_list):
