@@ -24,9 +24,18 @@ logger = logging.getLogger(__name__)
 # create_nb_proj {{{1
 def create_nb_proj(project: str = 'project',
                    description: str = 'notebook project',
-                   relative_to: str = '.'):
-    '''
-    Create notebook project.
+                   relative_to: str = '.',
+                   sub_folders: bool = True):
+    ''' Create notebook project.
+
+    This function uses the default configuration file ('config.json') to
+    create a default jupyter project folder.
+
+    Examples
+    --------
+
+    .. code-block::
+        create_nb_proj('eoin_dev')
 
     Parameters:
     -----------
@@ -68,16 +77,20 @@ def create_nb_proj(project: str = 'project',
     with open(new_config, "w") as f:
         json.dump(config, f)
 
-    logger.info(f'{project} folder completed.')
+    if sub_folders:
+        create_nb_folders(project=project,
+                          relative_to=relative_to)
+
+    logger.info(f'{project} folder created.')
 
 
 # create_nb_folders {{{1
 def create_nb_folders(project: str = 'project',
                       relative_to: str = '.'):
-    '''
-    Create notebook folders based on config.json in
-    project folder specified.
+    ''' Create notebook sub folders
 
+    For given 'project name', this function will use the default configuration
+    file 'config.json' to create the project sub-folders specified.
 
     Parameters:
     -----------
@@ -85,7 +98,6 @@ def create_nb_folders(project: str = 'project',
         project folder name.
     relative_to
         relative path to current folder (default '.')
-
 
     Returns:
     --------
@@ -104,6 +116,9 @@ def create_nb_folders(project: str = 'project',
         try:
             qual_folder = project_path / folder
             qual_folder.mkdir(parents=True, exist_ok=False)
-            logger.info(f'Created subfolder: {qual_folder}')
+            logger.debug(f'Created subfolder: {qual_folder}')
         except FileExistsError as e:
             logger.info(e)
+
+    logger.info(f"Created subfolders...{config['folders']}")
+
