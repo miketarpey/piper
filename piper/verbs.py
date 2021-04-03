@@ -1006,9 +1006,9 @@ def duplicated(df: pd.DataFrame,
                keep: bool = False,
                sort: bool = True,
                column: str = 'duplicate',
-               loc: str = 'first',
                ref_column: str = None,
-               duplicates: bool = False) -> pd.DataFrame:
+               duplicates: bool = False,
+               loc: str = 'first') -> pd.DataFrame:
     '''locate duplicate data
 
     .. note::
@@ -1069,6 +1069,8 @@ def duplicated(df: pd.DataFrame,
 
     if sort:
         df = df.sort_values(subset)
+
+    df = relocate(df, column=column, loc=loc)
 
     return df
 
@@ -2723,7 +2725,7 @@ def str_split(df: pd.DataFrame,
             # If one of the new split columns has the same name
             # as the original column, append '_' to the split column name.
             for idx, col in enumerate(columns):
-                if col in column:
+                if col == column:
                     columns[idx] = columns[idx] + '_'
                     duplicate_column_name = True
 
