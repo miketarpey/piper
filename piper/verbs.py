@@ -614,19 +614,25 @@ def count(df: pd.DataFrame,
     A pandas dataframe
     '''
     # NOTE:: pd.groupby by default does not count nans!
+    f = lambda x: x.value_counts(dropna=False)
+
     try:
         if isinstance(columns, str):
-            p1 = df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: x.value_counts(dropna=False)))
+            p1 = df.groupby(columns, dropna=False).agg(totals=(columns, f))
         elif isinstance(df, pd.Series):
             new_df = df.to_frame()
             columns = new_df.columns.tolist()[0]
-            p1 = new_df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: x.value_counts(dropna=False)))
+            p1 = new_df.groupby(columns, dropna=False).agg(totals=(columns, f))
         elif isinstance(df, pd.DataFrame):
             if columns is not None:
-                p1 = df.groupby(columns, dropna=False).agg(totals=(columns[0], lambda x: x.value_counts(dropna=False)))
+                p1 = df.groupby(columns, dropna=False).agg(totals=(columns[0], f))
             else:
                 p1 = df.count().to_frame()
 
+    except (ValueError) as e:
+        p1 = df[columns].value_counts()
+        p1 = p1.to_frame()
+        p1.columns = ['totals']
     except (KeyError, AttributeError) as e:
         logger.info(f"Column {columns} not found!")
         return

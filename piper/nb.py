@@ -1,5 +1,8 @@
 from piper.utils import get_config
+from piper.io import list_files
+import pandas as pd
 import json
+import re
 import logging
 from pathlib import Path
 
@@ -122,3 +125,61 @@ def create_nb_folders(project: str = 'project',
 
     logger.info(f"Created subfolders...{config['folders']}")
 
+
+# nb_search {{{1
+def nb_search(path: str, text: str = None) -> pd.DataFrame:
+    ''' search notebooks for matching text criteria
+
+    Examples
+    --------
+
+    .. code-block::
+
+        paths = {
+            '/home/mike/Documents/notebooks/piper_eda_examples/',
+            '/home/mike/Documents/github_repos/piper_demo/'
+        }
+
+        dataframes = [nb_search(path=path, text='lambda') for path in paths]
+        dataframes = pd.concat(dataframes)
+        dataframes
+
+    Parameters
+    ----------
+    path
+        notebook directory to search
+    text
+        text
+
+    Returns
+    -------
+    pd.DataFrame
+        containing files which contain matching text
+
+    '''
+    if text is None:
+        logger.info("Please enter text parameter to search")
+        return
+
+    files = list_files(path, glob_pattern='*.ipynb')
+
+    references = []
+    for filename in files:
+        with open(filename) as f:
+            lines = f.readlines()
+
+            for line_no, line in enumerate(lines, start=1):
+                match = re.search(text, line)
+                if match:
+                    references.append({
+                        'path': filename.parent,
+                        'file': filename.stem,
+                        'line_nbr': line_no,
+                        'text': line.strip()
+                    })
+    df = pd.DataFrame(None)
+    if len(references) > 0:
+        df = pd.DataFrame(references).sort_values(['path', 'file', 'line_nbr'])
+        df = df.reset_index(drop=True)
+
+    return df
