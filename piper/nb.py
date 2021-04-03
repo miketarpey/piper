@@ -1,4 +1,4 @@
-from nbconvert.preprocessors import CellExecutionError
+from nbconvert.preprocessors import CellExecutionError 
 from nbconvert.preprocessors import ExecutePreprocessor
 from pathlib import Path
 from piper.io import list_files
@@ -130,8 +130,8 @@ def create_nb_folders(project: str = 'project',
 
 
 # execute_notebook {{{1
-def execute_notebook(input_file: str,
-                     output_file: str) -> Dict:
+def execute_notebook(input_file: Path,
+                     output_file: Path) -> Dict:
     ''' Execute notebook within a folder
 
 
