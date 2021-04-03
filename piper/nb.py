@@ -1,10 +1,13 @@
-from piper.utils import get_config
-from piper.io import list_files
-import pandas as pd
-import json
-import re
-import logging
+from nbconvert.preprocessors import CellExecutionError
+from nbconvert.preprocessors import ExecutePreprocessor
 from pathlib import Path
+from piper.io import list_files
+from piper.utils import get_config
+import json
+import logging
+import nbformat
+import pandas as pd
+import re
 
 from typing import (
     Any,
@@ -125,6 +128,101 @@ def create_nb_folders(project: str = 'project',
 
     logger.info(f"Created subfolders...{config['folders']}")
 
+
+# execute_notebook {{{1
+def execute_notebook(input_file: str,
+                     output_file: str) -> Dict:
+    ''' Execute notebook within a folder
+
+
+    Parameters
+    ----------
+    input_file
+        notebook file to be executed
+    output_file
+        notebook execution output file
+
+    Returns
+    -------
+    a pandas dataframe
+        contains filename and error(s) encountered.
+
+    '''
+    error = {}
+
+    with open(input_file) as f:
+        try:
+            nb = nbformat.read(f, as_version=4)
+            kernel = nb.dict()['metadata']['kernelspec']['name']
+
+            logger.info(f'Running... {input_file.stem}')
+            ep = ExecutePreprocessor(timeout=600, kernel_name=kernel)
+
+            out = ep.preprocess(nb, {'metadata': {'path': input_file.parent}})
+
+        except CellExecutionError:
+            out = None
+            msg = f'Error executing notebook".\n'
+            msg += f'See notebook "{output_file}" for the traceback.'
+            logger.info(msg)
+            error = {'error': msg, 'file': input_file}
+        finally:
+            with open(output_file, mode='w', encoding='utf-8') as f:
+                nbformat.write(nb, f)
+
+    return error
+# execute_notebooks_in_folder {{{1
+def execute_notebooks_in_folder(input_folder: str,
+                                output_folder: str = None) -> pd.DataFrame:
+    ''' execute notebooks within a folder
+
+    Examples
+    --------
+
+    .. code-block::
+
+            nb_projects = [
+            'Documents/notebooks/piper_eda_examples/',
+        #     'Documents/github_repos/piper_demo/',
+        #     'Documents/github_repos/fake_data/'
+        ]
+
+        for project in nb_projects:
+            df = execute_notebooks_in_folder(project)
+
+    Parameters
+    ----------
+    input_folder
+        input folder containing notebooks to be run
+    output_folder
+        output folder containing execution output
+
+
+    Returns
+    -------
+    a pandas dataframe
+    '''
+    home_directory = Path.home()
+
+    if output_folder is None:
+        output_folder =  'Documents/notebooks/temp/'
+
+    files = list_files(source=input_folder, glob_pattern='*.ipynb*')
+
+    errors = []
+    for f in files:
+        if not f.is_dir():
+            input_file = input_folder / f
+            output_file = output_folder / f
+            errors.append(execute_notebook(input_file, output_file))
+
+    df = pd.DataFrame(errors)
+
+    if df.shape[1] > 0:
+        df = df.dropna().sort_values('file').reset_index(drop=True)
+        df.insert(0, 'filename', df.file.apply(lambda x: x.stem))
+
+    return df
 
 # nb_search {{{1
 def nb_search(path: str, text: str = None) -> pd.DataFrame:
