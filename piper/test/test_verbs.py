@@ -9,7 +9,7 @@ from piper.verbs import adorn
 from piper.verbs import assign
 from piper.verbs import clean_columns
 from piper.verbs import columns
-from piper.verbs import combine_header_rows
+from piper.verbs import rows_to_columns
 from piper.verbs import count
 from piper.verbs import distinct
 from piper.verbs import drop
@@ -291,21 +291,22 @@ def test_assign_with_value_error(t_sample_data):
         actual = assign(df, reversed=lambda x: x[::-1])
 
 
-# test_clean_column_list_using_list_and_title {{{1
-def test_clean_column_list_using_list_and_title(get_column_list):
+# test_clean_columns_report_case_with_title {{{1
+def test_clean_columns_report_case_with_title(get_column_list):
     """
     """
-    expected = ['Dupe', 'Customer', 'Mdm_No_To_Use', 'Target_Name', 'Public',
-                'Material', 'Prod_Type', 'Effective', 'Expired',
+    expected = ['Dupe', 'Customer', 'Mdm No To Use', 'Target Name', 'Public',
+                'Material', 'Prod Type', 'Effective', 'Expired',
                 'Price', 'Currency']
 
     dx = pd.DataFrame(None, columns=get_column_list)
 
-    actual = clean_columns(dx, title=True).columns.tolist()
+    actual = clean_columns(dx, case='report', title=True).columns.tolist()
     assert expected == actual
 
-# test_clean_column_list_using_df_columns {{{1
-def test_clean_column_list_using_df_columns(get_column_list):
+
+# test_clean_columns_snake_case_with_title {{{1
+def test_clean_columns_snake_case_with_title(get_column_list):
     """
     """
     expected = ['dupe', 'customer', 'mdm_no_to_use', 'target_name', 'public',
@@ -314,7 +315,36 @@ def test_clean_column_list_using_df_columns(get_column_list):
 
     dx = pd.DataFrame(None, columns=get_column_list)
 
-    actual = clean_columns(dx).columns.tolist()
+    actual = clean_columns(dx, case='snake').columns.tolist()
+
+    assert expected == actual
+
+
+# test_clean_columns_camel_case_with_title {{{1
+def test_clean_columns_camel_case_with_title(get_column_list):
+    """
+    """
+    expected = ['Dupe', 'Customer', 'MdmNoToUse', 'TargetName', 'Public',
+                'Material', 'ProdType', 'Effective', 'Expired', 'Price', 'Currency']
+
+    dx = pd.DataFrame(None, columns=get_column_list)
+
+    actual = clean_columns(dx, case='camel', title=True).columns.tolist()
+
+    assert expected == actual
+
+
+# test_clean_columns_camel_case_without_title {{{1
+def test_clean_columns_camel_case_without__title(get_column_list):
+    """
+    """
+    expected = ['dupe', 'customer', 'mdmNoToUse', 'targetName', 'public',
+                'material', 'prodType', 'effective', 'expired', 'price', 'currency']
+
+    dx = pd.DataFrame(None, columns=get_column_list)
+
+    actual = clean_columns(dx, case='camel', title=False).columns.tolist()
+
     assert expected == actual
 
 
@@ -371,14 +401,14 @@ def test_columns_as_regex(t_sample_data):
     assert expected == actual
 
 
-# test_combine_header_rows {{{1
-def test_combine_header_rows_with_title():
+# test_rows_to_columns {{{1
+def test_rows_to_columns_with_title():
 
     data = {'A': ['Order', 'Qty', 10, 40],
             'B': ['Order', 'Number', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = combine_header_rows(df, title=True)
+    df = rows_to_columns(df, delimitter=' ', title=True)
 
     expected = ['Order Qty', 'Order Number']
     actual = df.columns.to_list()
@@ -386,14 +416,14 @@ def test_combine_header_rows_with_title():
     assert expected == actual
 
 
-# test_combine_header_rows_lower {{{1
-def test_combine_header_rows_lower():
+# test_rows_to_columns_lower {{{1
+def test_rows_to_columns_lower():
 
     data = {'A': ['Order', 'Qty', 10, 40],
             'B': ['Order', 'Number', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = combine_header_rows(df, title=False)
+    df = rows_to_columns(df, delimitter=' ', title=False)
 
     expected = ['order qty', 'order number']
     actual = df.columns.to_list()
@@ -401,14 +431,14 @@ def test_combine_header_rows_lower():
     assert expected == actual
 
 
-# test_combine_header_rows_title {{{1
-def test_combine_header_rows_title_bad_data():
+# test_rows_to_columns_title {{{1
+def test_rows_to_columns_title_bad_data():
 
     data = {'A': ['Order   ', 'Qty   ', 10, 40],
             'B': [' Order', '    Number%', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = combine_header_rows(df, title=True)
+    df = rows_to_columns(df, delimitter=' ', title=True)
 
     expected = ['Order Qty', 'Order Number']
     actual = df.columns.to_list()

@@ -669,7 +669,7 @@ def count(df: pd.DataFrame,
 
 # clean_columns() {{{1
 def clean_columns(df: pd.DataFrame,
-                  replace_char: tuple = (' ', '_'),
+                  case: str = 'snake',
                   title: bool = False) -> pd.DataFrame:
     '''Clean column names, strip blanks, lowercase, snake_case.
 
@@ -720,7 +720,7 @@ def clean_columns(df: pd.DataFrame,
 
     .. code-block::
 
-        df = clean_columns(df, ('_', ' '), title=True)
+        df = clean_columns(df, case='report', title=True)
         df.columns.tolist()
 
         ['Dupe',
@@ -740,17 +740,30 @@ def clean_columns(df: pd.DataFrame,
     ----------
     df
         pandas dataframe
-    replace_char
-        default (' ', '_'). A tuple giving the 'from' and 'to' characters to be replaced
+    case
+        requested case format:
+            - 'snake': this_is_snake_case
+            - 'camel': thisIsCamelCase (title=False)
+            - 'camel': ThisIsCamelCase (title=True)
+            - 'report': this is report format (title=False)
+            - 'report': This Is Report Format (title=True)
     title
         default False. If True, titleize column values
-
 
     Returns
     -------
     pandas DataFrame object
     '''
-    from_char, to_char = replace_char
+    def camel_case(string, title=False):
+        ''' convert from blank delimitted words to camel case '''
+
+        string = re.sub(r"(_|\s)+", " ", string).title().replace(" ", "")
+
+        if title:
+            return string
+
+        return string[0].lower() + string[1:]
+
     columns = [x.strip().lower() for x in df.columns]
 
     # Remove special chars at the beginning and end of column names
@@ -761,103 +774,36 @@ def clean_columns(df: pd.DataFrame,
     # Any embedded special characters in the middle of words, replace with a blank
     columns = [re.sub(f'{special_chars}', ' ', x) for x in columns]
 
+    if case == 'snake':
+        from_char, to_char = tuple = (' ', '_')
+    elif case == 'report':
+        # No conversions needed
+        from_char, to_char = tuple = (' ', ' ')
+    elif case == 'camel':
+        # Just in case converting from snake case
+        from_char, to_char = tuple = ('_', ' ')
+
     # All special chars should now be removed, except for to_char perhaps
     # and embedded spaces.
     columns = [re.sub(f'{to_char}+', ' ', x) for x in columns]
 
-    # Strip and lowercase as default
+    # Strip any remaining blanks prepended or appended and lowercase all values
     columns = [x.strip().lower() for x in columns]
 
     # Replace any remaining embedded blanks with single replacement 'to_char' value.
     columns = [re.sub('\s+', to_char, x) for x in columns]
 
-    columns = [re.sub(from_char, to_char, x) for x in columns]
+    if case in ('snake', 'report'):
+        columns = [re.sub(from_char, to_char, x) for x in columns]
 
-    if title:
-        columns = [x.title() for x in columns]
+        if title:
+            columns = [x.title() for x in columns]
+
+    if case in ('camel'):
+        print(columns)
+        columns = [camel_case(x, title=title) for x in columns]
 
     df.columns = columns
-
-    return df
-
-
-# combine_header_rows() {{{1
-def combine_header_rows(df: pd.DataFrame,
-                        start: int = 0,
-                        end: int = 1,
-                        delimitter: str = ' ',
-                        title: bool = True,
-                        infer_objects: bool = True) -> pd.DataFrame:
-    '''Combine 1 or more header rows across into one.
-
-    Optionally, infers remaining data column data types.
-
-    Examples
-    --------
-    .. code-block::
-
-        data = {'A': ['Customer', 'id', 48015346, 49512432],
-                'B': ['Order', 'Number', 'DE-12345', 'FR-12346'],
-                'C': [np.nan, 'Qty', 10, 40],
-                'D': ['Item', 'Number', 'SW-10-2134', 'YH-22-2030'],
-                'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
-
-        df = pd.DataFrame(data)
-        head(df, tablefmt='plain')
-
-            A         B         C    D           E
-         0  Customer  Order     nan  Item        nan
-         1  id        Number    Qty  Number      Description
-         2  48015346  DE-12345  10   SW-10-2134  Screwdriver Set
-         3  49512432  FR-12346  40   YH-22-2030  Workbench
-
-    .. code-block::
-
-        df.iloc[0] = df.iloc[0].ffill()
-        df = combine_header_rows(df)
-        head(df, tablefmt='plain')
-
-              Customer Id  Order Number      Order Qty  Item Number    Item Description
-         2       48015346  DE-12345                 10  SW-10-2134     Screwdriver Set
-         3       49512432  FR-12346                 40  YH-22-2030     Workbench
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    start
-        starting row - default 0
-    end
-        ending row to combine, - default 1
-    delimitter
-        character to be used to 'join' row values together. default is ' '
-    title
-        default False. If True, titleize column values
-    infer_objects
-        default True. Infer data type of resultant dataframe
-
-
-    Returns
-    -------
-    A pandas dataframe
-    '''
-    data = df.iloc[start].astype(str).values
-    rows = range(start+1, end+1)
-
-    for row in rows:
-        data = data + delimitter + df.iloc[row].astype(str).values
-
-    df.columns = data
-
-    # Read remaining data and reference back to dataframe reference
-    df = df.iloc[end + 1:]
-
-    if infer_objects:
-        df = df.infer_objects()
-
-    df = clean_columns(df, replace_char=(' ', '_'), title=title)
-    df = clean_columns(df, replace_char=('_', ' '), title=title)
 
     return df
 
@@ -1152,15 +1098,18 @@ def flatten_cols(df: pd.DataFrame,
         sample_data()
         >> group_by(['countries', 'regions'])
         >> summarise(totalval1=('values_1', 'sum'))
-        >> assign(mike='x.totalval1 * 50', eoin='x.totalval1 * 100')
-        >> transform()
-        >> order_by(['countries', '-g%'])
+        >> assign(mike=lambda x: x.totalval1 * 50,
+                  eoin=lambda x: x.totalval1 * 100)
         >> unstack()
-        >> flatten_cols(remove_prefix='mike|eoin|totalval1')
-        >> reset_index()
-        >> set_index('countries')
-        >> head()
+        >> flatten_cols()
+        >> select(('totalval1_East', 'totalval1_West'))
+        >> head(tablefmt='plain')
 
+        countries      totalval1_East    totalval1_North    totalval1_South    totalval1_West
+        France                   2170               2275               2118              4861
+        Germany                  1764               2239               1753              1575
+        Italy                    3023               1868               2520              2489
+        Norway                   3741               2633               1670              1234
 
     Parameters
     ----------
@@ -1171,7 +1120,6 @@ def flatten_cols(df: pd.DataFrame,
     remove_prefix
         string(s) (delimitted by pipe '|')
         e.g. ='mike|eoin|totalval1'
-
 
     Returns
     -------
@@ -2171,6 +2119,86 @@ def right_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     logger.debug(f"{kwargs}")
 
     return df.merge(*args, **kwargs)
+
+
+# rows_to_columns() {{{1
+def rows_to_columns(df: pd.DataFrame,
+                    start: int = 0,
+                    end: int = 1,
+                    delimitter: str = ' ',
+                    title: bool = True,
+                    infer_objects: bool = True) -> pd.DataFrame:
+    '''promote row(s) to column name(s)
+
+    Optionally, infers remaining data column data types.
+
+    Examples
+    --------
+    .. code-block::
+
+        data = {'A': ['Customer', 'id', 48015346, 49512432],
+                'B': ['Order', 'Number', 'DE-12345', 'FR-12346'],
+                'C': [np.nan, 'Qty', 10, 40],
+                'D': ['Item', 'Number', 'SW-10-2134', 'YH-22-2030'],
+                'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
+
+        df = pd.DataFrame(data)
+        head(df, tablefmt='plain')
+
+            A         B         C    D           E
+         0  Customer  Order     nan  Item        nan
+         1  id        Number    Qty  Number      Description
+         2  48015346  DE-12345  10   SW-10-2134  Screwdriver Set
+         3  49512432  FR-12346  40   YH-22-2030  Workbench
+
+    .. code-block::
+
+        df.iloc[0] = df.iloc[0].ffill()
+        df = rows_to_columns(df)
+        head(df, tablefmt='plain')
+
+              Customer Id  Order Number      Order Qty  Item Number    Item Description
+         2       48015346  DE-12345                 10  SW-10-2134     Screwdriver Set
+         3       49512432  FR-12346                 40  YH-22-2030     Workbench
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    start
+        starting row - default 0
+    end
+        ending row to combine, - default 1
+    delimitter
+        character to be used to 'join' row values together. default is ' '
+    title
+        default False. If True, titleize column values
+    infer_objects
+        default True. Infer data type of resultant dataframe
+
+
+    Returns
+    -------
+    A pandas dataframe
+    '''
+    data = df.iloc[start].astype(str).values
+    rows = range(start+1, end+1)
+
+    for row in rows:
+        data = data + delimitter + df.iloc[row].astype(str).values
+
+    df.columns = data
+
+    # Read remaining data and reference back to dataframe reference
+    df = df.iloc[end + 1:]
+
+    if infer_objects:
+        df = df.infer_objects()
+
+    df = clean_columns(df, case='report', title=title)
+
+    return df
 
 
 # sample() {{{1
