@@ -519,9 +519,9 @@ def columns(df: pd.DataFrame,
         return pd.DataFrame(cols, columns = ['column_names'])
     elif astype == 'series':
         return pd.Series(cols, name='column_names')
-
-    # note: mypy needs to see this 'dummy' catch all return statement
-    return None
+    else:
+        # note: mypy needs to see this 'dummy' catch all return statement
+        return None
 
 
 # count() {{{1
@@ -630,8 +630,7 @@ def count(df: pd.DataFrame,
                 p1 = df.count().to_frame()
 
     except (ValueError) as e:
-        p1 = df[columns].value_counts()
-        p1 = p1.to_frame()
+        p1 = df[columns].value_counts().to_frame()
         p1.columns = ['totals']
     except (KeyError, AttributeError) as e:
         logger.info(f"Column {columns} not found!")
@@ -1290,10 +1289,11 @@ def head(df: pd.DataFrame,
         _shape(df)
 
     if tablefmt:
-        print(df.head(n=n).to_markdown(tablefmt=tablefmt, floatfmt=f".{precision}f"))
-        return
-
-    return df.head(n=n)
+        print(df.head(n=n)
+                .to_markdown(tablefmt=tablefmt,
+                             floatfmt=f".{precision}f"))
+    else:
+        return df.head(n=n)
 
 
 # info() {{{1
@@ -1748,7 +1748,6 @@ def pivot_longer(df: pd.DataFrame,
     This is a wrapper function rather than using e.g. df.melt()
     For details of args, kwargs - see help(pd.DataFrame.melt)
 
-
     Parameters
     ----------
     df
@@ -1757,7 +1756,6 @@ def pivot_longer(df: pd.DataFrame,
         arguments for wrapped function
     **kwargs
         keyword-parameters for wrapped function
-
 
     Returns
     -------
@@ -2917,7 +2915,7 @@ def summarise(df: pd.DataFrame,
             return summary_
 
         # If groupby obj, assume sum function
-        if isinstance(df, pd.core.groupby.generic.DataFrameGroupBy ):
+        if isinstance(df, pd.core.groupby.generic.DataFrameGroupBy):
                 return df.agg(sum)
 
     group_df = df.agg(*args, **kwargs)
@@ -3049,10 +3047,11 @@ def tail(df: pd.DataFrame,
         _shape(df)
 
     if tablefmt:
-        print(df.tail(n=n).to_markdown(tablefmt=tablefmt, floatfmt=f".{precision}f"))
-        return
-
-    return df.tail(n=n)
+        print(df.tail(n=n)
+                .to_markdown(tablefmt=tablefmt,
+                             floatfmt=f".{precision}f"))
+    else:
+        return df.tail(n=n)
 
 
 # transform() {{{1
@@ -3136,7 +3135,6 @@ def transform(df: pd.DataFrame,
                 - rank: dense rank (ascending order)
                 - rank_desc: dense rank (descending order)
 
-
     Returns
     -------
     original dataframe with additional grouped calculation column
@@ -3168,8 +3166,7 @@ def transform(df: pd.DataFrame,
         # If no kwargs passed, default to group % on
         # first column in dataframe
         column, value = 'g%', df.columns[0]
-        func = check_builtin('percent')
-        df[column] = df.groupby(index)[value].transform(func)
+        df[column] = df.groupby(index)[value].transform(check_builtin('percent'))
 
     return df
 

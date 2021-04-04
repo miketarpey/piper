@@ -108,6 +108,19 @@ def test_across_single_column_series_object_function(t_sample_data):
     assert pd.api.types.is_float_dtype(df.values_1)
 
 
+# test_across_tuple_column_series_object_function {{{1
+def test_across_tuple_column_series_object_function(t_sample_data):
+
+    df = t_sample_data
+
+    df = across(df, columns=('values_1', 'values_2'),
+                function= lambda x: x.astype(float),
+                series_obj=True)
+
+    assert pd.api.types.is_float_dtype(df.values_1)
+    assert pd.api.types.is_float_dtype(df.values_2)
+
+
 # test_across_list_column_series_object_function {{{1
 def test_across_list_column_series_object_function(t_sample_data):
 
@@ -631,6 +644,20 @@ def test_drop_if(t_dummy_dataframe):
     assert expected == actual
 
 
+# test_drop_if_isna {{{1
+def test_drop_if_isna(t_dummy_dataframe):
+    """
+    """
+    df = t_dummy_dataframe
+
+    expected = (5, 5)
+    df.loc[:, 'blank_1': 'blank_5'] = np.nan
+    df = drop_if(df, value='isna')
+    actual = df.shape
+
+    assert expected == actual
+
+
 # test_duplicated {{{1
 def test_duplicated(t_simple_series_01):
     """
@@ -838,6 +865,19 @@ def test_head_with_columns_function(t_sample_data):
         astype='list')]).shape
 
     assert expected == actual
+
+
+# test_head_with_tablefmt_plain {{{1
+def test_head_with_tablefmt_plain(t_dummy_dataframe):
+    """
+    """
+    df = t_dummy_dataframe
+
+    df.loc[:, 'blank_1': 'blank_5'] = np.nan
+    df = drop_if(df, value='isna')
+    result = head(df, tablefmt='plain')
+    assert result == None
+
 
 # test_info {{{1
 def test_info(t_simple_series_01):
@@ -1520,6 +1560,46 @@ def test_set_columns():
 
     assert expected == actual
 
+# test_str_join_str_column_raise_columns_list_error {{{1
+def test_str_join_str_column_raise_columns_list_error(t_sample_sales):
+
+    df = t_sample_sales
+
+    with pytest.raises(NameError):
+        actual = str_join(df, columns='actual_sales',
+                          sep='|', column='combined_col', drop=False)
+
+
+# test_str_join_str_column_raise_column_must_be_string_error {{{1
+def test_str_join_str_column_raise_column_must_be_string_error(t_sample_sales):
+
+    df = t_sample_sales
+
+    with pytest.raises(TypeError):
+        actual = str_join(df, columns=['actual_sales', 'product'],
+                          sep='|', column=['combined_col'], drop=False)
+
+
+# test_str_join_str_column_raise_at_least_two_columns_error {{{1
+def test_str_join_str_column_raise_at_least_two_columns_error(t_sample_sales):
+
+    df = t_sample_sales
+
+    with pytest.raises(ValueError):
+        actual = str_join(df, columns=['actual_sales'],
+                          sep='|', column='combined_col', drop=False)
+
+
+# test_str_join_str_column_raise_check_columns_name_error {{{1
+def test_str_join_str_column_raise_check_columns_name_error(t_sample_sales):
+
+    df = t_sample_sales
+
+    with pytest.raises(NameError):
+        actual = str_join(df, columns=['actual_sales', 'product_wrong'],
+                          sep='|', column='combined_col', drop=False)
+
+
 # test_str_join_str_column_drop_false {{{1
 def test_str_join_str_column_drop_false(t_sample_sales):
 
@@ -1701,6 +1781,18 @@ def test_tail_with_dataframe(t_sample_data):
     expected = (4, 7)
     actual = tail(df).shape
     assert expected == actual
+
+
+# test_tail_with_tablefmt_plain {{{1
+def test_tail_with_tablefmt_plain(t_dummy_dataframe):
+    """
+    """
+    df = t_dummy_dataframe
+
+    df.loc[:, 'blank_1': 'blank_5'] = np.nan
+    df = drop_if(df, value='isna')
+    result = tail(df, tablefmt='plain')
+    assert result == None
 
 
 # test_transform {{{1
