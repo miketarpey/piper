@@ -37,10 +37,11 @@ column management
    :toctree: api
 
    columns
+   flatten_cols
    relocate
    rename
+   rows_to_columns
    set_columns
-   combine_header_rows
 
 data cleaning
 -------------
@@ -53,7 +54,6 @@ data cleaning
    drop_columns
    drop
    duplicated
-   flatten_cols
    overlaps
    non_alpha
 
