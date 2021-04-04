@@ -36,7 +36,10 @@ column management
 .. autosummary::
    :toctree: api
 
+   clean_columns
    columns
+   drop
+   drop_if
    flatten_cols
    relocate
    rename
@@ -49,10 +52,7 @@ data cleaning
 .. autosummary::
    :toctree: api
 
-   clean_columns
    distinct
-   drop_columns
-   drop
    duplicated
    overlaps
    non_alpha
