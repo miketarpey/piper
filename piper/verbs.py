@@ -800,7 +800,6 @@ def clean_columns(df: pd.DataFrame,
             columns = [x.title() for x in columns]
 
     if case in ('camel'):
-        print(columns)
         columns = [camel_case(x, title=title) for x in columns]
 
     df.columns = columns
@@ -1527,15 +1526,15 @@ def non_alpha(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
 def order_by(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     '''order/sequence dataframe
 
-    @__TODO__ Review mypy validation rules and update if required
-
     This is a wrapper function rather than using e.g. df.sort_values()
     For details of args, kwargs - see help(pd.DataFrame.sort_values)
 
-    The first argument and/or keyword 'by' is checked to see:
+    .. note::
 
-    - For each specified column value
-      If it starts with a minus sign, assume ascending=False
+        The first argument and/or keyword 'by' is checked to see:
+
+            - For each specified column value
+              If it starts with a minus sign, assume ascending=False
 
     Examples
     --------
@@ -2161,7 +2160,6 @@ def rows_to_columns(df: pd.DataFrame,
          2       48015346  DE-12345                 10  SW-10-2134     Screwdriver Set
          3       49512432  FR-12346                 40  YH-22-2030     Workbench
 
-
     Parameters
     ----------
     df
@@ -2176,7 +2174,6 @@ def rows_to_columns(df: pd.DataFrame,
         default False. If True, titleize column values
     infer_objects
         default True. Infer data type of resultant dataframe
-
 
     Returns
     -------
@@ -2404,7 +2401,6 @@ def set_columns(df: pd.DataFrame,
         dataframe
     columns
         column(s) values to be changed in referenced dataframe
-
 
     Returns
     -------
@@ -3132,6 +3128,13 @@ def transform(df: pd.DataFrame,
 
         If no kwargs supplied - calculates the group percentage ('g%') using
         the first index column as index key and the first column value(s).
+
+        .. note::
+
+            transform() has built-in functions:
+                - percent: calculate group % associated with index group
+                - rank: dense rank (ascending order)
+                - rank_desc: dense rank (descending order)
 
 
     Returns
