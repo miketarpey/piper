@@ -896,8 +896,8 @@ def drop(df: pd.DataFrame,
     return df.drop(*args, **kwargs)
 
 
-# drop_columns() {{{1
-def drop_columns(df: pd.DataFrame,
+# drop_if() {{{1
+def drop_if(df: pd.DataFrame,
                  value: Union[str, int, float] = None,
                  how: str = 'all') -> pd.DataFrame:
     ''' drop columns containing blanks, zeros or na
@@ -908,7 +908,7 @@ def drop_columns(df: pd.DataFrame,
 
         %%piper
         dummy_dataframe()
-        >> drop_columns()
+        >> drop_if()
 
     Parameters
     ----------

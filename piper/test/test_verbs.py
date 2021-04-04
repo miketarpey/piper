@@ -13,7 +13,7 @@ from piper.verbs import rows_to_columns
 from piper.verbs import count
 from piper.verbs import distinct
 from piper.verbs import drop
-from piper.verbs import drop_columns
+from piper.verbs import drop_if
 from piper.verbs import duplicated
 from piper.verbs import explode
 from piper.verbs import flatten_cols
@@ -619,14 +619,14 @@ def test_drop(t_sample_data):
     assert expected == actual
 
 
-# test_drop_columns {{{1
-def test_drop_columns(t_dummy_dataframe):
+# test_drop_if {{{1
+def test_drop_if(t_dummy_dataframe):
     """
     """
     df = t_dummy_dataframe
 
     expected = (5, 5)
-    actual = drop_columns(df).shape
+    actual = drop_if(df).shape
 
     assert expected == actual
 
