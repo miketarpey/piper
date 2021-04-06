@@ -2565,11 +2565,18 @@ def str_clean_number(series: pd.Series,
     -------
     a pandas series
     '''
+    # make sure all values are treated as strings first.
+    series = series.astype(str)
 
-    series = series.str.replace(f'[^0-9-\{decimal}]', '', regex=True)
+    # Remove all non decimal (retain decimal symbol)
+    series = series.str.replace(f'[^0-9\-\{decimal}]', '', regex=True)
 
-    # If negative e.g. '301.00-' then prepend '-', e.g. '-301.00'
-    series = series.str.replace('(.*)(-$)', '\\2\\1', regex=True)
+    # If decimal symbol repeated, remove all except rightmost value
+    series = series.str.replace(f'\{decimal}(?=.*\{decimal})', '', regex=True)
+
+    # If value(s) contain a minus sign, remove then reapply by multiplying by -1
+    series = series.where(series.str.contains('-') == False,
+                 series.str.replace('[-]','', regex=True).astype(float) * -1)
 
     if dtype is not None:
         series = pd.to_numeric(series).astype(dtype)
