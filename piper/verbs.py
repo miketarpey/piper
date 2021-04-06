@@ -872,11 +872,27 @@ def drop_if(df: pd.DataFrame,
 
     Examples
     --------
+
     .. code-block::
 
-        %%piper
-        dummy_dataframe()
-        >> drop_if()
+        df = dummy_dataframe()
+        head(df, tablefmt='plain')
+              zero_1    zero_2    zero_3    zero_4    zero_5  blank_1    blank_2    blank_3    blank_4    blank_5
+         0         0         0         0         0         0
+         1         0         0         0         0         0
+         2         0         0         0         0         0
+         3         0         0         0         0         0
+
+    .. code-block::
+
+        df = drop_if(df)
+        head(df, tablefmt='plain')
+              zero_1    zero_2    zero_3    zero_4    zero_5
+         0         0         0         0         0         0
+         1         0         0         0         0         0
+         2         0         0         0         0         0
+         3         0         0         0         0         0
+
 
     Parameters
     ----------
@@ -1934,6 +1950,69 @@ def relocate(df: pd.DataFrame,
     return sequence(new_column_sequence, index=index)
 
 
+# replace_columns {{{1
+def replace_columns(df: pd.DataFrame,
+                        dict_: Dict,
+                        info: bool = False) -> pd.DataFrame:
+    """ replace column names (or partially) with dictionary values
+
+
+    Examples
+    --------
+
+    .. code-block::
+
+        dict_ = { 'number$': 'nbr', 'revenue per cookie': 'unit revenue', 'cost per cookie': 'unit cost',
+              'month': 'mth', 'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
+
+        cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
+                'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
+
+        expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost', 'revenue', 'cost',
+                    'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
+
+        df = pd.DataFrame(None, columns=cols)
+        df = replace_columns(df, dict_, info=False)
+        df = clean_columns(df)
+
+        assert expected == list(df.columns)
+
+    Parameters
+    ----------
+    df
+        a pandas dataframe
+    values
+        dictionary of from/to values (optionally) with regex values
+    info
+        Default False. If True, print replacement from/to values.
+
+    Returns
+    -------
+    a pandas dataframe
+    """
+    updated_columns = []
+    replacements = []
+
+    for x in df.columns:
+
+        for k, v in dict_.items():
+            y = re.sub(k, v, x, flags=re.I)
+            if y != x:
+                replacements.append((x, y))
+                x = y
+
+        updated_columns.append(x)
+
+    if len(replacements) > 0:
+        logger.info('|Warning| automatic column names substitutions made, for details, info=True')
+        if info:
+            repl_ = [f'{x} => {y}' for (x,y) in replacements]
+            logger.info(f'{repl_}')
+
+    df.columns = updated_columns
+
+    return df
+
 # rename() {{{1
 def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     '''rename dataframe col(s)
@@ -2497,69 +2576,6 @@ def str_clean_number(series: pd.Series,
 
     return series
 
-
-# str_columns_replace {{{1
-def str_columns_replace(df: pd.DataFrame,
-                        dict_: Dict,
-                        info: bool = False) -> pd.DataFrame:
-    """ replace column names (or partially) with dictionary values
-
-
-    Examples
-    --------
-
-    .. code-block::
-
-        dict_ = { 'number$': 'nbr', 'revenue per cookie': 'unit revenue', 'cost per cookie': 'unit cost',
-              'month': 'mth', 'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
-
-        cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
-                'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
-
-        expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost', 'revenue', 'cost',
-                    'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
-
-        df = pd.DataFrame(None, columns=cols)
-        df = str_columns_replace(df, dict_, info=False)
-        df = clean_columns(df)
-
-        assert expected == list(df.columns)
-
-    Parameters
-    ----------
-    df
-        a pandas dataframe
-    values
-        dictionary of from/to values (optionally) with regex values
-    info
-        Default False. If True, print replacement from/to values.
-
-    Returns
-    -------
-    a pandas dataframe
-    """
-    updated_columns = []
-    replacements = []
-
-    for x in df.columns:
-
-        for k, v in dict_.items():
-            y = re.sub(k, v, x, flags=re.I)
-            if y != x:
-                replacements.append((x, y))
-                x = y
-
-        updated_columns.append(x)
-
-    if len(replacements) > 0:
-        logger.info('|Warning| automatic column names substitutions made, for details, info=True')
-        if info:
-            repl_ = [f'{x} => {y}' for (x,y) in replacements]
-            logger.info(f'{repl_}')
-
-    df.columns = updated_columns
-
-    return df
 
 # str_join() {{{1
 def str_join(df: pd.DataFrame,

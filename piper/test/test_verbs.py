@@ -31,12 +31,12 @@ from piper.verbs import pivot_table
 from piper.verbs import relocate
 from piper.verbs import rename
 from piper.verbs import rename_axis
+from piper.verbs import replace_columns
 from piper.verbs import right_join
 from piper.verbs import sample
 from piper.verbs import select
 from piper.verbs import set_columns
 from piper.verbs import str_clean_number
-from piper.verbs import str_columns_replace
 from piper.verbs import str_split
 from piper.verbs import str_trim
 from piper.verbs import summarise
@@ -1285,6 +1285,26 @@ def test_rename_axis(t_sample_data):
     assert expected == actual
 
 
+
+
+# test_replace_columns {{{1
+def test_replace_columns():
+
+    dict_ = {'number$': 'nbr', 'revenue per cookie': 'unit revenue',
+             'cost per cookie': 'unit cost', 'month': 'mth',
+             'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
+
+    cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
+            'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
+
+    expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost',
+                'revenue', 'cost', 'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
+
+    df = pd.DataFrame(None, columns=cols)
+    df = replace_columns(df, dict_, info=True)
+    df = clean_columns(df)
+
+    assert expected == list(df.columns)
 # test_resample_groupby {{{1
 def test_resample_groupby(t_sample_data):
     """ """
@@ -1577,26 +1597,6 @@ def test_str_clean_number():
     df['values'] = str_clean_number(df['values'])
 
     assert expected == df['values'].values.tolist()
-
-
-# test_str_columns_replace {{{1
-def test_str_columns_replace():
-
-    dict_ = {'number$': 'nbr', 'revenue per cookie': 'unit revenue',
-             'cost per cookie': 'unit cost', 'month': 'mth',
-             'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
-
-    cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
-            'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
-
-    expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost',
-                'revenue', 'cost', 'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
-
-    df = pd.DataFrame(None, columns=cols)
-    df = str_columns_replace(df, dict_, info=True)
-    df = clean_columns(df)
-
-    assert expected == list(df.columns)
 
 
 # test_str_join_str_column_raise_columns_list_error {{{1
