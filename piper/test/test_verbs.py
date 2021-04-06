@@ -35,11 +35,13 @@ from piper.verbs import right_join
 from piper.verbs import sample
 from piper.verbs import select
 from piper.verbs import set_columns
+from piper.verbs import str_clean_number
+from piper.verbs import str_columns_replace
+from piper.verbs import str_split
 from piper.verbs import str_trim
 from piper.verbs import summarise
 from piper.verbs import summary_df
 from piper.verbs import split_dataframe
-from piper.verbs import str_split
 from piper.verbs import str_join
 from piper.verbs import tail
 from piper.verbs import transform
@@ -1560,6 +1562,43 @@ def test_set_columns():
 
     assert expected == actual
 
+
+# test_str_clean_number {{{1
+def test_str_clean_number():
+
+    values = ['$ 1000.48', '-23,500.54', '1004,0 00 .22', '-£43,000',
+          'EUR 304s0,00.00', '354.00-', '301    ', '4q5056 GBP',
+          'USD 20621.54973']
+
+    expected = [1000.48, -23500.54, 1004000.22, -43000.0, 304000.0,
+                -354.0, 301.0, 45056.0, 20621.54973]
+
+    df = pd.DataFrame(values, columns=['values'])
+    df['values'] = str_clean_number(df['values'])
+
+    assert expected == df['values'].values.tolist()
+
+
+# test_str_columns_replace {{{1
+def test_str_columns_replace():
+
+    dict_ = {'number$': 'nbr', 'revenue per cookie': 'unit revenue',
+             'cost per cookie': 'unit cost', 'month': 'mth',
+             'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
+
+    cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
+            'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
+
+    expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost',
+                'revenue', 'cost', 'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
+
+    df = pd.DataFrame(None, columns=cols)
+    df = str_columns_replace(df, dict_, info=True)
+    df = clean_columns(df)
+
+    assert expected == list(df.columns)
+
+
 # test_str_join_str_column_raise_columns_list_error {{{1
 def test_str_join_str_column_raise_columns_list_error(t_sample_sales):
 
@@ -1740,6 +1779,42 @@ def test_str_split_number_column_drop_true_expand_True(t_sample_sales):
     assert actual.loc[4:4, 'number'].values[0] == '29209'
 
 
+# test_str_trim_blanks {{{1
+def test_str_trim_blanks(t_sample_column_clean_text):
+    """
+    """
+    df = t_sample_column_clean_text
+
+    df['test_col'] = (df['test_col'].str.replace(r'(\w)\s+(\w)', r'\1 \2', regex=True)
+                                    .str.title())
+
+    expected = ['First Row', 'Second Row', 'Fourth Row', 'Fifth Row',
+                'Thrid Row', 'Fourth Row', 'Fifth Row', 'Sixth Row',
+                'Seventh Row', 'Eighth Row', 'Ninth Row', 'Tenth Row']
+
+    df2 = str_trim(df, str_columns=['test_col'])
+
+    actual = df2['test_col'].to_list()
+    assert expected == actual
+
+    str_trim(df, str_columns=None)
+
+    actual = df['test_col'].to_list()
+    assert expected == actual
+
+# test_str_trim_blanks_duplicate_column_name {{{1
+def test_str_trim_blanks_duplicate_column_name(t_sample_data):
+    """
+    """
+    df = t_sample_data
+    df.columns = ['dates', 'order_dates', 'regions', 'regions', 'ids', 'values_1', 'values_2']
+
+    df2 = str_trim(df)
+
+    expected = ['dates', 'order_dates', 'regions', 'regions2', 'ids', 'values_1', 'values_2']
+    actual = df2.columns.tolist()
+    assert expected == actual
+
 # test_summarise_default{{{1
 def test_summarise_default(t_sample_data):
 
@@ -1855,42 +1930,6 @@ def test_transform_custom_function(t_sample_data):
 
     assert expected == actual
 
-
-# test_str_trim_blanks {{{1
-def test_str_trim_blanks(t_sample_column_clean_text):
-    """
-    """
-    df = t_sample_column_clean_text
-
-    df['test_col'] = (df['test_col'].str.replace(r'(\w)\s+(\w)', r'\1 \2', regex=True)
-                                    .str.title())
-
-    expected = ['First Row', 'Second Row', 'Fourth Row', 'Fifth Row',
-                'Thrid Row', 'Fourth Row', 'Fifth Row', 'Sixth Row',
-                'Seventh Row', 'Eighth Row', 'Ninth Row', 'Tenth Row']
-
-    df2 = str_trim(df, str_columns=['test_col'])
-
-    actual = df2['test_col'].to_list()
-    assert expected == actual
-
-    str_trim(df, str_columns=None)
-
-    actual = df['test_col'].to_list()
-    assert expected == actual
-
-# test_str_trim_blanks_duplicate_column_name {{{1
-def test_str_trim_blanks_duplicate_column_name(t_sample_data):
-    """
-    """
-    df = t_sample_data
-    df.columns = ['dates', 'order_dates', 'regions', 'regions', 'ids', 'values_1', 'values_2']
-
-    df2 = str_trim(df)
-
-    expected = ['dates', 'order_dates', 'regions', 'regions2', 'ids', 'values_1', 'values_2']
-    actual = df2.columns.tolist()
-    assert expected == actual
 
 # test_where {{{1
 def test_where(t_sample_data):

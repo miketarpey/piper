@@ -33,3 +33,4 @@ ip = register_magic()
 
 pd.set_option("display.max_columns", 80)
 pd.set_option('max_colwidth', 120)
+pd.set_option('display.precision', 6)

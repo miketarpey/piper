@@ -679,61 +679,31 @@ def clean_columns(df: pd.DataFrame,
     --------
     .. code-block::
 
-        column_list = [
-            'dupe**', 'Customer   ', 'mdm no. to use', 'Target-name   ', '     Public',
-            '_  Material', 'Prod type', '#Effective     ', 'Expired', 'Price%  ',
-            'Currency$'
-        ]
+        column_list = ['dupe**', 'Customer   ', 'mdm no. to use', 'Target-name   ',
+                       '     Public', '_  Material', 'Prod type', '#Effective     ',
+                       'Expired', 'Price%  ', 'Currency$']
 
         df = pd.DataFrame(None, columns=column_list)
         df.columns.tolist()
 
-        ['dupe**',
-         'Customer   ',
-         'mdm no. to use',
-         'Target-name   ',
-         '     Public',
-         '_  Material',
-         'Prod type',
-         '#Effective     ',
-         'Expired',
-         'Price%  ',
-         'Currency$']
+        ['dupe**', 'Customer   ', 'mdm no. to use', 'Target-name   ', '     Public',
+         '_  Material', 'Prod type', '#Effective     ', 'Expired', 'Price%  ', 'Currency$']
 
     .. code-block::
 
         df = clean_columns(df)
         df.columns.tolist()
 
-        ['dupe',
-         'customer',
-         'mdm_no_to_use',
-         'target_name',
-         'public',
-         'material',
-         'prod_type',
-         'effective',
-         'expired',
-         'price',
-         'currency']
+        ['dupe', 'customer', 'mdm_no_to_use', 'target_name', 'public', 'material',
+         'prod_type', 'effective', 'expired', 'price', 'currency']
 
     .. code-block::
 
         df = clean_columns(df, case='report', title=True)
         df.columns.tolist()
 
-        ['Dupe',
-         'Customer',
-         'Mdm No To Use',
-         'Target Name',
-         'Public',
-         'Material',
-         'Prod Type',
-         'Effective',
-         'Expired',
-         'Price',
-         'Currency']
-
+        ['Dupe', 'Customer', 'Mdm No To Use', 'Target Name', 'Public', 'Material',
+         'Prod Type', 'Effective', 'Expired', 'Price', 'Currency']
 
     Parameters
     ----------
@@ -798,7 +768,7 @@ def clean_columns(df: pd.DataFrame,
         if title:
             columns = [x.title() for x in columns]
 
-    if case in ('camel'):
+    if case == 'camel':
         columns = [camel_case(x, title=title) for x in columns]
 
     df.columns = columns
@@ -2472,6 +2442,125 @@ def split_dataframe(df: pd.DataFrame,
     return np.split(df, range_)
 
 
+# str_clean_number {{{1
+def str_clean_number(series: pd.Series,
+                     decimal: str = '.',
+                     dtype: str = 'float64'):
+    ''' clean number (e.g. currency, price) values
+
+    Series based conversion of string values which are supposed to be
+    numeric (e.g. prices, currency, float values).
+
+    Returns 'cleaned' values i.e. numbers, decimal point and negative '-'
+    are the only character values allowed.
+
+    Examples
+    --------
+
+    .. code-block::
+
+        values = ['$ 1000.48', '-23,500.54', '1004,0 00 .22', '-£43,000',
+              'EUR 304s0,00.00', '354.00-', '301    ', '4q5056 GBP',
+              'USD 20621.54973']
+
+        expected = [1000.48, -23500.54, 1004000.22, -43000.0, 304000.0,
+                    -354.0, 301.0, 45056.0, 20621.54973]
+
+        df = pd.DataFrame(values, columns=['values'])
+        df['values'] = str_clean_number(df['values'])
+
+        assert expected == df['values'].values.tolist()
+
+    Parameters
+    ----------
+    series
+        a pandas series
+    decimal
+        default is '.'
+        The decimal symbol e.g. decimal point or decimal comma (in Europe)
+    dtype
+        Default 'float64'. The default data type to be used to convert
+        the column/series. Set to None if you don't want to auto convert data type.
+
+    Returns
+    -------
+    a pandas series
+    '''
+
+    series = series.str.replace(f'[^0-9-\{decimal}]', '', regex=True)
+
+    # If negative e.g. '301.00-' then prepend '-', e.g. '-301.00'
+    series = series.str.replace('(.*)(-$)', '\\2\\1', regex=True)
+
+    if dtype is not None:
+        series = pd.to_numeric(series).astype(dtype)
+
+    return series
+
+
+# str_columns_replace {{{1
+def str_columns_replace(df: pd.DataFrame,
+                        dict_: Dict,
+                        info: bool = False) -> pd.DataFrame:
+    """ replace column names (or partially) with dictionary values
+
+
+    Examples
+    --------
+
+    .. code-block::
+
+        dict_ = { 'number$': 'nbr', 'revenue per cookie': 'unit revenue', 'cost per cookie': 'unit cost',
+              'month': 'mth', 'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
+
+        cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
+                'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
+
+        expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost', 'revenue', 'cost',
+                    'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
+
+        df = pd.DataFrame(None, columns=cols)
+        df = str_columns_replace(df, dict_, info=False)
+        df = clean_columns(df)
+
+        assert expected == list(df.columns)
+
+    Parameters
+    ----------
+    df
+        a pandas dataframe
+    values
+        dictionary of from/to values (optionally) with regex values
+    info
+        Default False. If True, print replacement from/to values.
+
+    Returns
+    -------
+    a pandas dataframe
+    """
+    updated_columns = []
+    replacements = []
+
+    for x in df.columns:
+
+        for k, v in dict_.items():
+            y = re.sub(k, v, x, flags=re.I)
+            if y != x:
+                replacements.append((x, y))
+                x = y
+
+        updated_columns.append(x)
+
+    if len(replacements) > 0:
+        logger.info('|Warning| automatic column names substitutions made, for details, info=True')
+        if info:
+            repl_ = [f'{x} => {y}' for (x,y) in replacements]
+            logger.info(f'{repl_}')
+
+    df.columns = updated_columns
+
+    return df
+
 # str_join() {{{1
 def str_join(df: pd.DataFrame,
                 columns: List = None,
@@ -2760,6 +2849,41 @@ def str_split(df: pd.DataFrame,
 
             if duplicate_column_name:
                 df = df.rename(columns={column + '_': column})
+
+    return df
+
+
+# str_trim() {{{1
+def str_trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
+    '''strip leading/trailing blanks
+
+    Parameters
+    ----------
+    df
+        pandas dataframe
+    str_columns
+        Optional list of columns to strip. If None, all string data type columns
+        will be trimmed.
+
+    Returns
+    -------
+    A pandas dataframe
+    '''
+    if str_columns is None:
+        str_columns = df.select_dtypes(include='object')
+
+    # duplicate names check
+    check_list = {}
+    for idx, item in enumerate(df.columns.values):
+        if item not in check_list:
+            check_list[item] = 1
+        else:
+            suffix = check_list[item]
+            check_list[item] = suffix + 1
+            df.columns.values[idx] = df.columns.values[idx] + str(check_list[item])
+
+    for col in str_columns:
+        df[col] = df[col].astype('str').str.strip()
 
     return df
 
@@ -3167,41 +3291,6 @@ def transform(df: pd.DataFrame,
         # first column in dataframe
         column, value = 'g%', df.columns[0]
         df[column] = df.groupby(index)[value].transform(check_builtin('percent'))
-
-    return df
-
-
-# str_trim() {{{1
-def str_trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
-    '''strip leading/trailing blanks
-
-    Parameters
-    ----------
-    df
-        pandas dataframe
-    str_columns
-        Optional list of columns to strip. If None, all string data type columns
-        will be trimmed.
-
-    Returns
-    -------
-    A pandas dataframe
-    '''
-    if str_columns is None:
-        str_columns = df.select_dtypes(include='object')
-
-    # duplicate names check
-    check_list = {}
-    for idx, item in enumerate(df.columns.values):
-        if item not in check_list:
-            check_list[item] = 1
-        else:
-            suffix = check_list[item]
-            check_list[item] = suffix + 1
-            df.columns.values[idx] = df.columns.values[idx] + str(check_list[item])
-
-    for col in str_columns:
-        df[col] = df[col].astype('str').str.strip()
 
     return df
 
