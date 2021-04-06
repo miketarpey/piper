@@ -43,6 +43,7 @@ column management
    flatten_cols
    relocate
    rename
+   replace_columns
    rows_to_columns
    set_columns
 
@@ -72,6 +73,7 @@ string functions
 .. autosummary::
    :toctree: api
 
+   str_clean_number
    str_join
    str_split
    str_trim
