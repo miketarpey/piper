@@ -2,6 +2,7 @@ from datetime import datetime
 from pandas.api.types import is_datetime64_any_dtype
 from pandas.api.types import is_period_dtype
 from pandas.core.common import flatten
+from functools import wraps
 import logging
 import numpy as np
 import pandas as pd
@@ -572,7 +573,6 @@ def count(df: pd.DataFrame,
         E        3   60
         C        1   20
         D        1   20
-
 
         %%piper
         df
@@ -1726,6 +1726,7 @@ def overlaps(df: pd.DataFrame,
 
 
 # pivot_longer() {{{1
+@wraps(pd.DataFrame.melt)
 def pivot_longer(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -2014,6 +2015,7 @@ def replace_columns(df: pd.DataFrame,
     return df
 
 # rename() {{{1
+@wraps(pd.DataFrame.rename)
 def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     '''rename dataframe col(s)
 
@@ -2101,6 +2103,7 @@ def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
 
 
 # reset_index() {{{1
+@wraps(pd.DataFrame.reset_index)
 def reset_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -2464,6 +2467,7 @@ def set_columns(df: pd.DataFrame,
 
 
 # set_index() {{{1
+@wraps(pd.DataFrame.set_index)
 def set_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -2538,6 +2542,11 @@ def str_clean_number(series: pd.Series,
     Returns 'cleaned' values i.e. numbers, decimal point and negative '-'
     are the only character values allowed.
 
+    .. note::
+
+        If a non-decimal point symbol supplied, the function issues a
+        warning that no data type conversion to numeric values can be performed.
+
     Examples
     --------
 
@@ -2579,12 +2588,18 @@ def str_clean_number(series: pd.Series,
     # If decimal symbol repeated, remove all except rightmost value
     series = series.str.replace(f'\{decimal}(?=.*\{decimal})', '', regex=True)
 
-    # If value(s) contain a minus sign, remove then reapply by multiplying by -1
-    series = series.where(series.str.contains('-') == False,
-                 series.str.replace('[-]','', regex=True).astype(float) * -1)
+    if decimal != '.':
+        logger.info('|Warning| Non-decimal symbol supplied, cannot convert to numeric')
+        series = series.where(series.str.contains('-') == False,
+                     series.str.replace('-','', regex=True)
+                           .str.replace('^(.*)', '-\\1', regex=True))
+    else:
+        # If value(s) contain a minus sign, remove then reapply by multiplying by -1
+        series = series.where(series.str.contains('-') == False,
+                     series.str.replace('[-]','', regex=True).astype(float) * -1)
 
-    if dtype is not None:
-        series = pd.to_numeric(series).astype(dtype)
+        if dtype is not None:
+            series = pd.to_numeric(series).astype(dtype)
 
     return series
 
@@ -2771,7 +2786,6 @@ def str_split(df: pd.DataFrame,
         .. note::
 
             For space(s), safer to use r'\\s' rather than ' '.
-
     n
         default -1. Number of splits to capture. -1 means capture ALL splits
     loc
@@ -3324,9 +3338,10 @@ def transform(df: pd.DataFrame,
 
 
 # unstack() {{{1
+@wraps(pd.DataFrame.unstack)
 def unstack(df: pd.DataFrame,
-          *args,
-          **kwargs) -> pd.DataFrame:
+            *args,
+            **kwargs) -> pd.DataFrame:
     '''unstack dataframe
 
     This is a wrapper function rather than using e.g. df.unstack()
@@ -3351,6 +3366,7 @@ def unstack(df: pd.DataFrame,
 
 
 # where() {{{1
+@wraps(pd.DataFrame.query)
 def where(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:

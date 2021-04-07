@@ -27,6 +27,7 @@ from piper.verbs import non_alpha
 from piper.verbs import order_by
 from piper.verbs import outer_join
 from piper.verbs import overlaps
+from piper.verbs import pivot_longer
 from piper.verbs import pivot_table
 from piper.verbs import relocate
 from piper.verbs import rename
@@ -461,6 +462,25 @@ def test_rows_to_columns_title_bad_data():
     assert expected == actual
 
 
+# test_rows_to_columns_with_nans {{{1
+def test_rows_to_columns_with_nans():
+
+    data = {'A': ['Customer', 'id', 48015346, 49512432],
+            'B': ['Order', 'Number', 'DE-12345', 'FR-12346'],
+            'C': [np.nan, 'Qty', 10, 40],
+            'D': ['Item', 'Number', 'SW-10-2134', 'YH-22-2030'],
+            'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
+
+    df = pd.DataFrame(data)
+    df = rows_to_columns(df, fillna=True)
+
+    expected = ['Customer Id', 'Order Number', 'Order Qty',
+                'Item Number', 'Item Description']
+    actual = df.columns.to_list()
+
+    assert expected == actual
+
+
 # test_count_series{ {{1
 def test_count_series(t_simple_series_01):
 
@@ -598,9 +618,22 @@ def test_count_multi_column_with_cum_percent_threshold(t_sample_data):
     df = t_sample_data
     df = df.query("regions == 'East'")
     df = count(df, ['regions', 'countries'],
-               percent=True,
-               cum_percent=True,
-               threshold=81)
+               percent=True, cum_percent=True, threshold=81)
+
+    expected = (5, 3)
+    actual = df.shape
+
+    assert expected == actual
+
+
+# test_count_with_categorical {{{1
+def test_count_with_categorical(t_sample_data):
+
+    df = t_sample_data
+    df.countries = df.countries.astype('category')
+    df = df.query("regions == 'East'")
+    df = count(df, 'countries',
+               percent=True, cum_percent=True, threshold=81)
 
     expected = (5, 3)
     actual = df.shape
@@ -1036,6 +1069,19 @@ def test_overlaps_unique_key_list():
     actual = overlaps(df, start='effective', end='expired', unique_key=['contract'])
 
     assert expected == actual.shape
+
+
+# test_pivot_longer {{{1
+def test_pivot_longer(t_sample_sales):
+
+    df = t_sample_sales
+    df = df.pivot_table(index=['location', 'month'], columns='product', values='actual_sales')
+    df = pivot_longer(df, col_level=0, ignore_index=False)
+    actual = df.loc[('Paris', '2021-01-01')].query("product == 'Beachwear'").values[0][1]
+
+    expected = 20612.035
+
+    assert expected == actual
 
 
 # test_pivot_table {{{1
@@ -1599,6 +1645,22 @@ def test_str_clean_number():
     assert expected == df['values'].values.tolist()
 
 
+# test_str_clean_number_decimal_comma {{{1
+def test_str_clean_number_decimal_comma():
+
+    values = ['$ 1000.48', '-23,500.54', '1004,0 00 .22', '-£43,000',
+              'EUR 304s0,00.00', '354.00-', '301    ', '4q5056 GBP',
+              'USD 20621.54973']
+
+    expected = ['100048', '-23,50054', '1004,00022', '-43,000',
+                '3040,0000', '-35400', '301', '45056', '2062154973']
+
+    df = pd.DataFrame(values, columns=['values'])
+    df['values'] = str_clean_number(df['values'], decimal=',')
+
+    assert expected == df['values'].values.tolist()
+
+
 # test_str_join_str_column_raise_columns_list_error {{{1
 def test_str_join_str_column_raise_columns_list_error(t_sample_sales):
 
@@ -1835,6 +1897,19 @@ def test_summarise_value(t_sample_data):
     actual = summarise(df, {'values_1': 'sum'})
 
     assert expected == actual.shape
+
+
+def test_summarise_no_parms(t_sample_sales):
+
+    df = t_sample_sales
+    df = group_by(df, 'product')
+    df = summarise(df)
+    df = where(df, "product == 'Footwear'")
+    actual = select(df, 'actual_profit').values[0][0]
+
+    expected = 85837.479999999981
+
+    assert expected == actual
 
 
 # test_tail_with_series {{{1
