@@ -2173,6 +2173,7 @@ def rows_to_columns(df: pd.DataFrame,
                     end: int = 1,
                     delimitter: str = ' ',
                     title: bool = True,
+                    fillna: bool = False,
                     infer_objects: bool = True) -> pd.DataFrame:
     '''promote row(s) to column name(s)
 
@@ -2199,8 +2200,7 @@ def rows_to_columns(df: pd.DataFrame,
 
     .. code-block::
 
-        df.iloc[0] = df.iloc[0].ffill()
-        df = rows_to_columns(df)
+        df = rows_to_columns(df, fillna=True)
         head(df, tablefmt='plain')
 
               Customer Id  Order Number      Order Qty  Item Number    Item Description
@@ -2219,6 +2219,8 @@ def rows_to_columns(df: pd.DataFrame,
         character to be used to 'join' row values together. default is ' '
     title
         default False. If True, titleize column values
+    fillna
+        default False. If True, fill nan values in header row.
     infer_objects
         default True. Infer data type of resultant dataframe
 
@@ -2226,6 +2228,9 @@ def rows_to_columns(df: pd.DataFrame,
     -------
     A pandas dataframe
     '''
+    if fillna:
+        df.iloc[start] = df.iloc[start].ffill().fillna('')
+
     data = df.iloc[start].astype(str).values
     rows = range(start+1, end+1)
 
