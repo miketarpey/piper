@@ -1841,6 +1841,36 @@ def test_str_split_number_column_drop_true_expand_True(t_sample_sales):
     assert actual.loc[4:4, 'number'].values[0] == '29209'
 
 
+# test_str_split_number_raise_type_error_column_str {{{1
+def test_str_split_number_raise_type_error_column_str(t_sample_sales):
+
+    df = t_sample_sales
+
+    with pytest.raises(TypeError):
+        actual = str_split(df, ['actual_sales'], columns=['number', 'precision'],
+                       pat='.', drop=True, expand=True)
+
+
+# test_str_split_number_raise_type_error_columns_list_like {{{1
+def test_str_split_number_raise_type_error_columns_list_like(t_sample_sales):
+
+    df = t_sample_sales
+
+    with pytest.raises(TypeError):
+        actual = str_split(df, 'actual_sales', columns='number',
+                       pat='.', drop=True, expand=True)
+
+
+# test_str_split_number_raise_name_error_column_in_list {{{1
+def test_str_split_number_raise_name_error_column_in_list(t_sample_sales):
+
+    df = t_sample_sales
+
+    with pytest.raises(NameError):
+        actual = str_split(df, 'actual_sales_wrong', columns=['number', 'precision'],
+                       pat='.', drop=True, expand=True)
+
+
 # test_str_trim_blanks {{{1
 def test_str_trim_blanks(t_sample_column_clean_text):
     """
@@ -1945,12 +1975,23 @@ def test_tail_with_tablefmt_plain(t_dummy_dataframe):
     assert result == None
 
 
+# test_transform_no_parms {{{1
+def test_transform_no_parms(t_sample_sales):
+    """ """
+
+    df = t_sample_sales
+    df = group_by(df, ['product', 'location'])
+    df = summarise(df)
+    df = transform(df)
+    df = where(df, "product == 'Beachwear'")
+    actual = select(df, "g%").values[0][0]
+
+    assert 32.58 == actual
+
+
 # test_transform {{{1
 def test_transform(t_sample_data):
-    """
-
-
-    """
+    """ """
 
     index = ['countries', 'regions']
     cols = ['countries', 'regions', 'ids', 'values_1', 'values_2']
