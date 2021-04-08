@@ -2,6 +2,7 @@ from piper.custom import to_julian
 from piper.factory import dummy_dataframe
 from piper.factory import sample_column_clean_text
 from piper.factory import sample_data
+from piper.factory import sample_phone_sales
 from piper.factory import sample_sales
 from piper.factory import simple_series
 from piper.verbs import across
@@ -34,6 +35,7 @@ from piper.verbs import rename
 from piper.verbs import rename_axis
 from piper.verbs import replace_columns
 from piper.verbs import right_join
+from piper.verbs import reset_index
 from piper.verbs import sample
 from piper.verbs import select
 from piper.verbs import set_columns
@@ -45,6 +47,7 @@ from piper.verbs import summary_df
 from piper.verbs import split_dataframe
 from piper.verbs import str_join
 from piper.verbs import tail
+from piper.verbs import unstack
 from piper.verbs import transform
 from piper.verbs import where
 from pandas.api.types import is_float_dtype
@@ -54,6 +57,12 @@ import numpy as np
 import pandas as pd
 import pytest
 import random
+
+
+# t_sample_phone_sales {{{1
+@pytest.fixture
+def t_sample_phone_sales():
+    return sample_phone_sales()
 
 
 # t_sample_sales {{{1
@@ -1179,6 +1188,44 @@ def test_relocate_no_column(t_sample_data):
 
     with pytest.raises(KeyError):
         actual = relocate(df, column=None, loc='first')
+
+
+# test_pivot_longer_tuple_args {{{1
+def test_pivot_longer_tuple_args(t_sample_phone_sales):
+    """
+    """
+    df = t_sample_phone_sales
+
+    df = assign(df, sales_price=lambda x: x.unit_price * x.qty)
+    df = where(df, "invoice_dt.dt.month.between(3, 3)")
+    df = group_by(df, ['region', 'country', 'rep'])
+    df = summarise(df, total_sales=('sales_price', 'sum'))
+    df = unstack(df)
+    df = flatten_cols(df, remove_prefix='total_sales')
+    df = reset_index(df)
+    actual = pivot_longer(df, ('region', 'country'), 'actual_sales')
+
+    assert actual.shape == (10, 4)
+
+
+# test_pivot_longer_tuple_kwargs {{{1
+def test_pivot_longer_tuple_kwargs(t_sample_phone_sales):
+    """
+    """
+    df = t_sample_phone_sales
+
+    df = assign(df, sales_price=lambda x: x.unit_price * x.qty)
+    df = where(df, "invoice_dt.dt.month.between(3, 3)")
+    df = group_by(df, ['region', 'country', 'rep'])
+    df = summarise(df, total_sales=('sales_price', 'sum'))
+    df = unstack(df)
+    df = flatten_cols(df, remove_prefix='total_sales')
+    df = reset_index(df)
+    actual = pivot_longer(df,
+                          id_vars=('region', 'country'),
+                          value_vars='actual_sales')
+
+    assert actual.shape == (10, 4)
 
 
 # test_relocate_index {{{1

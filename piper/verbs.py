@@ -1733,7 +1733,7 @@ def overlaps(df: pd.DataFrame,
 
 
 # pivot_longer() {{{1
-# @wraps(pd.DataFrame.melt)
+@wraps(pd.DataFrame.melt)
 def pivot_longer(df: pd.DataFrame,
                  *args: Any,
                  **kwargs: Any) -> pd.DataFrame:
