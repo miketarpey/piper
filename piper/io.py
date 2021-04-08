@@ -487,8 +487,7 @@ def read_excel_sheets(filename = None,
                 if info:
                     logger.info(f'sheet: {sheet}, (rows, cols) {dx.shape}')
 
-                if return_type == 'list_frames' or \
-                   return_type == 'combine':
+                if return_type == 'list_frames' or return_type == 'combine':
                     dataframes.append(dx)
 
                 elif return_type == 'dataframes':

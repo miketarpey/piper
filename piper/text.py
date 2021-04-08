@@ -294,7 +294,7 @@ def pipe_function_parms(idx: int, value: str) -> str:
 
 
 # paste() {{{1
-def paste(source='text'):
+def paste(source='vertical'):
     ''' Convert a clipboard sourced list from text or excel file
 
     Examples
@@ -313,15 +313,20 @@ def paste(source='text'):
     -------
     Clipboard contents
     '''
+
     if source == 'vertical':
         dx = pd.read_clipboard(header=None, names=['x'])
-        data = "['" + "', '".join(dx.x.values.tolist()) + "']"
 
-    if source == 'horizontal':
+        # make sure no apostrophe's copied into clipboard contents by mistake
+        # dx['x'] = dx['x'].str.replace("""["']""", '', regex=True)
+
+        data = "['" + "', '".join(dx.x.astype(str).values.tolist()) + "']"
+
+    if source == 'horizontal_list':
         dx = pd.read_clipboard(sep='\t')
         data = dx.columns.tolist()
 
-    if source == 'horizontal_list':
+    if source == 'horizontal':
         dx = pd.read_clipboard(sep='\t')
         data = "['" + "', '".join(dx.columns.tolist()) + "']"
 

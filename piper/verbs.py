@@ -3,6 +3,7 @@ from pandas.api.types import is_datetime64_any_dtype
 from pandas.api.types import is_period_dtype
 from pandas.core.common import flatten
 from functools import wraps
+from copy import deepcopy
 import logging
 import numpy as np
 import pandas as pd
@@ -535,7 +536,8 @@ def count(df: pd.DataFrame,
           round: int = 2,
           totals: bool = False,
           sort_values: bool = False,
-          reset_index: bool = False):
+          reset_index: bool = False,
+          shape: bool = True):
     '''show column/category/factor frequency
 
     For selected column or multi-index show the frequency count, frequency %,
@@ -607,6 +609,8 @@ def count(df: pd.DataFrame,
         default False, None means use index sort
     reset_index
         default False
+    shape
+        default True. Show shape information as a logger.info() message
 
 
     Returns
@@ -662,6 +666,9 @@ def count(df: pd.DataFrame,
 
             p1 = adorn(p1, columns=cols, col_row_name='Total',
                        ignore_index=reset_index)
+
+    if shape:
+        _shape(p1)
 
     return p1
 
@@ -762,11 +769,11 @@ def clean_columns(df: pd.DataFrame,
     # Replace any remaining embedded blanks with single replacement 'to_char' value.
     columns = [re.sub('\s+', to_char, x) for x in columns]
 
-    if case in ('snake', 'report'):
+    if case == 'snake':
         columns = [re.sub(from_char, to_char, x) for x in columns]
 
-        if title:
-            columns = [x.title() for x in columns]
+    if case == 'report':
+        columns = [re.sub(from_char, to_char, x).title() for x in columns]
 
     if case == 'camel':
         columns = [camel_case(x, title=title) for x in columns]
@@ -806,7 +813,7 @@ def distinct(df: pd.DataFrame,
     df
         dataframe
     shape
-        default True. Show shape information as a logger.info() message
+        default False. If True, show shape information as a logger.info() message
     *args
         arguments for wrapped function
     **kwargs
@@ -1726,10 +1733,10 @@ def overlaps(df: pd.DataFrame,
 
 
 # pivot_longer() {{{1
-@wraps(pd.DataFrame.melt)
+# @wraps(pd.DataFrame.melt)
 def pivot_longer(df: pd.DataFrame,
-          *args,
-          **kwargs) -> pd.DataFrame:
+                 *args: Any,
+                 **kwargs: Any) -> pd.DataFrame:
     '''pivot dataframe wide to long
 
     This is a wrapper function rather than using e.g. df.melt()
@@ -1748,7 +1755,33 @@ def pivot_longer(df: pd.DataFrame,
     -------
     A pandas DataFrame
     '''
-    return df.melt(*args, **kwargs)
+    args_copy = deepcopy(list(args))
+
+    # if first argument / id_vars is a tuple, replace with 'range' of columns
+    if len(args_copy) > 0:
+        if isinstance(args_copy[0], tuple):
+            (from_col, to_col) = args_copy[0]
+            args_copy[0] = df.loc[:, from_col:to_col].columns.tolist()
+            logger.info(f'|Info| tuple passed, expanding to {args_copy[0]}')
+
+    if isinstance(kwargs.get('id_vars'), tuple):
+        (from_col, to_col) = kwargs.get('id_vars') # type: ignore
+        kwargs['id_vars'] = df.loc[:, from_col:to_col].columns.tolist()
+        logger.info(f"|Info| tuple passed, expanding to {kwargs['id_vars']}")
+
+    # if 2nd argument / value_vars is a tuple, replace with 'range' of columns
+    if len(args_copy) > 1:
+        if isinstance(args_copy[1], tuple):
+            (from_col, to_col) = args_copy[1] #type: ignore
+            args_copy[1] = df.loc[:, from_col:to_col].columns.tolist()
+            logger.info(f'|Info| tuple passed, expanding to {args_copy[1]}')
+
+    if isinstance(kwargs.get('value_vars'), tuple):
+        (from_col, to_col) = kwargs.get('value_vars') #type: ignore
+        kwargs['value_vars'] = df.loc[:, from_col:to_col].columns.tolist()
+        logger.info(f"|Info| tuple passed, expanding to {kwargs['value_vars']}")
+
+    return df.melt(*args_copy, **kwargs)
 
 
 # pivot_table() {{{1
@@ -2175,7 +2208,6 @@ def rows_to_columns(df: pd.DataFrame,
                     start: int = 0,
                     end: int = 1,
                     delimitter: str = ' ',
-                    title: bool = True,
                     fillna: bool = False,
                     infer_objects: bool = True) -> pd.DataFrame:
     '''promote row(s) to column name(s)
@@ -2220,8 +2252,6 @@ def rows_to_columns(df: pd.DataFrame,
         ending row to combine, - default 1
     delimitter
         character to be used to 'join' row values together. default is ' '
-    title
-        default False. If True, titleize column values
     fillna
         default False. If True, fill nan values in header row.
     infer_objects
@@ -2248,7 +2278,7 @@ def rows_to_columns(df: pd.DataFrame,
     if infer_objects:
         df = df.infer_objects()
 
-    df = clean_columns(df, case='report', title=title)
+    df = clean_columns(df, case='report')
 
     return df
 

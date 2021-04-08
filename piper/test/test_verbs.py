@@ -417,14 +417,14 @@ def test_columns_as_regex(t_sample_data):
     assert expected == actual
 
 
-# test_rows_to_columns {{{1
+# test_rows_to_columns_with_title {{{1
 def test_rows_to_columns_with_title():
 
     data = {'A': ['Order', 'Qty', 10, 40],
             'B': ['Order', 'Number', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = rows_to_columns(df, delimitter=' ', title=True)
+    df = rows_to_columns(df, delimitter=' ')
 
     expected = ['Order Qty', 'Order Number']
     actual = df.columns.to_list()
@@ -432,29 +432,14 @@ def test_rows_to_columns_with_title():
     assert expected == actual
 
 
-# test_rows_to_columns_lower {{{1
-def test_rows_to_columns_lower():
-
-    data = {'A': ['Order', 'Qty', 10, 40],
-            'B': ['Order', 'Number', 12345, 12346]}
-
-    df = pd.DataFrame(data)
-    df = rows_to_columns(df, delimitter=' ', title=False)
-
-    expected = ['order qty', 'order number']
-    actual = df.columns.to_list()
-
-    assert expected == actual
-
-
-# test_rows_to_columns_title {{{1
+# test_rows_to_columns_title_bad_data {{{1
 def test_rows_to_columns_title_bad_data():
 
     data = {'A': ['Order   ', 'Qty   ', 10, 40],
             'B': [' Order', '    Number%', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = rows_to_columns(df, delimitter=' ', title=True)
+    df = rows_to_columns(df, delimitter=' ')
 
     expected = ['Order Qty', 'Order Number']
     actual = df.columns.to_list()
