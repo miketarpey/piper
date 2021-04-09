@@ -248,7 +248,7 @@ def adorn(df: pd.DataFrame,
 
         g1 = df.groupby(['Type', 'Region']).agg(TotalSales=('Sales', 'sum')).unstack()
         g1 = adorn(g1, axis='both').astype(int)
-        g1 = flatten_cols(g1, remove_prefix='TotalSales')
+        g1 = flatten_names(g1, remove_prefix='TotalSales')
         g1
 
                                   East     North     South     West      All
@@ -455,77 +455,6 @@ def assign(df: pd.DataFrame,
     return df
 
 
-# columns() {{{1
-def columns(df: pd.DataFrame,
-            regex: str = None,
-            astype: str = 'list') -> Union[str, list, dict, pd.Series, pd.DataFrame]:
-    '''show dataframe column information
-
-    This function is useful reviewing or manipulating column(s)
-
-    The dictionary output is particularly useful when composing the rename of
-    multiple columns.
-
-    Examples
-    --------
-
-    .. code-block::
-
-        import numpy as np
-        import pandas as pd
-
-        id_list = ['A', 'B', 'C', 'D', 'E']
-        s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
-
-        region_list = ['East', 'West', 'North', 'South']
-        s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
-
-        df = pd.concat([s1, s2], axis=1)
-
-        columns(df, 'list')
-
-        ['ids', 'regions']
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    regex
-        Default None. regular expression to 'filter' list of returned columns.
-    astype
-        Default 'list'. See return options below:
-            - 'dict' returns a dictionary object
-            - 'list' returns a list object
-            - 'text' returns columns joined into a text string
-            - 'series' returns a pd.Series
-            - 'dataframe' returns a pd.DataFrame
-
-
-    Returns
-    -------
-    dictionary, list, str, pd.Series, pd.DataFrame
-    '''
-    cols = df.columns.tolist()
-
-    if regex:
-        cols = list(filter(re.compile(regex).match, cols))
-
-    if astype == 'dict':
-        return {x: x for x in cols}
-    elif astype == 'list':
-        return cols
-    elif astype == 'text':
-        return "['" +"', '".join(cols)+ "']"
-    elif astype == 'dataframe':
-        return pd.DataFrame(cols, columns = ['column_names'])
-    elif astype == 'series':
-        return pd.Series(cols, name='column_names')
-    else:
-        # note: mypy needs to see this 'dummy' catch all return statement
-        return None
-
-
 # count() {{{1
 def count(df: pd.DataFrame,
           columns: Union[str, list] = None,
@@ -673,8 +602,8 @@ def count(df: pd.DataFrame,
     return p1
 
 
-# clean_columns() {{{1
-def clean_columns(df: pd.DataFrame,
+# clean_names() {{{1
+def clean_names(df: pd.DataFrame,
                   case: str = 'snake',
                   title: bool = False) -> pd.DataFrame:
     '''Clean column names, strip blanks, lowercase, snake_case.
@@ -698,7 +627,7 @@ def clean_columns(df: pd.DataFrame,
 
     .. code-block::
 
-        df = clean_columns(df)
+        df = clean_names(df)
         df.columns.tolist()
 
         ['dupe', 'customer', 'mdm_no_to_use', 'target_name', 'public', 'material',
@@ -706,7 +635,7 @@ def clean_columns(df: pd.DataFrame,
 
     .. code-block::
 
-        df = clean_columns(df, case='report', title=True)
+        df = clean_names(df, case='report', title=True)
         df.columns.tolist()
 
         ['Dupe', 'Customer', 'Mdm No To Use', 'Target Name', 'Public', 'Material',
@@ -790,8 +719,8 @@ def distinct(df: pd.DataFrame,
              **kwargs) -> pd.DataFrame:
     '''select distinct/unique rows
 
-    This is a wrapper function rather than using e.g. df.distinct()
-    For details of args, kwargs - see help(pd.DataFrame.distinct)
+    This is a wrapper function rather than using e.g. df.drop_duplicates()
+    For details of args, kwargs - see help(pd.DataFrame.drop_duplicates)
 
     Examples
     --------
@@ -846,7 +775,7 @@ def drop(df: pd.DataFrame,
     .. code-block::
 
         df <- pd.read_csv('inputs/export.dsv', sep='\t')
-        >> clean_columns()
+        >> clean_names()
         >> trim()
         >> assign(adast = lambda x: x.adast.astype('category'),
                   adcrcd = lambda x: x.adcrcd.astype('category'),
@@ -1072,8 +1001,8 @@ def explode(df: pd.DataFrame,
     return df.explode(*args, **kwargs)
 
 
-# flatten_cols() {{{1
-def flatten_cols(df: pd.DataFrame,
+# flatten_names() {{{1
+def flatten_names(df: pd.DataFrame,
                  join_char: str = '_',
                  remove_prefix=None) -> pd.DataFrame:
     '''Flatten multi-index column headings
@@ -1092,7 +1021,7 @@ def flatten_cols(df: pd.DataFrame,
         >> assign(mike=lambda x: x.totalval1 * 50,
                   eoin=lambda x: x.totalval1 * 100)
         >> unstack()
-        >> flatten_cols()
+        >> flatten_names()
         >> select(('totalval1_East', 'totalval1_West'))
         >> head(tablefmt='plain')
 
@@ -1490,6 +1419,77 @@ def memory(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# names() {{{1
+def names(df: pd.DataFrame,
+            regex: str = None,
+            astype: str = 'list') -> Union[str, list, dict, pd.Series, pd.DataFrame]:
+    '''show dataframe column information
+
+    This function is useful reviewing or manipulating column(s)
+
+    The dictionary output is particularly useful when composing the rename of
+    multiple columns.
+
+    Examples
+    --------
+
+    .. code-block::
+
+        import numpy as np
+        import pandas as pd
+
+        id_list = ['A', 'B', 'C', 'D', 'E']
+        s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
+
+        region_list = ['East', 'West', 'North', 'South']
+        s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
+
+        df = pd.concat([s1, s2], axis=1)
+
+        names(df, 'list')
+
+        ['ids', 'regions']
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    regex
+        Default None. regular expression to 'filter' list of returned columns.
+    astype
+        Default 'list'. See return options below:
+            - 'dict' returns a dictionary object
+            - 'list' returns a list object
+            - 'text' returns columns joined into a text string
+            - 'series' returns a pd.Series
+            - 'dataframe' returns a pd.DataFrame
+
+
+    Returns
+    -------
+    dictionary, list, str, pd.Series, pd.DataFrame
+    '''
+    cols = df.columns.tolist()
+
+    if regex:
+        cols = list(filter(re.compile(regex).match, cols))
+
+    if astype == 'dict':
+        return {x: x for x in cols}
+    elif astype == 'list':
+        return cols
+    elif astype == 'text':
+        return "['" +"', '".join(cols)+ "']"
+    elif astype == 'dataframe':
+        return pd.DataFrame(cols, columns = ['column_names'])
+    elif astype == 'series':
+        return pd.Series(cols, name='column_names')
+    else:
+        # note: mypy needs to see this 'dummy' catch all return statement
+        return None
+
+
 # non_alpha() {{{1
 def non_alpha(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
     '''check for non-alphanumeric characters
@@ -1832,8 +1832,6 @@ def pivot_table(df: pd.DataFrame,
     -------
     pandas DataFrame object
     '''
-    logger.debug(args)
-    logger.debug(kwargs)
 
     if kwargs.get('index') != None:
         index = _set_grouper(df, kwargs.get('index'), freq=freq)
@@ -1984,8 +1982,8 @@ def relocate(df: pd.DataFrame,
     return sequence(new_column_sequence, index=index)
 
 
-# replace_columns {{{1
-def replace_columns(df: pd.DataFrame,
+# replace_names {{{1
+def replace_names(df: pd.DataFrame,
                         dict_: Dict,
                         info: bool = False) -> pd.DataFrame:
     """ replace column names (or partially) with dictionary values
@@ -2006,8 +2004,8 @@ def replace_columns(df: pd.DataFrame,
                     'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
 
         df = pd.DataFrame(None, columns=cols)
-        df = replace_columns(df, dict_, info=False)
-        df = clean_columns(df)
+        df = replace_names(df, dict_, info=False)
+        df = clean_names(df)
 
         assert expected == list(df.columns)
 
@@ -2203,8 +2201,8 @@ def right_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     return df.merge(*args, **kwargs)
 
 
-# rows_to_columns() {{{1
-def rows_to_columns(df: pd.DataFrame,
+# rows_to_names() {{{1
+def rows_to_names(df: pd.DataFrame,
                     start: int = 0,
                     end: int = 1,
                     delimitter: str = ' ',
@@ -2235,7 +2233,7 @@ def rows_to_columns(df: pd.DataFrame,
 
     .. code-block::
 
-        df = rows_to_columns(df, fillna=True)
+        df = rows_to_names(df, fillna=True)
         head(df, tablefmt='plain')
 
               Customer Id  Order Number      Order Qty  Item Number    Item Description
@@ -2278,7 +2276,7 @@ def rows_to_columns(df: pd.DataFrame,
     if infer_objects:
         df = df.infer_objects()
 
-    df = clean_columns(df, case='report')
+    df = clean_names(df, case='report')
 
     return df
 
@@ -2475,8 +2473,8 @@ def select(df: pd.DataFrame,
 
     return df[selected]
 
-# set_columns() {{{1
-def set_columns(df: pd.DataFrame,
+# set_names() {{{1
+def set_names(df: pd.DataFrame,
                 columns: Union[str, Any] = None) -> pd.DataFrame:
     '''set dataframe column names
 
@@ -3410,7 +3408,7 @@ def where(df: pd.DataFrame,
     .. code-block::
 
         (select(customers)
-         .pipe(clean_columns)
+         .pipe(clean_names)
          .pipe(select, ['client_code', 'establishment_type', 'address_1', 'address_2', 'town'])
          .pipe(where, 'establishment_type != 91')
          .pipe(where, "town != 'LISBOA' & establishment_type != 91"))

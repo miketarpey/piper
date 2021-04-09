@@ -8,22 +8,21 @@ from piper.factory import simple_series
 from piper.verbs import across
 from piper.verbs import adorn
 from piper.verbs import assign
-from piper.verbs import clean_columns
-from piper.verbs import columns
-from piper.verbs import rows_to_columns
+from piper.verbs import clean_names
 from piper.verbs import count
 from piper.verbs import distinct
 from piper.verbs import drop
 from piper.verbs import drop_if
 from piper.verbs import duplicated
 from piper.verbs import explode
-from piper.verbs import flatten_cols
+from piper.verbs import flatten_names
 from piper.verbs import fmt_dateidx
 from piper.verbs import group_by
 from piper.verbs import head
 from piper.verbs import info
 from piper.verbs import inner_join
 from piper.verbs import left_join
+from piper.verbs import names
 from piper.verbs import non_alpha
 from piper.verbs import order_by
 from piper.verbs import outer_join
@@ -33,22 +32,23 @@ from piper.verbs import pivot_table
 from piper.verbs import relocate
 from piper.verbs import rename
 from piper.verbs import rename_axis
-from piper.verbs import replace_columns
-from piper.verbs import right_join
+from piper.verbs import replace_names
 from piper.verbs import reset_index
+from piper.verbs import right_join
+from piper.verbs import rows_to_names
 from piper.verbs import sample
 from piper.verbs import select
-from piper.verbs import set_columns
+from piper.verbs import set_names
+from piper.verbs import split_dataframe
 from piper.verbs import str_clean_number
+from piper.verbs import str_join
 from piper.verbs import str_split
 from piper.verbs import str_trim
 from piper.verbs import summarise
 from piper.verbs import summary_df
-from piper.verbs import split_dataframe
-from piper.verbs import str_join
 from piper.verbs import tail
-from piper.verbs import unstack
 from piper.verbs import transform
+from piper.verbs import unstack
 from piper.verbs import where
 from pandas.api.types import is_float_dtype
 from pandas._testing import assert_frame_equal
@@ -316,8 +316,27 @@ def test_assign_with_value_error(t_sample_data):
         actual = assign(df, reversed=lambda x: x[::-1])
 
 
-# test_clean_columns_report_case_with_title {{{1
-def test_clean_columns_report_case_with_title(get_column_list):
+# test_replace_names {{{1
+def test_replace_names():
+
+    dict_ = {'number$': 'nbr', 'revenue per cookie': 'unit revenue',
+             'cost per cookie': 'unit cost', 'month': 'mth',
+             'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
+
+    cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
+            'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
+
+    expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost',
+                'revenue', 'cost', 'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
+
+    df = pd.DataFrame(None, columns=cols)
+    df = replace_names(df, dict_, info=True)
+    df = clean_names(df)
+
+    assert expected == list(df.columns)
+
+# test_clean_names_report_case_with_title {{{1
+def test_clean_names_report_case_with_title(get_column_list):
     """
     """
     expected = ['Dupe', 'Customer', 'Mdm No To Use', 'Target Name', 'Public',
@@ -326,12 +345,12 @@ def test_clean_columns_report_case_with_title(get_column_list):
 
     dx = pd.DataFrame(None, columns=get_column_list)
 
-    actual = clean_columns(dx, case='report', title=True).columns.tolist()
+    actual = clean_names(dx, case='report', title=True).columns.tolist()
     assert expected == actual
 
 
-# test_clean_columns_snake_case_with_title {{{1
-def test_clean_columns_snake_case_with_title(get_column_list):
+# test_clean_names_snake_case_with_title {{{1
+def test_clean_names_snake_case_with_title(get_column_list):
     """
     """
     expected = ['dupe', 'customer', 'mdm_no_to_use', 'target_name', 'public',
@@ -340,13 +359,13 @@ def test_clean_columns_snake_case_with_title(get_column_list):
 
     dx = pd.DataFrame(None, columns=get_column_list)
 
-    actual = clean_columns(dx, case='snake').columns.tolist()
+    actual = clean_names(dx, case='snake').columns.tolist()
 
     assert expected == actual
 
 
-# test_clean_columns_camel_case_with_title {{{1
-def test_clean_columns_camel_case_with_title(get_column_list):
+# test_clean_names_camel_case_with_title {{{1
+def test_clean_names_camel_case_with_title(get_column_list):
     """
     """
     expected = ['Dupe', 'Customer', 'MdmNoToUse', 'TargetName', 'Public',
@@ -354,13 +373,13 @@ def test_clean_columns_camel_case_with_title(get_column_list):
 
     dx = pd.DataFrame(None, columns=get_column_list)
 
-    actual = clean_columns(dx, case='camel', title=True).columns.tolist()
+    actual = clean_names(dx, case='camel', title=True).columns.tolist()
 
     assert expected == actual
 
 
-# test_clean_columns_camel_case_without_title {{{1
-def test_clean_columns_camel_case_without__title(get_column_list):
+# test_clean_names_camel_case_without_title {{{1
+def test_clean_names_camel_case_without__title(get_column_list):
     """
     """
     expected = ['dupe', 'customer', 'mdmNoToUse', 'targetName', 'public',
@@ -368,48 +387,48 @@ def test_clean_columns_camel_case_without__title(get_column_list):
 
     dx = pd.DataFrame(None, columns=get_column_list)
 
-    actual = clean_columns(dx, case='camel', title=False).columns.tolist()
+    actual = clean_names(dx, case='camel', title=False).columns.tolist()
 
     assert expected == actual
 
 
-# test_columns_as_list {{{1
-def test_columns_dataframe(t_sample_data):
+# test_names_as_list {{{1
+def test_names_dataframe(t_sample_data):
 
     df = t_sample_data
 
     expected = ['dates', 'order_dates', 'countries', 'regions', 'ids', 'values_1', 'values_2']
 
-    actual = columns(df, astype='list')
+    actual = names(df, astype='list')
     assert expected == actual
 
     expected = {'ids': 'ids', 'regions': 'regions'}
-    actual = columns(df[['ids', 'regions']], astype='dict')
+    actual = names(df[['ids', 'regions']], astype='dict')
     assert expected == actual
 
     expected = pd.DataFrame(['ids', 'regions'], columns=['column_names'])
-    actual = columns(df[['ids', 'regions']], astype='dataframe')
+    actual = names(df[['ids', 'regions']], astype='dataframe')
     assert_frame_equal(expected, actual)
 
     expected = "['ids', 'regions']"
-    actual = columns(df[['ids', 'regions']], astype='text')
+    actual = names(df[['ids', 'regions']], astype='text')
     assert expected == actual
 
 
-# test_columns_as_series {{{1
-def test_columns_as_series(t_sample_data):
+# test_names_as_series {{{1
+def test_names_as_series(t_sample_data):
 
     df = t_sample_data
 
     cols = ['dates', 'order_dates', 'countries', 'regions', 'ids', 'values_1', 'values_2']
     expected = pd.Series(cols, index=range(len(cols)), name='column_names')
-    actual = columns(df, astype='series')
+    actual = names(df, astype='series')
 
     assert_series_equal(expected, actual)
 
 
-# test_columns_as_regex {{{1
-def test_columns_as_regex(t_sample_data):
+# test_names_as_regex {{{1
+def test_names_as_regex(t_sample_data):
 
     prices = {
         'prices': [100, 200, 300],
@@ -421,19 +440,19 @@ def test_columns_as_regex(t_sample_data):
     df = pd.DataFrame(prices)
 
     expected = ['effective', 'expired']
-    actual = columns(df, regex='e', astype='list')
+    actual = names(df, regex='e', astype='list')
 
     assert expected == actual
 
 
-# test_rows_to_columns_with_title {{{1
-def test_rows_to_columns_with_title():
+# test_rows_to_names_with_title {{{1
+def test_rows_to_names_with_title():
 
     data = {'A': ['Order', 'Qty', 10, 40],
             'B': ['Order', 'Number', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = rows_to_columns(df, delimitter=' ')
+    df = rows_to_names(df, delimitter=' ')
 
     expected = ['Order Qty', 'Order Number']
     actual = df.columns.to_list()
@@ -441,14 +460,14 @@ def test_rows_to_columns_with_title():
     assert expected == actual
 
 
-# test_rows_to_columns_title_bad_data {{{1
-def test_rows_to_columns_title_bad_data():
+# test_rows_to_names_title_bad_data {{{1
+def test_rows_to_names_title_bad_data():
 
     data = {'A': ['Order   ', 'Qty   ', 10, 40],
             'B': [' Order', '    Number%', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = rows_to_columns(df, delimitter=' ')
+    df = rows_to_names(df, delimitter=' ')
 
     expected = ['Order Qty', 'Order Number']
     actual = df.columns.to_list()
@@ -456,8 +475,8 @@ def test_rows_to_columns_title_bad_data():
     assert expected == actual
 
 
-# test_rows_to_columns_with_nans {{{1
-def test_rows_to_columns_with_nans():
+# test_rows_to_names_with_nans {{{1
+def test_rows_to_names_with_nans():
 
     data = {'A': ['Customer', 'id', 48015346, 49512432],
             'B': ['Order', 'Number', 'DE-12345', 'FR-12346'],
@@ -466,7 +485,7 @@ def test_rows_to_columns_with_nans():
             'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
 
     df = pd.DataFrame(data)
-    df = rows_to_columns(df, fillna=True)
+    df = rows_to_names(df, fillna=True)
 
     expected = ['Customer Id', 'Order Number', 'Order Qty',
                 'Item Number', 'Item Description']
@@ -729,8 +748,8 @@ def test_explode(t_sample_data):
     assert expected == actual
 
 
-# test_flatten_cols_no_index {{{1
-def test_flatten_cols_no_index(t_sample_data):
+# test_flatten_names_no_index {{{1
+def test_flatten_names_no_index(t_sample_data):
     """
     """
     df = t_sample_data
@@ -742,8 +761,8 @@ def test_flatten_cols_no_index(t_sample_data):
     # Twice called is deliberate NOT a mistake :)
     # The second call is to make sure function does
     # not crash, just returns passed given column names
-    df = flatten_cols(df, remove_prefix='total')
-    df = flatten_cols(df, remove_prefix='total')
+    df = flatten_names(df, remove_prefix='total')
+    df = flatten_names(df, remove_prefix='total')
 
     expected = ['countries', 'East', 'North', 'South', 'West']
     actual = df.columns.to_list()
@@ -751,15 +770,15 @@ def test_flatten_cols_no_index(t_sample_data):
     assert expected == actual
 
 
-# test_flatten_cols_keep_prefix {{{1
-def test_flatten_cols_keep_prefix(t_sample_data):
+# test_flatten_names_keep_prefix {{{1
+def test_flatten_names_keep_prefix(t_sample_data):
     """
     """
     df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_2', 'sum'))
     df = df.unstack()
-    df = flatten_cols(df)
+    df = flatten_names(df)
 
     expected = ['total_East', 'total_North', 'total_South', 'total_West']
     actual = df.columns.to_list()
@@ -767,15 +786,15 @@ def test_flatten_cols_keep_prefix(t_sample_data):
     assert expected == actual
 
 
-# test_flatten_cols_lose_prefix {{{1
-def test_flatten_cols_lose_prefix(t_sample_data):
+# test_flatten_names_lose_prefix {{{1
+def test_flatten_names_lose_prefix(t_sample_data):
     """
     """
     df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_2', 'sum'))
     df = df.unstack()
-    df = flatten_cols(df, remove_prefix='total')
+    df = flatten_names(df, remove_prefix='total')
 
     expected = ['East', 'North', 'South', 'West']
     actual = df.columns.to_list()
@@ -783,15 +802,15 @@ def test_flatten_cols_lose_prefix(t_sample_data):
     assert expected == actual
 
 
-# test_flatten_cols_remove_prefix {{{1
-def test_flatten_cols_remove_prefix(t_sample_data):
+# test_flatten_names_remove_prefix {{{1
+def test_flatten_names_remove_prefix(t_sample_data):
     """
     """
     df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_2', 'sum'))
     df = df.unstack()
-    df = flatten_cols(df, remove_prefix='total')
+    df = flatten_names(df, remove_prefix='total')
 
     expected = ['East', 'North', 'South', 'West']
     actual = df.columns.to_list()
@@ -882,16 +901,15 @@ def test_head_with_dataframe(t_sample_data):
     assert expected == actual
 
 
-# test_head_with_columns_function {{{1
-def test_head_with_columns_function(t_sample_data):
+# test_head_with_names_function {{{1
+def test_head_with_names_function(t_sample_data):
     """
     """
     df = t_sample_data
 
     expected = (4, 4)
 
-    actual = head(df[columns(df, regex='order|dates|values',
-        astype='list')]).shape
+    actual = head(df[names(df, regex='order|dates|values', astype='list')]).shape
 
     assert expected == actual
 
@@ -1201,7 +1219,7 @@ def test_pivot_longer_tuple_args(t_sample_phone_sales):
     df = group_by(df, ['region', 'country', 'rep'])
     df = summarise(df, total_sales=('sales_price', 'sum'))
     df = unstack(df)
-    df = flatten_cols(df, remove_prefix='total_sales')
+    df = flatten_names(df, remove_prefix='total_sales')
     df = reset_index(df)
     actual = pivot_longer(df, ('region', 'country'), 'actual_sales')
 
@@ -1219,7 +1237,7 @@ def test_pivot_longer_tuple_kwargs(t_sample_phone_sales):
     df = group_by(df, ['region', 'country', 'rep'])
     df = summarise(df, total_sales=('sales_price', 'sum'))
     df = unstack(df)
-    df = flatten_cols(df, remove_prefix='total_sales')
+    df = flatten_names(df, remove_prefix='total_sales')
     df = reset_index(df)
     actual = pivot_longer(df,
                           id_vars=('region', 'country'),
@@ -1365,24 +1383,6 @@ def test_rename_axis(t_sample_data):
 
 
 
-# test_replace_columns {{{1
-def test_replace_columns():
-
-    dict_ = {'number$': 'nbr', 'revenue per cookie': 'unit revenue',
-             'cost per cookie': 'unit cost', 'month': 'mth',
-             'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
-
-    cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
-            'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
-
-    expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost',
-                'revenue', 'cost', 'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
-
-    df = pd.DataFrame(None, columns=cols)
-    df = replace_columns(df, dict_, info=True)
-    df = clean_columns(df)
-
-    assert expected == list(df.columns)
 # test_resample_groupby {{{1
 def test_resample_groupby(t_sample_data):
     """ """
@@ -1646,14 +1646,14 @@ def test_select_invalid_column(t_sample_data):
         actual = select(df, 'AAA')
 
 
-# test_set_columns {{{1
-def test_set_columns():
+# test_set_names {{{1
+def test_set_names():
 
     data = {'A': ['Order', 'Qty', 10, 40],
             'B': ['Order', 'Number', 12345, 12346]}
 
     df = pd.DataFrame(data)
-    df = set_columns(df, ['C', 'D'])
+    df = set_names(df, ['C', 'D'])
 
     expected = ['C', 'D']
     actual = df.columns.to_list()
