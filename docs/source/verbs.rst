@@ -36,11 +36,16 @@ column management
 .. autosummary::
    :toctree: api
 
-   columns
+   clean_names
+   names
+   drop
+   drop_if
+   flatten_names
    relocate
    rename
-   set_columns
-   combine_header_rows
+   replace_names
+   rows_to_names
+   set_names
 
 data cleaning
 -------------
@@ -48,12 +53,8 @@ data cleaning
 .. autosummary::
    :toctree: api
 
-   clean_columns
    distinct
-   drop_columns
-   drop
    duplicated
-   flatten_cols
    overlaps
    non_alpha
 
@@ -72,6 +73,7 @@ string functions
 .. autosummary::
    :toctree: api
 
+   str_clean_number
    str_join
    str_split
    str_trim

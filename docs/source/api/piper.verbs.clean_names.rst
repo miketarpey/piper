@@ -1,6 +1,6 @@
-piper.verbs.set\_columns
+piper.verbs.clean\_names
 ========================
 
 .. currentmodule:: piper.verbs
 
-.. autofunction:: set_columns
+.. autofunction:: clean_names

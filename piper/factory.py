@@ -603,3 +603,141 @@ def xl_test_data():
     return df
 
 
+# calc_weights {{{1
+def calc_weights(weights):
+    ''' Calculate proportion/weighting of probabilities '''
+
+    return list(map(lambda x: x / sum(weights), weights))
+
+
+# phone_skus {{{1
+def phone_skus(astype='list'):
+    ''' get phone skus
+
+    Parameters
+    ----------
+    astype
+        return 'list' or 'dataframe'
+
+    Returns
+    -------
+    skus_data
+    '''
+
+    skus = ['Apple iPhone 11', 'Apple iPhone 11 Pro', 'Apple iPhone 11 Pro Max',
+            'Apple iPhone XR', 'Apple iPhone XS', 'Apple iPhone XS Max',
+            'Galaxy S10+', 'Galaxy S10e', 'Huawei Mate 20', 'Huawei Mate 20 Pro',
+            'Huawei P20', 'Huawei P20 Pro', 'Huawei P20 lite', 'Huawei P30',
+            'Huawei P30 Pro', 'Samsung Galaxy A10', 'Samsung Galaxy A20',
+            'Samsung Galaxy A50', 'Samsung Galaxy J2 Core', 'Samsung Galaxy S10',
+            'Samsung Galaxy S9', 'Samsung Galaxy S9+', 'Xiaomi Redmi Note 7',
+            'Xiaomi Redmi Note 7 Pro', 'Xiaomi Redmi Note 8', 'Xiaomi Redmi Note 8 Pro']
+
+    price = pd.Series(np.random.uniform(low=400, high=800, size=len(skus)).round(2))
+
+    skus_data = [{'sku': sku, 'unit_price': price[idx]} for idx, sku in enumerate(skus)]
+
+    if astype == 'list':
+        return skus
+
+    if astype == 'dataframe':
+        return pd.DataFrame(skus_data)
+
+    return skus_data
+
+
+# sample_phone_sales {{{1
+def sample_phone_sales(year: str = '2020',
+                           freq: str = 'D',
+                           rows: int = 1000,
+                           seed: int = 42) -> pd.DataFrame:
+    ''' get_sample_phone sales
+
+    :: Column list ::
+    ['country', 'region', 'order', order_dt', 'invoice_dt', 'delivery_dt',
+    'rep', 'sku', 'unit_price', qty']
+
+    Examples
+    --------
+
+    .. code-block::
+
+        # df['duration (order to cash)'] = df.invoice_dt - df.order_dt
+        # df['duration (order to delivery)'] = df.delivery_dt - df.order_dt
+
+        country region    order order_dt   invoice_dt delivery_dt rep
+        Germany Central 4738098 2022-05-09 2022-05-10 2022-05-13  Mrs T. May
+        France  West    4709149 2022-09-23 2022-09-25 2022-09-29  Mr. B. Johnson
+        Italy   South   4619112 2022-12-16 2022-12-17 2022-12-20  Mr. B. Johnson
+        Norway  North   4724349 2022-07-02 2022-07-04 2022-07-07  Mr. B. Johnson
+
+    Parameters
+    ----------
+    year
+        start year for dataset
+    freq
+        Default 'D' days
+    rows
+        default 1000, rows to return
+    seed
+        default random seed (42)
+
+    Returns
+    -------
+    a pandas dataframe
+    '''
+    if seed is not None:
+        np.random.seed(seed)
+
+    month = np.random.randint(1, 13, size=rows)
+    day = np.random.randint(1, 28, size=rows)
+    order_dates = pd.DataFrame({'year': year, 'month': month, 'day': day})
+
+    # Calculate random day intervals
+    f = lambda x: pd.Timedelta(value=x, unit='days')
+    f = np.vectorize(f)
+
+    order_dates = pd.to_datetime(order_dates)
+    invoice_dates = order_dates + pd.Series(f(np.random.randint(1, 3, size=rows)))
+    delivery_dates = invoice_dates + pd.Series(f(np.random.randint(3, 5, size=rows)))
+
+    orders = pd.Series(np.random.randint(low=4600000, high=4800000, size=rows))
+
+    country_list = ['Germany', 'Italy', 'France', 'Spain', 'Sweden', 'Portugal',
+                    'Norway', 'Switzerland', 'Austria', 'Poland']
+
+    region_list = ['Central', 'South', 'West', 'West', 'North', 'South', 'North',
+                   'Central', 'East', 'East']
+    country_region = dict(zip(country_list, region_list))
+
+    weights = calc_weights([3, 1, 2, 1, 1, 1, 1, 1, 1, 1])
+    countries = pd.Series(np.random.choice(country_list, p=weights, size=rows))
+    regions = countries.apply(lambda x: country_region.get(x))
+
+    reps = ['Mr. D. Davis', 'Mr. B. Johnson', 'Mr S. Baker', 'Mr K. Starmer',
+            'Mrs T. May', 'Mrs R. Johnson']
+    weights = calc_weights([1, 3, 2, 2, 2, 1])
+    reps = pd.Series(np.random.choice(reps, p=weights, size=rows))
+
+    df_skus = phone_skus(astype='dataframe')
+    skus = pd.Series(np.random.randint(low=0, high=df_skus.shape[0], size=rows))
+    skus = skus.apply(lambda x: df_skus.iloc[x])
+
+    qty = pd.Series(np.random.randint(low=1, high=2, size=rows))
+
+    data_dictionary = {
+        'country': countries,
+        'region': regions,
+        'order': orders,
+        'order_dt': order_dates,
+        'invoice_dt': invoice_dates,
+        'delivery_dt': delivery_dates,
+        'rep': reps,
+        'sku': skus['sku'],
+        'unit_price': skus['unit_price'],
+        'qty': qty
+    }
+
+    df = pd.DataFrame(data_dictionary)
+
+    return df

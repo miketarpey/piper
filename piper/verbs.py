@@ -2,6 +2,8 @@ from datetime import datetime
 from pandas.api.types import is_datetime64_any_dtype
 from pandas.api.types import is_period_dtype
 from pandas.core.common import flatten
+from functools import wraps
+from copy import deepcopy
 import logging
 import numpy as np
 import pandas as pd
@@ -246,7 +248,7 @@ def adorn(df: pd.DataFrame,
 
         g1 = df.groupby(['Type', 'Region']).agg(TotalSales=('Sales', 'sum')).unstack()
         g1 = adorn(g1, axis='both').astype(int)
-        g1 = flatten_cols(g1, remove_prefix='TotalSales')
+        g1 = flatten_names(g1, remove_prefix='TotalSales')
         g1
 
                                   East     North     South     West      All
@@ -453,77 +455,6 @@ def assign(df: pd.DataFrame,
     return df
 
 
-# columns() {{{1
-def columns(df: pd.DataFrame,
-            regex: str = None,
-            astype: str = 'list') -> Union[str, list, dict, pd.Series, pd.DataFrame]:
-    '''show dataframe column information
-
-    This function is useful reviewing or manipulating column(s)
-
-    The dictionary output is particularly useful when composing the rename of
-    multiple columns.
-
-    Examples
-    --------
-
-    .. code-block::
-
-        import numpy as np
-        import pandas as pd
-
-        id_list = ['A', 'B', 'C', 'D', 'E']
-        s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
-
-        region_list = ['East', 'West', 'North', 'South']
-        s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
-
-        df = pd.concat([s1, s2], axis=1)
-
-        columns(df, 'list')
-
-        ['ids', 'regions']
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    regex
-        Default None. regular expression to 'filter' list of returned columns.
-    astype
-        Default 'list'. See return options below:
-            - 'dict' returns a dictionary object
-            - 'list' returns a list object
-            - 'text' returns columns joined into a text string
-            - 'series' returns a pd.Series
-            - 'dataframe' returns a pd.DataFrame
-
-
-    Returns
-    -------
-    dictionary, list, str, pd.Series, pd.DataFrame
-    '''
-    cols = df.columns.tolist()
-
-    if regex:
-        cols = list(filter(re.compile(regex).match, cols))
-
-    if astype == 'dict':
-        return {x: x for x in cols}
-    elif astype == 'list':
-        return cols
-    elif astype == 'text':
-        return "['" +"', '".join(cols)+ "']"
-    elif astype == 'dataframe':
-        return pd.DataFrame(cols, columns = ['column_names'])
-    elif astype == 'series':
-        return pd.Series(cols, name='column_names')
-
-    # note: mypy needs to see this 'dummy' catch all return statement
-    return None
-
-
 # count() {{{1
 def count(df: pd.DataFrame,
           columns: Union[str, list] = None,
@@ -534,7 +465,8 @@ def count(df: pd.DataFrame,
           round: int = 2,
           totals: bool = False,
           sort_values: bool = False,
-          reset_index: bool = False):
+          reset_index: bool = False,
+          shape: bool = True):
     '''show column/category/factor frequency
 
     For selected column or multi-index show the frequency count, frequency %,
@@ -573,7 +505,6 @@ def count(df: pd.DataFrame,
         C        1   20
         D        1   20
 
-
         %%piper
         df
         >> count(['ids'], sort_values=None, totals=True)
@@ -607,6 +538,8 @@ def count(df: pd.DataFrame,
         default False, None means use index sort
     reset_index
         default False
+    shape
+        default True. Show shape information as a logger.info() message
 
 
     Returns
@@ -614,19 +547,24 @@ def count(df: pd.DataFrame,
     A pandas dataframe
     '''
     # NOTE:: pd.groupby by default does not count nans!
+    f = lambda x: x.value_counts(dropna=False)
+
     try:
         if isinstance(columns, str):
-            p1 = df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: x.value_counts(dropna=False)))
+            p1 = df.groupby(columns, dropna=False).agg(totals=(columns, f))
         elif isinstance(df, pd.Series):
             new_df = df.to_frame()
             columns = new_df.columns.tolist()[0]
-            p1 = new_df.groupby(columns, dropna=False).agg(totals=(columns, lambda x: x.value_counts(dropna=False)))
+            p1 = new_df.groupby(columns, dropna=False).agg(totals=(columns, f))
         elif isinstance(df, pd.DataFrame):
             if columns is not None:
-                p1 = df.groupby(columns, dropna=False).agg(totals=(columns[0], lambda x: x.value_counts(dropna=False)))
+                p1 = df.groupby(columns, dropna=False).agg(totals=(columns[0], f))
             else:
                 p1 = df.count().to_frame()
 
+    except (ValueError) as e:
+        p1 = df[columns].value_counts().to_frame()
+        p1.columns = ['totals']
     except (KeyError, AttributeError) as e:
         logger.info(f"Column {columns} not found!")
         return
@@ -658,12 +596,15 @@ def count(df: pd.DataFrame,
             p1 = adorn(p1, columns=cols, col_row_name='Total',
                        ignore_index=reset_index)
 
+    if shape:
+        _shape(p1)
+
     return p1
 
 
-# clean_columns() {{{1
-def clean_columns(df: pd.DataFrame,
-                  replace_char: tuple = (' ', '_'),
+# clean_names() {{{1
+def clean_names(df: pd.DataFrame,
+                  case: str = 'snake',
                   title: bool = False) -> pd.DataFrame:
     '''Clean column names, strip blanks, lowercase, snake_case.
 
@@ -674,77 +615,60 @@ def clean_columns(df: pd.DataFrame,
     --------
     .. code-block::
 
-        column_list = [
-            'dupe**', 'Customer   ', 'mdm no. to use', 'Target-name   ', '     Public',
-            '_  Material', 'Prod type', '#Effective     ', 'Expired', 'Price%  ',
-            'Currency$'
-        ]
+        column_list = ['dupe**', 'Customer   ', 'mdm no. to use', 'Target-name   ',
+                       '     Public', '_  Material', 'Prod type', '#Effective     ',
+                       'Expired', 'Price%  ', 'Currency$']
 
         df = pd.DataFrame(None, columns=column_list)
         df.columns.tolist()
 
-        ['dupe**',
-         'Customer   ',
-         'mdm no. to use',
-         'Target-name   ',
-         '     Public',
-         '_  Material',
-         'Prod type',
-         '#Effective     ',
-         'Expired',
-         'Price%  ',
-         'Currency$']
+        ['dupe**', 'Customer   ', 'mdm no. to use', 'Target-name   ', '     Public',
+         '_  Material', 'Prod type', '#Effective     ', 'Expired', 'Price%  ', 'Currency$']
 
     .. code-block::
 
-        df = clean_columns(df)
+        df = clean_names(df)
         df.columns.tolist()
 
-        ['dupe',
-         'customer',
-         'mdm_no_to_use',
-         'target_name',
-         'public',
-         'material',
-         'prod_type',
-         'effective',
-         'expired',
-         'price',
-         'currency']
+        ['dupe', 'customer', 'mdm_no_to_use', 'target_name', 'public', 'material',
+         'prod_type', 'effective', 'expired', 'price', 'currency']
 
     .. code-block::
 
-        df = clean_columns(df, ('_', ' '), title=True)
+        df = clean_names(df, case='report', title=True)
         df.columns.tolist()
 
-        ['Dupe',
-         'Customer',
-         'Mdm No To Use',
-         'Target Name',
-         'Public',
-         'Material',
-         'Prod Type',
-         'Effective',
-         'Expired',
-         'Price',
-         'Currency']
-
+        ['Dupe', 'Customer', 'Mdm No To Use', 'Target Name', 'Public', 'Material',
+         'Prod Type', 'Effective', 'Expired', 'Price', 'Currency']
 
     Parameters
     ----------
     df
         pandas dataframe
-    replace_char
-        default (' ', '_'). A tuple giving the 'from' and 'to' characters to be replaced
+    case
+        requested case format:
+            - 'snake': this_is_snake_case
+            - 'camel': thisIsCamelCase (title=False)
+            - 'camel': ThisIsCamelCase (title=True)
+            - 'report': this is report format (title=False)
+            - 'report': This Is Report Format (title=True)
     title
         default False. If True, titleize column values
-
 
     Returns
     -------
     pandas DataFrame object
     '''
-    from_char, to_char = replace_char
+    def camel_case(string, title=False):
+        ''' convert from blank delimitted words to camel case '''
+
+        string = re.sub(r"(_|\s)+", " ", string).title().replace(" ", "")
+
+        if title:
+            return string
+
+        return string[0].lower() + string[1:]
+
     columns = [x.strip().lower() for x in df.columns]
 
     # Remove special chars at the beginning and end of column names
@@ -755,103 +679,35 @@ def clean_columns(df: pd.DataFrame,
     # Any embedded special characters in the middle of words, replace with a blank
     columns = [re.sub(f'{special_chars}', ' ', x) for x in columns]
 
+    if case == 'snake':
+        from_char, to_char = tuple = (' ', '_')
+    elif case == 'report':
+        # No conversions needed
+        from_char, to_char = tuple = (' ', ' ')
+    elif case == 'camel':
+        # Just in case converting from snake case
+        from_char, to_char = tuple = ('_', ' ')
+
     # All special chars should now be removed, except for to_char perhaps
     # and embedded spaces.
     columns = [re.sub(f'{to_char}+', ' ', x) for x in columns]
 
-    # Strip and lowercase as default
+    # Strip any remaining blanks prepended or appended and lowercase all values
     columns = [x.strip().lower() for x in columns]
 
     # Replace any remaining embedded blanks with single replacement 'to_char' value.
     columns = [re.sub('\s+', to_char, x) for x in columns]
 
-    columns = [re.sub(from_char, to_char, x) for x in columns]
+    if case == 'snake':
+        columns = [re.sub(from_char, to_char, x) for x in columns]
 
-    if title:
-        columns = [x.title() for x in columns]
+    if case == 'report':
+        columns = [re.sub(from_char, to_char, x).title() for x in columns]
+
+    if case == 'camel':
+        columns = [camel_case(x, title=title) for x in columns]
 
     df.columns = columns
-
-    return df
-
-
-# combine_header_rows() {{{1
-def combine_header_rows(df: pd.DataFrame,
-                        start: int = 0,
-                        end: int = 1,
-                        delimitter: str = ' ',
-                        title: bool = True,
-                        infer_objects: bool = True) -> pd.DataFrame:
-    '''Combine 1 or more header rows across into one.
-
-    Optionally, infers remaining data column data types.
-
-    Examples
-    --------
-    .. code-block::
-
-        data = {'A': ['Customer', 'id', 48015346, 49512432],
-                'B': ['Order', 'Number', 'DE-12345', 'FR-12346'],
-                'C': [np.nan, 'Qty', 10, 40],
-                'D': ['Item', 'Number', 'SW-10-2134', 'YH-22-2030'],
-                'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
-
-        df = pd.DataFrame(data)
-        head(df, tablefmt='plain')
-
-            A         B         C    D           E
-         0  Customer  Order     nan  Item        nan
-         1  id        Number    Qty  Number      Description
-         2  48015346  DE-12345  10   SW-10-2134  Screwdriver Set
-         3  49512432  FR-12346  40   YH-22-2030  Workbench
-
-    .. code-block::
-
-        df.iloc[0] = df.iloc[0].ffill()
-        df = combine_header_rows(df)
-        head(df, tablefmt='plain')
-
-              Customer Id  Order Number      Order Qty  Item Number    Item Description
-         2       48015346  DE-12345                 10  SW-10-2134     Screwdriver Set
-         3       49512432  FR-12346                 40  YH-22-2030     Workbench
-
-
-    Parameters
-    ----------
-    df
-        dataframe
-    start
-        starting row - default 0
-    end
-        ending row to combine, - default 1
-    delimitter
-        character to be used to 'join' row values together. default is ' '
-    title
-        default False. If True, titleize column values
-    infer_objects
-        default True. Infer data type of resultant dataframe
-
-
-    Returns
-    -------
-    A pandas dataframe
-    '''
-    data = df.iloc[start].astype(str).values
-    rows = range(start+1, end+1)
-
-    for row in rows:
-        data = data + delimitter + df.iloc[row].astype(str).values
-
-    df.columns = data
-
-    # Read remaining data and reference back to dataframe reference
-    df = df.iloc[end + 1:]
-
-    if infer_objects:
-        df = df.infer_objects()
-
-    df = clean_columns(df, replace_char=(' ', '_'), title=title)
-    df = clean_columns(df, replace_char=('_', ' '), title=title)
 
     return df
 
@@ -863,8 +719,8 @@ def distinct(df: pd.DataFrame,
              **kwargs) -> pd.DataFrame:
     '''select distinct/unique rows
 
-    This is a wrapper function rather than using e.g. df.distinct()
-    For details of args, kwargs - see help(pd.DataFrame.distinct)
+    This is a wrapper function rather than using e.g. df.drop_duplicates()
+    For details of args, kwargs - see help(pd.DataFrame.drop_duplicates)
 
     Examples
     --------
@@ -886,7 +742,7 @@ def distinct(df: pd.DataFrame,
     df
         dataframe
     shape
-        default True. Show shape information as a logger.info() message
+        default False. If True, show shape information as a logger.info() message
     *args
         arguments for wrapped function
     **kwargs
@@ -919,7 +775,7 @@ def drop(df: pd.DataFrame,
     .. code-block::
 
         df <- pd.read_csv('inputs/export.dsv', sep='\t')
-        >> clean_columns()
+        >> clean_names()
         >> trim()
         >> assign(adast = lambda x: x.adast.astype('category'),
                   adcrcd = lambda x: x.adcrcd.astype('category'),
@@ -944,19 +800,35 @@ def drop(df: pd.DataFrame,
     return df.drop(*args, **kwargs)
 
 
-# drop_columns() {{{1
-def drop_columns(df: pd.DataFrame,
+# drop_if() {{{1
+def drop_if(df: pd.DataFrame,
                  value: Union[str, int, float] = None,
                  how: str = 'all') -> pd.DataFrame:
     ''' drop columns containing blanks, zeros or na
 
     Examples
     --------
+
     .. code-block::
 
-        %%piper
-        dummy_dataframe()
-        >> drop_columns()
+        df = dummy_dataframe()
+        head(df, tablefmt='plain')
+              zero_1    zero_2    zero_3    zero_4    zero_5  blank_1    blank_2    blank_3    blank_4    blank_5
+         0         0         0         0         0         0
+         1         0         0         0         0         0
+         2         0         0         0         0         0
+         3         0         0         0         0         0
+
+    .. code-block::
+
+        df = drop_if(df)
+        head(df, tablefmt='plain')
+              zero_1    zero_2    zero_3    zero_4    zero_5
+         0         0         0         0         0         0
+         1         0         0         0         0         0
+         2         0         0         0         0         0
+         3         0         0         0         0         0
+
 
     Parameters
     ----------
@@ -1000,9 +872,9 @@ def duplicated(df: pd.DataFrame,
                keep: bool = False,
                sort: bool = True,
                column: str = 'duplicate',
-               loc: str = 'first',
                ref_column: str = None,
-               duplicates: bool = False) -> pd.DataFrame:
+               duplicates: bool = False,
+               loc: str = 'first') -> pd.DataFrame:
     '''locate duplicate data
 
     .. note::
@@ -1063,6 +935,8 @@ def duplicated(df: pd.DataFrame,
 
     if sort:
         df = df.sort_values(subset)
+
+    df = relocate(df, column=column, loc=loc)
 
     return df
 
@@ -1127,8 +1001,8 @@ def explode(df: pd.DataFrame,
     return df.explode(*args, **kwargs)
 
 
-# flatten_cols() {{{1
-def flatten_cols(df: pd.DataFrame,
+# flatten_names() {{{1
+def flatten_names(df: pd.DataFrame,
                  join_char: str = '_',
                  remove_prefix=None) -> pd.DataFrame:
     '''Flatten multi-index column headings
@@ -1144,15 +1018,18 @@ def flatten_cols(df: pd.DataFrame,
         sample_data()
         >> group_by(['countries', 'regions'])
         >> summarise(totalval1=('values_1', 'sum'))
-        >> assign(mike='x.totalval1 * 50', eoin='x.totalval1 * 100')
-        >> transform()
-        >> order_by(['countries', '-g%'])
+        >> assign(mike=lambda x: x.totalval1 * 50,
+                  eoin=lambda x: x.totalval1 * 100)
         >> unstack()
-        >> flatten_cols(remove_prefix='mike|eoin|totalval1')
-        >> reset_index()
-        >> set_index('countries')
-        >> head()
+        >> flatten_names()
+        >> select(('totalval1_East', 'totalval1_West'))
+        >> head(tablefmt='plain')
 
+        countries      totalval1_East    totalval1_North    totalval1_South    totalval1_West
+        France                   2170               2275               2118              4861
+        Germany                  1764               2239               1753              1575
+        Italy                    3023               1868               2520              2489
+        Norway                   3741               2633               1670              1234
 
     Parameters
     ----------
@@ -1163,7 +1040,6 @@ def flatten_cols(df: pd.DataFrame,
     remove_prefix
         string(s) (delimitted by pipe '|')
         e.g. ='mike|eoin|totalval1'
-
 
     Returns
     -------
@@ -1335,10 +1211,11 @@ def head(df: pd.DataFrame,
         _shape(df)
 
     if tablefmt:
-        print(df.head(n=n).to_markdown(tablefmt=tablefmt, floatfmt=f".{precision}f"))
-        return
-
-    return df.head(n=n)
+        print(df.head(n=n)
+                .to_markdown(tablefmt=tablefmt,
+                             floatfmt=f".{precision}f"))
+    else:
+        return df.head(n=n)
 
 
 # info() {{{1
@@ -1542,6 +1419,77 @@ def memory(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# names() {{{1
+def names(df: pd.DataFrame,
+            regex: str = None,
+            astype: str = 'list') -> Union[str, list, dict, pd.Series, pd.DataFrame]:
+    '''show dataframe column information
+
+    This function is useful reviewing or manipulating column(s)
+
+    The dictionary output is particularly useful when composing the rename of
+    multiple columns.
+
+    Examples
+    --------
+
+    .. code-block::
+
+        import numpy as np
+        import pandas as pd
+
+        id_list = ['A', 'B', 'C', 'D', 'E']
+        s1 = pd.Series(np.random.choice(id_list, size=5), name='ids')
+
+        region_list = ['East', 'West', 'North', 'South']
+        s2 = pd.Series(np.random.choice(region_list, size=5), name='regions')
+
+        df = pd.concat([s1, s2], axis=1)
+
+        names(df, 'list')
+
+        ['ids', 'regions']
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    regex
+        Default None. regular expression to 'filter' list of returned columns.
+    astype
+        Default 'list'. See return options below:
+            - 'dict' returns a dictionary object
+            - 'list' returns a list object
+            - 'text' returns columns joined into a text string
+            - 'series' returns a pd.Series
+            - 'dataframe' returns a pd.DataFrame
+
+
+    Returns
+    -------
+    dictionary, list, str, pd.Series, pd.DataFrame
+    '''
+    cols = df.columns.tolist()
+
+    if regex:
+        cols = list(filter(re.compile(regex).match, cols))
+
+    if astype == 'dict':
+        return {x: x for x in cols}
+    elif astype == 'list':
+        return cols
+    elif astype == 'text':
+        return "['" +"', '".join(cols)+ "']"
+    elif astype == 'dataframe':
+        return pd.DataFrame(cols, columns = ['column_names'])
+    elif astype == 'series':
+        return pd.Series(cols, name='column_names')
+    else:
+        # note: mypy needs to see this 'dummy' catch all return statement
+        return None
+
+
 # non_alpha() {{{1
 def non_alpha(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
     '''check for non-alphanumeric characters
@@ -1571,15 +1519,15 @@ def non_alpha(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
 def order_by(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     '''order/sequence dataframe
 
-    @__TODO__ Review mypy validation rules and update if required
-
     This is a wrapper function rather than using e.g. df.sort_values()
     For details of args, kwargs - see help(pd.DataFrame.sort_values)
 
-    The first argument and/or keyword 'by' is checked to see:
+    .. note::
 
-    - For each specified column value
-      If it starts with a minus sign, assume ascending=False
+        The first argument and/or keyword 'by' is checked to see:
+
+            - For each specified column value
+              If it starts with a minus sign, assume ascending=False
 
     Examples
     --------
@@ -1785,14 +1733,14 @@ def overlaps(df: pd.DataFrame,
 
 
 # pivot_longer() {{{1
+# @wraps(pd.DataFrame.melt)
 def pivot_longer(df: pd.DataFrame,
-          *args,
-          **kwargs) -> pd.DataFrame:
+                 *args: Any,
+                 **kwargs: Any) -> pd.DataFrame:
     '''pivot dataframe wide to long
 
     This is a wrapper function rather than using e.g. df.melt()
     For details of args, kwargs - see help(pd.DataFrame.melt)
-
 
     Parameters
     ----------
@@ -1803,12 +1751,37 @@ def pivot_longer(df: pd.DataFrame,
     **kwargs
         keyword-parameters for wrapped function
 
-
     Returns
     -------
     A pandas DataFrame
     '''
-    return df.melt(*args, **kwargs)
+    args_copy = deepcopy(list(args))
+
+    # if first argument / id_vars is a tuple, replace with 'range' of columns
+    if len(args_copy) > 0:
+        if isinstance(args_copy[0], tuple):
+            (from_col, to_col) = args_copy[0]
+            args_copy[0] = df.loc[:, from_col:to_col].columns.tolist()
+            logger.info(f'|Info| tuple passed, expanding to {args_copy[0]}')
+
+    if isinstance(kwargs.get('id_vars'), tuple):
+        (from_col, to_col) = kwargs.get('id_vars') # type: ignore
+        kwargs['id_vars'] = df.loc[:, from_col:to_col].columns.tolist()
+        logger.info(f"|Info| tuple passed, expanding to {kwargs['id_vars']}")
+
+    # if 2nd argument / value_vars is a tuple, replace with 'range' of columns
+    if len(args_copy) > 1:
+        if isinstance(args_copy[1], tuple):
+            (from_col, to_col) = args_copy[1] #type: ignore
+            args_copy[1] = df.loc[:, from_col:to_col].columns.tolist()
+            logger.info(f'|Info| tuple passed, expanding to {args_copy[1]}')
+
+    if isinstance(kwargs.get('value_vars'), tuple):
+        (from_col, to_col) = kwargs.get('value_vars') #type: ignore
+        kwargs['value_vars'] = df.loc[:, from_col:to_col].columns.tolist()
+        logger.info(f"|Info| tuple passed, expanding to {kwargs['value_vars']}")
+
+    return df.melt(*args_copy, **kwargs)
 
 
 # pivot_table() {{{1
@@ -1859,8 +1832,6 @@ def pivot_table(df: pd.DataFrame,
     -------
     pandas DataFrame object
     '''
-    logger.debug(args)
-    logger.debug(kwargs)
 
     if kwargs.get('index') != None:
         index = _set_grouper(df, kwargs.get('index'), freq=freq)
@@ -2011,7 +1982,71 @@ def relocate(df: pd.DataFrame,
     return sequence(new_column_sequence, index=index)
 
 
+# replace_names {{{1
+def replace_names(df: pd.DataFrame,
+                        dict_: Dict,
+                        info: bool = False) -> pd.DataFrame:
+    """ replace column names (or partially) with dictionary values
+
+
+    Examples
+    --------
+
+    .. code-block::
+
+        dict_ = { 'number$': 'nbr', 'revenue per cookie': 'unit revenue', 'cost per cookie': 'unit cost',
+              'month': 'mth', 'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
+
+        cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',
+                'Revenue', 'Cost', 'Profit', 'Date', 'Month Number', 'Month Name', 'Year']
+
+        expected = ['country','item', 'units_sold', 'unit_revenue', 'unit_cost', 'revenue', 'cost',
+                    'profit', 'date', 'mth_nbr', 'mth_name', 'yr']
+
+        df = pd.DataFrame(None, columns=cols)
+        df = replace_names(df, dict_, info=False)
+        df = clean_names(df)
+
+        assert expected == list(df.columns)
+
+    Parameters
+    ----------
+    df
+        a pandas dataframe
+    values
+        dictionary of from/to values (optionally) with regex values
+    info
+        Default False. If True, print replacement from/to values.
+
+    Returns
+    -------
+    a pandas dataframe
+    """
+    updated_columns = []
+    replacements = []
+
+    for x in df.columns:
+
+        for k, v in dict_.items():
+            y = re.sub(k, v, x, flags=re.I)
+            if y != x:
+                replacements.append((x, y))
+                x = y
+
+        updated_columns.append(x)
+
+    if len(replacements) > 0:
+        logger.info('|Warning| automatic column names substitutions made, for details, info=True')
+        if info:
+            repl_ = [f'{x} => {y}' for (x,y) in replacements]
+            logger.info(f'{repl_}')
+
+    df.columns = updated_columns
+
+    return df
+
 # rename() {{{1
+# @wraps(pd.DataFrame.rename)
 def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     '''rename dataframe col(s)
 
@@ -2099,6 +2134,7 @@ def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
 
 
 # reset_index() {{{1
+# @wraps(pd.DataFrame.reset_index)
 def reset_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -2163,6 +2199,86 @@ def right_join(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame:
     logger.debug(f"{kwargs}")
 
     return df.merge(*args, **kwargs)
+
+
+# rows_to_names() {{{1
+def rows_to_names(df: pd.DataFrame,
+                    start: int = 0,
+                    end: int = 1,
+                    delimitter: str = ' ',
+                    fillna: bool = False,
+                    infer_objects: bool = True) -> pd.DataFrame:
+    '''promote row(s) to column name(s)
+
+    Optionally, infers remaining data column data types.
+
+    Examples
+    --------
+    .. code-block::
+
+        data = {'A': ['Customer', 'id', 48015346, 49512432],
+                'B': ['Order', 'Number', 'DE-12345', 'FR-12346'],
+                'C': [np.nan, 'Qty', 10, 40],
+                'D': ['Item', 'Number', 'SW-10-2134', 'YH-22-2030'],
+                'E': [np.nan, 'Description', 'Screwdriver Set', 'Workbench']}
+
+        df = pd.DataFrame(data)
+        head(df, tablefmt='plain')
+
+            A         B         C    D           E
+         0  Customer  Order     nan  Item        nan
+         1  id        Number    Qty  Number      Description
+         2  48015346  DE-12345  10   SW-10-2134  Screwdriver Set
+         3  49512432  FR-12346  40   YH-22-2030  Workbench
+
+    .. code-block::
+
+        df = rows_to_names(df, fillna=True)
+        head(df, tablefmt='plain')
+
+              Customer Id  Order Number      Order Qty  Item Number    Item Description
+         2       48015346  DE-12345                 10  SW-10-2134     Screwdriver Set
+         3       49512432  FR-12346                 40  YH-22-2030     Workbench
+
+    Parameters
+    ----------
+    df
+        dataframe
+    start
+        starting row - default 0
+    end
+        ending row to combine, - default 1
+    delimitter
+        character to be used to 'join' row values together. default is ' '
+    fillna
+        default False. If True, fill nan values in header row.
+    infer_objects
+        default True. Infer data type of resultant dataframe
+
+    Returns
+    -------
+    A pandas dataframe
+    '''
+    if fillna:
+        df.iloc[start] = df.iloc[start].ffill().fillna('')
+
+    data = df.iloc[start].astype(str).values
+    rows = range(start+1, end+1)
+
+    for row in rows:
+        data = data + delimitter + df.iloc[row].astype(str).values
+
+    df.columns = data
+
+    # Read remaining data and reference back to dataframe reference
+    df = df.iloc[end + 1:]
+
+    if infer_objects:
+        df = df.infer_objects()
+
+    df = clean_names(df, case='report')
+
+    return df
 
 
 # sample() {{{1
@@ -2357,8 +2473,8 @@ def select(df: pd.DataFrame,
 
     return df[selected]
 
-# set_columns() {{{1
-def set_columns(df: pd.DataFrame,
+# set_names() {{{1
+def set_names(df: pd.DataFrame,
                 columns: Union[str, Any] = None) -> pd.DataFrame:
     '''set dataframe column names
 
@@ -2368,7 +2484,6 @@ def set_columns(df: pd.DataFrame,
         dataframe
     columns
         column(s) values to be changed in referenced dataframe
-
 
     Returns
     -------
@@ -2380,6 +2495,7 @@ def set_columns(df: pd.DataFrame,
 
 
 # set_index() {{{1
+# @wraps(pd.DataFrame.set_index)
 def set_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -2440,6 +2556,80 @@ def split_dataframe(df: pd.DataFrame,
     logger.debug(range_)
 
     return np.split(df, range_)
+
+
+# str_clean_number {{{1
+def str_clean_number(series: pd.Series,
+                     decimal: str = '.',
+                     dtype: str = 'float64'):
+    ''' clean number (e.g. currency, price) values
+
+    Series based conversion of string values which are supposed to be
+    numeric (e.g. prices, currency, float values).
+
+    Returns 'cleaned' values i.e. numbers, decimal point and negative '-'
+    are the only character values allowed.
+
+    .. note::
+
+        If a non-decimal point symbol supplied, the function issues a
+        warning that no data type conversion to numeric values can be performed.
+
+    Examples
+    --------
+
+    .. code-block::
+
+        values = ['$ 1000.48', '-23,500.54', '1004,0 00 .22', '-£43,000',
+              'EUR 304s0,00.00', '354.00-', '301    ', '4q5056 GBP',
+              'USD 20621.54973']
+
+        expected = [1000.48, -23500.54, 1004000.22, -43000.0, 304000.0,
+                    -354.0, 301.0, 45056.0, 20621.54973]
+
+        df = pd.DataFrame(values, columns=['values'])
+        df['values'] = str_clean_number(df['values'])
+
+        assert expected == df['values'].values.tolist()
+
+    Parameters
+    ----------
+    series
+        a pandas series
+    decimal
+        default is '.'
+        The decimal symbol e.g. decimal point or decimal comma (in Europe)
+    dtype
+        Default 'float64'. The default data type to be used to convert
+        the column/series. Set to None if you don't want to auto convert data type.
+
+    Returns
+    -------
+    a pandas series
+    '''
+    # make sure all values are treated as strings first.
+    series = series.astype(str)
+
+    # Remove all non decimal (retain decimal symbol)
+    series = series.str.replace(f'[^0-9\-\{decimal}]', '', regex=True)
+
+    # If decimal symbol repeated, remove all except rightmost value
+    series = series.str.replace(f'\{decimal}(?=.*\{decimal})', '', regex=True)
+
+    if decimal != '.':
+        logger.info('|Warning| Non-decimal symbol supplied, cannot convert to numeric')
+        series = series.where(series.str.contains('-') == False,
+                     series.str.replace('-','', regex=True)
+                           .str.replace('^(.*)', '-\\1', regex=True))
+    else:
+        # If value(s) contain a minus sign, remove then reapply by multiplying by -1
+        series = series.where(series.str.contains('-') == False,
+                     series.str.replace('[-]','', regex=True).astype(float) * -1)
+
+        if dtype is not None:
+            series = pd.to_numeric(series).astype(dtype)
+
+    return series
 
 
 # str_join() {{{1
@@ -2624,7 +2814,6 @@ def str_split(df: pd.DataFrame,
         .. note::
 
             For space(s), safer to use r'\\s' rather than ' '.
-
     n
         default -1. Number of splits to capture. -1 means capture ALL splits
     loc
@@ -2717,7 +2906,7 @@ def str_split(df: pd.DataFrame,
             # If one of the new split columns has the same name
             # as the original column, append '_' to the split column name.
             for idx, col in enumerate(columns):
-                if col in column:
+                if col == column:
                     columns[idx] = columns[idx] + '_'
                     duplicate_column_name = True
 
@@ -2730,6 +2919,41 @@ def str_split(df: pd.DataFrame,
 
             if duplicate_column_name:
                 df = df.rename(columns={column + '_': column})
+
+    return df
+
+
+# str_trim() {{{1
+def str_trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
+    '''strip leading/trailing blanks
+
+    Parameters
+    ----------
+    df
+        pandas dataframe
+    str_columns
+        Optional list of columns to strip. If None, all string data type columns
+        will be trimmed.
+
+    Returns
+    -------
+    A pandas dataframe
+    '''
+    if str_columns is None:
+        str_columns = df.select_dtypes(include='object')
+
+    # duplicate names check
+    check_list = {}
+    for idx, item in enumerate(df.columns.values):
+        if item not in check_list:
+            check_list[item] = 1
+        else:
+            suffix = check_list[item]
+            check_list[item] = suffix + 1
+            df.columns.values[idx] = df.columns.values[idx] + str(check_list[item])
+
+    for col in str_columns:
+        df[col] = df[col].astype('str').str.strip()
 
     return df
 
@@ -2885,7 +3109,7 @@ def summarise(df: pd.DataFrame,
             return summary_
 
         # If groupby obj, assume sum function
-        if isinstance(df, pd.core.groupby.generic.DataFrameGroupBy ):
+        if isinstance(df, pd.core.groupby.generic.DataFrameGroupBy):
                 return df.agg(sum)
 
     group_df = df.agg(*args, **kwargs)
@@ -3017,10 +3241,11 @@ def tail(df: pd.DataFrame,
         _shape(df)
 
     if tablefmt:
-        print(df.tail(n=n).to_markdown(tablefmt=tablefmt, floatfmt=f".{precision}f"))
-        return
-
-    return df.tail(n=n)
+        print(df.tail(n=n)
+                .to_markdown(tablefmt=tablefmt,
+                             floatfmt=f".{precision}f"))
+    else:
+        return df.tail(n=n)
 
 
 # transform() {{{1
@@ -3097,6 +3322,12 @@ def transform(df: pd.DataFrame,
         If no kwargs supplied - calculates the group percentage ('g%') using
         the first index column as index key and the first column value(s).
 
+        .. note::
+
+            transform() has built-in functions:
+                - percent: calculate group % associated with index group
+                - rank: dense rank (ascending order)
+                - rank_desc: dense rank (descending order)
 
     Returns
     -------
@@ -3129,51 +3360,16 @@ def transform(df: pd.DataFrame,
         # If no kwargs passed, default to group % on
         # first column in dataframe
         column, value = 'g%', df.columns[0]
-        func = check_builtin('percent')
-        df[column] = df.groupby(index)[value].transform(func)
-
-    return df
-
-
-# str_trim() {{{1
-def str_trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
-    '''strip leading/trailing blanks
-
-    Parameters
-    ----------
-    df
-        pandas dataframe
-    str_columns
-        Optional list of columns to strip. If None, all string data type columns
-        will be trimmed.
-
-    Returns
-    -------
-    A pandas dataframe
-    '''
-    if str_columns is None:
-        str_columns = df.select_dtypes(include='object')
-
-    # duplicate names check
-    check_list = {}
-    for idx, item in enumerate(df.columns.values):
-        if item not in check_list:
-            check_list[item] = 1
-        else:
-            suffix = check_list[item]
-            check_list[item] = suffix + 1
-            df.columns.values[idx] = df.columns.values[idx] + str(check_list[item])
-
-    for col in str_columns:
-        df[col] = df[col].astype('str').str.strip()
+        df[column] = df.groupby(index)[value].transform(check_builtin('percent'))
 
     return df
 
 
 # unstack() {{{1
+# @wraps(pd.DataFrame.unstack)
 def unstack(df: pd.DataFrame,
-          *args,
-          **kwargs) -> pd.DataFrame:
+            *args,
+            **kwargs) -> pd.DataFrame:
     '''unstack dataframe
 
     This is a wrapper function rather than using e.g. df.unstack()
@@ -3198,6 +3394,7 @@ def unstack(df: pd.DataFrame,
 
 
 # where() {{{1
+# @wraps(pd.DataFrame.query)
 def where(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -3211,7 +3408,7 @@ def where(df: pd.DataFrame,
     .. code-block::
 
         (select(customers)
-         .pipe(clean_columns)
+         .pipe(clean_names)
          .pipe(select, ['client_code', 'establishment_type', 'address_1', 'address_2', 'town'])
          .pipe(where, 'establishment_type != 91')
          .pipe(where, "town != 'LISBOA' & establishment_type != 91"))

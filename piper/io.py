@@ -13,7 +13,7 @@ from pathlib import Path
 from piper.decorators import shape
 from piper.text import _file_with_ext
 from piper.text import _get_qual_file
-from piper.verbs import clean_columns
+from piper.verbs import clean_names
 from piper.verbs import str_trim
 from zipfile import ZipFile, ZIP_DEFLATED
 from piper.xl import WorkBook
@@ -229,7 +229,7 @@ def read_csv(file_name: str,
         df = str_trim(df)
 
     if clean_cols:
-        df = clean_columns(df)
+        df = clean_names(df)
 
     return df
 
@@ -281,7 +281,7 @@ def read_csvs(source = 'inputs/',
                 logger.info(f'Warning: Dataframe strip_blanks = {strip_blanks}')
 
         if clean_cols:
-            dx = clean_columns(dx)
+            dx = clean_names(dx)
 
         if include_file:
             dx['filename'] = file_.name
@@ -346,7 +346,7 @@ def read_excels(source = 'inputs/',
             df = df.iloc[2:]
 
             # clean up column names to make it easier to use them in calculations
-            df = clean_columns(df)
+            df = clean_names(df)
 
             # Set date data types for order and ship dates
             cols = ['order_date', 'ship_date']
@@ -380,7 +380,7 @@ def read_excels(source = 'inputs/',
                     .drop(columns=['ship_mode_container'])
                     .pipe(move_column, 'days_to_ship', 'after', 'ship_date')
                     .pipe(move_column, 'sales_amount', 'after', 'unit_sell_price')
-                    .pipe(clean_columns, replace_char=('_', ' '), title=True)
+                    .pipe(clean_names, replace_char=('_', ' '), title=True)
                  )
 
             return df
@@ -487,8 +487,7 @@ def read_excel_sheets(filename = None,
                 if info:
                     logger.info(f'sheet: {sheet}, (rows, cols) {dx.shape}')
 
-                if return_type == 'list_frames' or \
-                   return_type == 'combine':
+                if return_type == 'list_frames' or return_type == 'combine':
                     dataframes.append(dx)
 
                 elif return_type == 'dataframes':
@@ -546,7 +545,7 @@ def read_sql(sql,
     '''
     try:
         df = pd.read_sql(sql, con=con)
-        df = clean_columns(df)
+        df = clean_names(df)
     except cx_Oracle.DatabaseError as e:
         logger.info(e)
 

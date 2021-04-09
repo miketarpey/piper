@@ -11,55 +11,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def connections(file_name=None, return_type='dataframe'):
-    ''' get all available defined database environments
-
-    Parameters
-    ----------
-    file_name
-        json formatted connections file (similar to tnsnames.ora)
-        if None (default) uses ../src/config.json
-    return type
-        return object type: 'dataframe'(default) 'dictionary'
-
-    Returns
-    -------
-    dictionary or dataframe
-
-    Examples
-    --------
-
-    .. code-block::
-
-        df = connections(return_type='dataframe')
-        dict_config = connections(return_type='dictionary')
-
-    '''
-    if file_name == None:
-        default_config = get_config('config.json')
-        file_name = default_config['connections']['location']
-
-    config = get_config(file_name, info=False)
-    logger.debug(config)
-
-    if return_type == 'dictionary':
-        return config
-
-    if return_type == 'dataframe':
-        df = (pd.DataFrame(config).T).fillna('')
-
-        if 'pw' in df.columns:
-           df = df.drop(columns=['pw'])
-
-        lowercase_cols = ['schema', 'sid', 'user']
-        for col in lowercase_cols:
-            if col in df.columns:
-                df[col] = df[col].str.lower()
-
-    return df
-
-
-def connect(connection=None, connection_type=None, file_name=None):
+# connect {{{1
+def connect(connection = None,
+            connection_type = None,
+            file_name = None):
     ''' Return database connection
 
     Examples
@@ -115,6 +70,57 @@ def connect(connection=None, connection_type=None, file_name=None):
         return con, schema, schema_ctl
 
 
+# connections {{{1
+def connections(file_name = None,
+                return_type = 'dataframe'):
+    ''' get all available defined database environments
+
+    Parameters
+    ----------
+    file_name
+        json formatted connections file (similar to tnsnames.ora)
+        if None (default) uses ../src/config.json
+    return type
+        return object type: 'dataframe'(default) 'dictionary'
+
+    Returns
+    -------
+    dictionary or dataframe
+
+    Examples
+    --------
+
+    .. code-block::
+
+        df = connections(return_type='dataframe')
+        dict_config = connections(return_type='dictionary')
+
+    '''
+    if file_name == None:
+        default_config = get_config('config.json')
+        file_name = default_config['connections']['location']
+
+    config = get_config(file_name, info=False)
+    logger.debug(config)
+
+    if return_type == 'dictionary':
+        return config
+
+    if return_type == 'dataframe':
+        df = (pd.DataFrame(config).T).fillna('')
+
+        if 'pw' in df.columns:
+           df = df.drop(columns=['pw'])
+
+        lowercase_cols = ['schema', 'sid', 'user']
+        for col in lowercase_cols:
+            if col in df.columns:
+                df[col] = df[col].str.lower()
+
+    return df
+
+
+# _get_iseries_con {{{1
 def _get_iseries_con(connection_parms):
     ''' Return ibm connection for given system.
 
@@ -148,6 +154,7 @@ def _get_iseries_con(connection_parms):
     return con
 
 
+# _get_postgres_con {{{1
 def _get_postgres_con(connection_parms):
     ''' Return postgres connection for given system.
 
@@ -178,6 +185,7 @@ def _get_postgres_con(connection_parms):
     return con
 
 
+# _get_oracle_con {{{1
 def _get_oracle_con(connection_parms='JDE8EPA'):
     ''' Return Oracle connection and schema, schema_ctl.
 
