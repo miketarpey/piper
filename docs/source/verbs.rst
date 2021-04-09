@@ -36,16 +36,16 @@ column management
 .. autosummary::
    :toctree: api
 
-   clean_columns
-   columns
+   clean_names
+   names
    drop
    drop_if
-   flatten_cols
+   flatten_names
    relocate
    rename
-   replace_columns
-   rows_to_columns
-   set_columns
+   replace_names
+   rows_to_names
+   set_names
 
 data cleaning
 -------------

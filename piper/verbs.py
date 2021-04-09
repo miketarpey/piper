@@ -1733,7 +1733,7 @@ def overlaps(df: pd.DataFrame,
 
 
 # pivot_longer() {{{1
-@wraps(pd.DataFrame.melt)
+# @wraps(pd.DataFrame.melt)
 def pivot_longer(df: pd.DataFrame,
                  *args: Any,
                  **kwargs: Any) -> pd.DataFrame:
@@ -2046,7 +2046,7 @@ def replace_names(df: pd.DataFrame,
     return df
 
 # rename() {{{1
-@wraps(pd.DataFrame.rename)
+# @wraps(pd.DataFrame.rename)
 def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     '''rename dataframe col(s)
 
@@ -2134,7 +2134,7 @@ def rename_axis(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
 
 
 # reset_index() {{{1
-@wraps(pd.DataFrame.reset_index)
+# @wraps(pd.DataFrame.reset_index)
 def reset_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -2495,7 +2495,7 @@ def set_names(df: pd.DataFrame,
 
 
 # set_index() {{{1
-@wraps(pd.DataFrame.set_index)
+# @wraps(pd.DataFrame.set_index)
 def set_index(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:
@@ -3366,7 +3366,7 @@ def transform(df: pd.DataFrame,
 
 
 # unstack() {{{1
-@wraps(pd.DataFrame.unstack)
+# @wraps(pd.DataFrame.unstack)
 def unstack(df: pd.DataFrame,
             *args,
             **kwargs) -> pd.DataFrame:
@@ -3394,7 +3394,7 @@ def unstack(df: pd.DataFrame,
 
 
 # where() {{{1
-@wraps(pd.DataFrame.query)
+# @wraps(pd.DataFrame.query)
 def where(df: pd.DataFrame,
           *args,
           **kwargs) -> pd.DataFrame:

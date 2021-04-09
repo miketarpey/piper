@@ -1,6 +1,6 @@
-piper.verbs.clean\_columns
+piper.verbs.flatten\_names
 ==========================
 
 .. currentmodule:: piper.verbs
 
-.. autofunction:: clean_columns
+.. autofunction:: flatten_names
