@@ -2923,6 +2923,42 @@ def str_split(df: pd.DataFrame,
     return df
 
 
+# str_squish() {{{1
+def str_squish(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
+    '''reduce repeated whitespace inside a string.
+
+    Parameters
+    ----------
+    df
+        pandas dataframe
+    str_columns
+        Optional list of columns to strip. If None, all string data type columns
+        will have repeated whitespaces replaced with single space.
+
+    Returns
+    -------
+    A pandas dataframe
+    '''
+    if str_columns is None:
+        str_columns = df.select_dtypes(include='object')
+
+    # duplicate names check
+    check_list = {}
+    for idx, item in enumerate(df.columns.values):
+        if item not in check_list:
+            check_list[item] = 1
+        else:
+            suffix = check_list[item]
+            check_list[item] = suffix + 1
+            df.columns.values[idx] = df.columns.values[idx] + str(check_list[item])
+
+    for col in str_columns:
+        df[col] = df[col].astype('str').str.strip()
+        df[col] = df[col].astype('str').str.replace('\s+', ' ', regex=True)
+
+    return df
+
+
 # str_trim() {{{1
 def str_trim(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
     '''strip leading/trailing blanks
