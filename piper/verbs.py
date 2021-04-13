@@ -2421,6 +2421,7 @@ def select(df: pd.DataFrame,
     drop: List = []
 
     for column_arg in args:
+
         if isinstance(column_arg, str):
             selected, drop = _check_col(column_arg, selected, drop, columns)
 

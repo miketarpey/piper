@@ -1,20 +1,31 @@
-# Minimal makefile for Sphinx documentation
-#
+.PHONY: tests clean clean-pyc upload-pypi-test upload-pypi requirements docs \
+	code-cov
 
-# You can set these variables from the command line, and also
-# from the environment for the first two.
-SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
-SOURCEDIR     = source
-BUILDDIR      = build
+clean:
+	python setup.py clean
 
-# Put it first so that "make" without argument is like "make help".
-help:
-	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+clean-pyc:
+	find . -name '*.pyc' -exec rm {} \;
 
-.PHONY: help Makefile
+upload-pypi-test:
+	python setup.py sdist bdist_wheel && \
+	  twine upload --repository testpypi dist/* && \
+	  rm -rf dist
 
-# Catch-all target: route all unknown targets to Sphinx using the new
-# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+upload-pypi:
+	python setup.py sdist bdist_wheel && \
+	  twine upload --repository pypi dist/* && \
+	  rm -rf dist
+
+requirements:
+	pip install -r requirements-dev.txt
+
+docs:
+	make clean
+	rm -rf docs/source/api/ && \
+	  sphinx-autogen docs/source/*.rst && \
+	  python -m sphinx -E "docs/source" "docs/build" -W
+
+code-cov:
+	pytest && \
+	mypy piper/
