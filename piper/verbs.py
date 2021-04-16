@@ -1001,6 +1001,98 @@ def explode(df: pd.DataFrame,
     return df.explode(*args, **kwargs)
 
 
+# explode_lists() {{{1
+def explode_lists(df, delimitter='\n', replace_nans=True):
+    ''' explode list-like dataframe column(s)
+
+    Examples
+    --------
+
+    .. code-block::
+
+        data = {'Fname': {1: 'Alex\nChris\nNed\nAmy',
+                      2: 'Derrick\nKat\nDorian\nLourdes',
+                      3: 'Marnie', 4: 'Pete\nLevi',
+                      5: 'Aurora\nVernon\nStacia\nAndy\nMarty',
+                      6: 'Tsui\nMelvin', 7: 'Ann', 8: 'Denise\nLarry\nBen'},
+            'Lname': {1: 'Garson\nJackson\nGarson\nMcCray',
+                      2: 'Roth\nBenson\nWu\nScott', 3: 'Poe',
+                      4: 'W. Roth\nWinkler',
+                      5: 'Tate\nMorrow\nJackson\nHughes\nBronson',
+                      6: 'Cheung\nPorter', 7: 'Mason',
+                      8: 'Norton\nSmith\nTorres'},
+            'Age': {1: '39\n\n57\n51', 2: '40\n36\n29\n36',
+                    3: '42', 4: '\n52', 5: '\n36', 6: '61\n47',
+                    7: 'nan', 8: '\n59'},
+            'City': {1: '\nToronto\nPerth',
+                     2: 'Toronto\nChicago\nPortland\nNew York',
+                     3: 'Chicago', 4: 'Salt Lake City\nBerlin',
+                     5: 'Kingston\nFt. Lauderdale\n\nNew York\nPerth',
+                     6: 'Hong Kong', 7: 'nan', 8: '\n\nCarbondale'}}
+
+        df = pd.DataFrame(data)
+        explode_lists(df)
+
+                Fname    Lname    Age    City
+         0  Alex     Garson   39
+         1  Chris    Jackson         Toronto
+         2  Ned      Garson   57     Perth
+         3  Amy      McCray   51
+         4  Derrick  Roth     40     Toronto
+         5  Kat      Benson   36     Chicago
+         6  Dorian   Wu       29     Portland
+         7  Lourdes  Scott    36     New York
+
+    Parameters
+    ----------
+    df
+        a pandas dataframe
+    delimitter
+        Default is '\n'. Value used to separate values (within a list)
+    replace_nans
+        Default True. If True, replace 'nan's with ''.
+
+    Returns
+    -------
+    exploded pandas dataframe
+    '''
+    df = _dataframe_copy(df, inplace=False)
+
+    from_ = f'(^{delimitter}|(?<={delimitter}){delimitter})'
+    to_ = f'nan{delimitter}'
+
+    # Convert column row values in column to lists.
+    # Replace 'empty' or 'missing' entry/values with text 'nan' value.
+    for c in df.columns:
+        df[c] = df[c].astype(str).str.replace(from_, to_, regex=True)
+        df[c] = "['" + df[c].str.replace('\n', "', '") + "']"
+        df[c] = df[c].apply(lambda x: eval(x))
+
+    new_rows = []
+
+    for idx, row in df.iterrows():
+        # calculate the max number of items across the row
+        # to determine the number of rows for new records
+        max_rows = max([np.size(row[c]) for c in df.columns])
+
+        for ix in range(max_rows):
+            new_row = {}
+            for c in df.columns:
+                try:
+                    new_row[c] = row[c][ix]
+                except IndexError as _:
+                    new_row[c] = 'nan'
+
+            new_rows.append(new_row)
+
+    df_return = pd.DataFrame(new_rows)
+
+    if replace_nans:
+        df_return = df_return.replace('nan', '')
+
+    return df_return
+
+
 # flatten_names() {{{1
 def flatten_names(df: pd.DataFrame,
                  join_char: str = '_',

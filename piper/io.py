@@ -243,7 +243,9 @@ def read_csvs(source = 'inputs/',
               clean_cols = True,
               encoding = 'latin-1',
               include_file = False,
-              info = False):
+              info = False,
+              *args,
+              **kwargs):
     '''pd.read_csv wrapper function
 
     Parameters
@@ -273,7 +275,7 @@ def read_csvs(source = 'inputs/',
     dataframes = []
 
     for file_ in list_files(source, glob_pattern=glob_pattern, as_posix=False):
-        dx = pd.read_csv(file_.as_posix(), sep=sep)
+        dx = pd.read_csv(file_.as_posix(), sep=sep, *args, **kwargs)
 
         if strip_blanks:
             dx = str_trim(dx)
