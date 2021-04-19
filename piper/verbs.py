@@ -1092,6 +1092,45 @@ def explode_lists(df, delimitter='\n', replace_nans=True):
     return df_return
 
 
+# fillna() {{{1
+def fillna(df: pd.DataFrame,
+         *args,
+         **kwargs) -> pd.DataFrame:
+    '''fillna column(s)
+
+    This is a wrapper function rather than using e.g. df.fillna()
+    For details of args, kwargs - see help(pd.DataFrame.fillna)
+
+    Examples
+    --------
+    .. code-block::
+
+        df <- pd.read_csv('inputs/export.dsv', sep='\t')
+        >> clean_names()
+        >> trim()
+        >> assign(adast = lambda x: x.adast.astype('category'),
+                  adcrcd = lambda x: x.adcrcd.astype('category'),
+                  aduom = lambda x: x.aduom.astype('category'))
+        >> fillna('')
+
+
+    Parameters
+    ----------
+    df
+        dataframe
+    *args
+        arguments for wrapped function
+    **kwargs
+        keyword-parameters for wrapped function
+
+
+    Returns
+    -------
+    A pandas DataFrame
+    '''
+    return df.fillna(*args, **kwargs)
+
+
 # flatten_names() {{{1
 def flatten_names(df: pd.DataFrame,
                  join_char: str = '_',
