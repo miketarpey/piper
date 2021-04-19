@@ -1256,6 +1256,7 @@ def group_by(df: pd.DataFrame,
         kwargs['by'] = index
 
     if len(args) > 0:
+        # print(type(args), args, args[0])
         args_copy[0] = _set_grouper(df, args[0], freq=freq)
 
     df = df.groupby(*args_copy, **kwargs)
@@ -3663,7 +3664,7 @@ def _set_grouper(df: pd.DataFrame,
         return pd.Grouper(key=col)
 
     if isinstance(index, str):
-        return grouper(df, index, freq)
+        return [grouper(df, index, freq)]
 
     if isinstance(index, list):
         return [grouper(df, col, freq) for col in index]
