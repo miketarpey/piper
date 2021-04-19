@@ -6,7 +6,7 @@ from piper.factory import sample_phone_sales
 from piper.factory import sample_sales
 from piper.factory import simple_series
 from piper.verbs import across
-from piper.verbs import adorn
+from piper.verbs import adorn_totals
 from piper.verbs import assign
 from piper.verbs import clean_names
 from piper.verbs import count
@@ -176,13 +176,13 @@ def test_across_list_column_series_values_raise_attr_error(t_sample_data):
                 function=lambda x: x.astype(int), series_obj=False)
 
 
-# test_adorn_row_total {{{1
-def test_adorn_row_total(t_sample_data):
+# test_adorn_totals_row_total {{{1
+def test_adorn_totals_row_total(t_sample_data):
 
     df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum'))
-    df = adorn(df)
+    df = adorn_totals(df)
 
     expected = 73604
     actual = df.loc['All'].values[0]
@@ -190,13 +190,13 @@ def test_adorn_row_total(t_sample_data):
     assert expected == actual
 
 
-# test_adorn_column_total {{{1
-def test_adorn_column_total(t_sample_data):
+# test_adorn_totals_column_total {{{1
+def test_adorn_totals_column_total(t_sample_data):
 
     df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum'))
-    df = adorn(df, axis = 'column')
+    df = adorn_totals(df, axis = 'column')
 
     expected = 8432
     actual = df.loc['Sweden', 'All']
@@ -204,13 +204,13 @@ def test_adorn_column_total(t_sample_data):
     assert expected == actual
 
 
-# test_adorn_with_ignore_row_index {{{1
-def test_adorn_row_with_ignore_row_index(t_sample_data):
+# test_adorn_totals_with_ignore_row_index {{{1
+def test_adorn_totals_row_with_ignore_row_index(t_sample_data):
 
     df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum')).reset_index()
-    df = adorn(df, axis = 'row', ignore_index=True)
+    df = adorn_totals(df, axis = 'row', ignore_index=True)
 
     expected = 'All'
     actual = df.iloc[df.shape[0]-1, 0]
@@ -218,41 +218,41 @@ def test_adorn_row_with_ignore_row_index(t_sample_data):
     assert expected == actual
 
 
-# test_adorn_column_with_column_specified {{{1
-def test_adorn_column_with_column_specified(t_sample_data):
+# test_adorn_totals_column_with_column_specified {{{1
+def test_adorn_totals_column_with_column_specified(t_sample_data):
 
     df = t_sample_data
     df = group_by(df, ['countries'])
     df = summarise(df, total=('values_1', 'sum'))
-    df = adorn(df, columns='total', axis = 'column')
+    df = adorn_totals(df, columns='total', axis = 'column')
 
     expected = 8432
     actual = df.loc['Sweden', 'All']
 
     assert expected == actual
 
-# test_adorn_column_with_column_list_specified {{{1
-def test_adorn_column_with_column_list_specified(t_sample_data):
+# test_adorn_totals_column_with_column_list_specified {{{1
+def test_adorn_totals_column_with_column_list_specified(t_sample_data):
 
     df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_1', 'sum'))
     df = assign(df, total2=lambda x: x.total * 10)
-    df = adorn(df, columns=['total', 'total2'], axis = 'both')
+    df = adorn_totals(df, columns=['total', 'total2'], axis = 'both')
 
     expected = ['total', 'total2', 'All']
     actual = df.columns.tolist()
 
     assert expected == actual
 
-# test_adorn_column_with_column_str_specified {{{1
-def test_adorn_column_with_column_str_specified(t_sample_data):
+# test_adorn_totals_column_with_column_str_specified {{{1
+def test_adorn_totals_column_with_column_str_specified(t_sample_data):
 
     df = t_sample_data
     df = group_by(df, ['countries', 'regions'])
     df = summarise(df, total=('values_1', 'sum'))
     df = assign(df, total2=lambda x: x.total * 10)
-    df = adorn(df, columns='total', axis = 'both')
+    df = adorn_totals(df, columns='total', axis = 'both')
 
     expected = ['total', 'total2', 'All']
     actual = df.columns.tolist()

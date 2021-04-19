@@ -207,11 +207,11 @@ def across(df: pd.DataFrame,
     return df
 
 
-# adorn() {{{1
-def adorn(df: pd.DataFrame,
+# adorn_totals() {{{1
+def adorn_totals(df: pd.DataFrame,
           columns: Union[str, list] = None,
           fillna: Union[str, int] = '',
-          col_row_name: str = 'All',
+          name: str = 'All',
           axis: Union [int, str] = 0,
           ignore_index: bool = False) -> pd.DataFrame:
     '''add totals to a dataframe
@@ -225,7 +225,7 @@ def adorn(df: pd.DataFrame,
     .. code-block::
 
         df = sample_matrix(seed=42)
-        df = adorn(df, ['a', 'c'], axis='row')
+        df = adorn_totals(df, ['a', 'c'], axis='row')
         head(df, 10, tablefmt='plain')
 
                a       b    c       d        e
@@ -247,7 +247,7 @@ def adorn(df: pd.DataFrame,
         2020-09-23  North   Children's Clothing 	14.0      448
 
         g1 = df.groupby(['Type', 'Region']).agg(TotalSales=('Sales', 'sum')).unstack()
-        g1 = adorn(g1, axis='both').astype(int)
+        g1 = adorn_totals(g1, axis='both').astype(int)
         g1 = flatten_names(g1, remove_prefix='TotalSales')
         g1
 
@@ -267,7 +267,7 @@ def adorn(df: pd.DataFrame,
         considered.
     fillna
         fill NaN values (default is '')
-    col_row_name
+    name
         name of row/column title (default 'Total')
     axis
         axis to apply total (values: 0 or 'row', 1 or 'column')
@@ -275,7 +275,6 @@ def adorn(df: pd.DataFrame,
     ignore_index
         default False. When concatenating totals, ignore index in both
         dataframes.
-
 
     Returns
     -------
@@ -297,7 +296,7 @@ def adorn(df: pd.DataFrame,
 
         index_length = len(df.index.names)
         if index_length == 1:
-            row_total = pd.DataFrame(totals, index=[col_row_name])
+            row_total = pd.DataFrame(totals, index=[name])
             df = pd.concat([df, row_total], axis=0, ignore_index=ignore_index)
             if ignore_index:
                 # Place row total name column before first numeric column
@@ -305,10 +304,10 @@ def adorn(df: pd.DataFrame,
                 first_pos = df.columns.get_loc(first_col)
                 if first_pos >= 1:
                     tot_colpos = first_pos - 1
-                    df.iloc[-1, tot_colpos] = col_row_name
+                    df.iloc[-1, tot_colpos] = name
         else:
             total_row = ['' for _ in df.index.names]
-            total_row[index_length - 1] = col_row_name
+            total_row[index_length - 1] = name
             index = tuple(total_row)
 
             for col, total in totals.items():
@@ -324,7 +323,7 @@ def adorn(df: pd.DataFrame,
             if isinstance(columns, str):
                 columns = [columns]
 
-        totals[col_row_name] = df[columns].sum(axis=1)
+        totals[name] = df[columns].sum(axis=1)
 
         df = pd.concat([df, totals], axis=1)
 
@@ -593,7 +592,7 @@ def count(df: pd.DataFrame,
             if percent:
                 cols.append('%')
 
-            p1 = adorn(p1, columns=cols, col_row_name='Total',
+            p1 = adorn_totals(p1, columns=cols, name='Total',
                        ignore_index=reset_index)
 
     if shape:
