@@ -671,7 +671,7 @@ def clean_names(df: pd.DataFrame,
     columns = [x.strip().lower() for x in df.columns]
 
     # Remove special chars at the beginning and end of column names
-    special_chars = r'[\.\*\#\%\$\-\_]+'
+    special_chars = r'[\.\*\#\%\$\-\_\<\>\!]+'
     columns = [re.sub(f'^{special_chars}', '', x) for x in columns]
     columns = [re.sub(f'{special_chars}$', '', x) for x in columns]
 
@@ -696,6 +696,9 @@ def clean_names(df: pd.DataFrame,
 
     # Replace any remaining embedded blanks with single replacement 'to_char' value.
     columns = [re.sub('\s+', to_char, x) for x in columns]
+
+    # Just in case, de-duplicate column names
+    columns = duplicate_names(columns, sep='_', info=False)
 
     if case == 'snake':
         columns = [re.sub(from_char, to_char, x) for x in columns]
@@ -938,6 +941,63 @@ def duplicated(df: pd.DataFrame,
     df = relocate(df, column=column, loc=loc)
 
     return df
+
+
+def duplicate_names(columns: List,
+                    sep: str = '_',
+                    info: bool = True) -> List:
+    ''' identify and de-duplicate dataframe column names
+
+    Examples
+    --------
+
+    .. code-block::
+
+        cols = [
+            'duplicate', 'allocated', 'first_name', 'last_name', 'employee_status',
+            'last_name', 'subject', 'hire_date', 'allocated', 'full_time?',
+            'certification', 'certification', 'certification', 'certification'
+        ]
+
+        expected = [
+            'duplicate', 'allocated', 'first_name', 'last_name', 'employee_status',
+            'last_name_1', 'subject', 'hire_date', 'allocated_1', 'full_time?',
+            'certification', 'certification_1', 'certification_2', 'certification_3'
+        ]
+
+        df = pd.DataFrame(None, columns=cols)
+
+        assert expected == duplicate_names(df.columns.tolist())
+
+    Parameters
+    ----------
+    sep
+        default '_'. Separator used to append suffix number for
+        duplicate column name values.
+
+    Returns
+    -------
+    column names
+
+    '''
+    counts_: Dict = {}
+    names = []
+
+    for col in columns:
+
+        if counts_.get(col) is None:
+            counts_[col] = 0
+        else:
+            counts_[col] += 1
+            new = f'{col}{sep}{counts_[col]}'
+            if info:
+                logger.info(f'|Warning| {duplicate_names.__name__}() >> {col} renamed to {new}')
+
+            col = new
+
+        names.append(col)
+
+    return names
 
 
 # explode() {{{1
@@ -2207,7 +2267,12 @@ def rename(df: pd.DataFrame, *args, **kwargs) -> pd.DataFrame :
     -------
     pandas DataFrame object
     '''
-    return df.rename(*args, **kwargs)
+    df = df.rename(*args, **kwargs)
+
+    # Just in case, de-duplicate column names
+    df.columns = duplicate_names(df.columns, sep='_', info=False)
+
+    return df
 
 
 # rename_axis() {{{1

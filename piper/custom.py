@@ -410,6 +410,9 @@ def from_excel(excel_date: Union[str, float, int, pd.Timestamp]
     if isinstance(excel_date, pd.Timestamp):
         return excel_date
 
+    if isinstance(excel_date, datetime):
+        return excel_date
+
     if isinstance(excel_date, str):
 
         if re.search(r'[\\\/\-]', excel_date):
