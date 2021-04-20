@@ -1069,25 +1069,18 @@ def explode_lists(df, delimitter='\n', replace_nans=True):
 
     .. code-block::
 
-        data = {'Fname': {1: 'Alex\nChris\nNed\nAmy',
-                      2: 'Derrick\nKat\nDorian\nLourdes',
-                      3: 'Marnie', 4: 'Pete\nLevi',
-                      5: 'Aurora\nVernon\nStacia\nAndy\nMarty',
-                      6: 'Tsui\nMelvin', 7: 'Ann', 8: 'Denise\nLarry\nBen'},
-            'Lname': {1: 'Garson\nJackson\nGarson\nMcCray',
-                      2: 'Roth\nBenson\nWu\nScott', 3: 'Poe',
-                      4: 'W. Roth\nWinkler',
-                      5: 'Tate\nMorrow\nJackson\nHughes\nBronson',
-                      6: 'Cheung\nPorter', 7: 'Mason',
-                      8: 'Norton\nSmith\nTorres'},
-            'Age': {1: '39\n\n57\n51', 2: '40\n36\n29\n36',
-                    3: '42', 4: '\n52', 5: '\n36', 6: '61\n47',
-                    7: 'nan', 8: '\n59'},
-            'City': {1: '\nToronto\nPerth',
-                     2: 'Toronto\nChicago\nPortland\nNew York',
-                     3: 'Chicago', 4: 'Salt Lake City\nBerlin',
-                     5: 'Kingston\nFt. Lauderdale\n\nNew York\nPerth',
-                     6: 'Hong Kong', 7: 'nan', 8: '\n\nCarbondale'}}
+        data = {'Fname': {1: 'Alex\\nChris\\nNed\\nAmy', 2: 'Derrick\\nKat\\nDorian\\nLourdes',
+                3: 'Marnie', 4: 'Pete\\nLevi', 5: 'Aurora\\nVernon\\nStacia\\nAndy\\nMarty',
+                6: 'Tsui\\nMelvin', 7: 'Ann', 8: 'Denise\\nLarry\\nBen'},
+                'Lname': {1: 'Garson\\nJackson\\nGarson\\nMcCray',
+                2: 'Roth\\nBenson\\nWu\\nScott', 3: 'Poe', 4: 'W. Roth\\nWinkler',
+                5: 'Tate\\nMorrow\\nJackson\\nHughes\\nBronson', 6: 'Cheung\\nPorter', 7: 'Mason',
+                8: 'Norton\\nSmith\\nTorres'}, 'Age': {1: '39\\n\\n57\\n51', 2: '40\\n36\\n29\\n36',
+                3: '42', 4: '\\n52', 5: '\\n36', 6: '61\\n47', 7: 'nan', 8: '\\n59'},
+                'City': {1: '\\nToronto\\nPerth', 2: 'Toronto\\nChicago\\nPortland\\nNew York',
+                3: 'Chicago', 4: 'Salt Lake City\\nBerlin',
+                5: 'Kingston\\nFt. Lauderdale\\n\\nNew York\\nPerth',
+                6: 'Hong Kong', 7: 'nan', 8: '\\n\\nCarbondale'}}
 
         df = pd.DataFrame(data)
         explode_lists(df)
@@ -1107,7 +1100,7 @@ def explode_lists(df, delimitter='\n', replace_nans=True):
     df
         a pandas dataframe
     delimitter
-        Default is '\n'. Value used to separate values (within a list)
+        Default is '\\n'. Value used to separate values (within a list)
     replace_nans
         Default True. If True, replace 'nan's with ''.
 
@@ -2185,7 +2178,7 @@ def replace_names(df: pd.DataFrame,
 
     .. code-block::
 
-        dict_ = { 'number$': 'nbr', 'revenue per cookie': 'unit revenue', 'cost per cookie': 'unit cost',
+        dict_ = {'number$': 'nbr', 'revenue per cookie': 'unit revenue', 'cost per cookie': 'unit cost',
               'month': 'mth', 'revenue per cookie': 'unit revenue', 'product': 'item', 'year': 'yr'}
 
         cols = ['Country', 'Product', 'Units Sold', 'Revenue per cookie', 'Cost per cookie',

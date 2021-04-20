@@ -40,6 +40,7 @@ column management
    names
    drop
    drop_if
+   duplicate_names
    flatten_names
    relocate
    rename
@@ -55,6 +56,7 @@ data cleaning
 
    distinct
    duplicated
+   fillna
    overlaps
    non_alpha
 
@@ -96,7 +98,7 @@ aggregation
 .. autosummary::
    :toctree: api
 
-   adorn
+   adorn_totals
    group_by
    summarise
    transform
@@ -108,6 +110,7 @@ reshaping data
    :toctree: api
 
    explode
+   explode_lists
    pivot_longer
    pivot_table
    split_dataframe
