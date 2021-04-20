@@ -21,7 +21,8 @@ requirements:
 	pip install -r requirements-dev.txt
 
 docs:
-	make clean
+	make clean && \
+    rm -rf docs/build/ && \
 	rm -rf docs/source/api/ && \
 	  sphinx-autogen docs/source/*.rst && \
 	  python -m sphinx -E "docs/source" "docs/build" -W
