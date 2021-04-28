@@ -671,7 +671,7 @@ def clean_names(df: pd.DataFrame,
     columns = [x.strip().lower() for x in df.columns]
 
     # Remove special chars at the beginning and end of column names
-    special_chars = r'[\.\*\#\%\$\-\_\<\>\!]+'
+    special_chars = r'[\.\*\#\%\$\-\_\<\>\(\)\!\?\£]+'
     columns = [re.sub(f'^{special_chars}', '', x) for x in columns]
     columns = [re.sub(f'{special_chars}$', '', x) for x in columns]
 
