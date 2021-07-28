@@ -3113,6 +3113,75 @@ def str_split(df: pd.DataFrame,
     return df
 
 
+# str_split_auto {{{1
+def str_split_auto(series: pd.Series) -> pd.Series:
+    ''' Split column by automatic/generic delimitter
+
+    Parameters
+    ----------
+    series
+
+    Examples
+    --------
+    An example where the one of the new split column names is the same as the
+    split column.
+
+    .. code-block::
+
+        data = {
+            'names_': {
+                0: 'Ambrose, Genie, Garfield',
+                1: 'Angelique*Levi/Will| Monteil',
+                2: 'Basil-Joao-Artemis-Spencer-Larissa',
+                3: 'Cella/Gregor',
+                4: 'Emil, Salome, Raleigh, Alf, KC',
+                5: 'James, Phil, Danielle',
+                6: 'Jerry | Pete | Jordan | Craig',
+                7: 'Lourdes, Natalie, Gabe',
+                8: 'Millie, Rachel, Clyde, Alfonse',
+                9: 'Nathan/Kelly/Mona/Cosmo',
+                10: 'Nick+Ricardo+Eisle+TJ+Brandy+Bob',
+                11: 'Phyllis | Omari | Trey & Noia | Grace',
+                12: 'Rick/Helena*Nikki/Wade*Amy/Garth',
+                13: 'Skipper+Jenny',
+                14: 'Sylvester/Martin/Ada',
+                15: 'Porter, James',
+                16: 'Dave',
+                17: '   Maureen, Alan | Stevie; Stuff',
+                18: '       A'
+            }
+        }
+        dx = pd.DataFrame(data)
+        dx = pd.concat([dx, str_split_columns(dx.names_)], axis=1)
+        dx.columns = [f'Name{x}' for x in range(1, dx.shape[1]+1)]
+        dx
+
+    Returns
+    -------
+    pd.Series
+
+    '''
+    # Uniquely identify ALL 'delimitters' found in the series passed
+    # by removing all letters, numbers (and funny chars).
+    delimitters = (series.str.replace('[\w\s\ã]','', regex=True)
+                         .apply(lambda x: set(x))
+                         .apply(lambda x: x if x != set() else np.nan)
+                         .dropna())
+
+    if delimitters.shape[0] == 0:
+        return series
+
+    # Re-format delimitters into a regex list of characters
+    delimitters = '[\\' + '\\'.join(delimitters.explode().unique()) + ']'
+
+    unique_delimitter = '!!'
+
+    return (series.str.replace(delimitters, unique_delimitter, regex=True)
+           .str.replace('\s', '', regex=True)
+           .str.split(unique_delimitter, expand=True)
+           .fillna(''))
+
+
 # str_squish() {{{1
 def str_squish(df: pd.DataFrame, str_columns: list = None) -> pd.DataFrame:
     '''reduce repeated whitespace inside a string.

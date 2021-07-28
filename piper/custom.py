@@ -507,8 +507,6 @@ def ratio(value1: Union[int, float, pd.Series],
         London    Jeans       2021-01-01        37524       40901.2       1.09   109.0%
         London    Sportswear  2021-01-01        27216       29121.1       1.07   107.0%
 
-
-
     '''
     if isinstance(value1, pd.Series):
 
