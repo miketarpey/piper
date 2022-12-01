@@ -78,6 +78,7 @@ string functions
    str_clean_number
    str_join
    str_split
+   str_split_auto
    str_squish
    str_trim
 
